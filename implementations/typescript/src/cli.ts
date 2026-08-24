@@ -10,7 +10,7 @@ import { mapAssessmentToControls } from "./control-mapping.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspector.js";
 import { normalizeAuditEvent } from "./normalize.js";
-import { exportOscalAssessmentResults, type OscalExportRequest } from "./oscal.js";
+import { exportOscalAssessmentResults } from "./oscal.js";
 import { redactAuditEvent } from "./redact.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
@@ -95,7 +95,7 @@ function usage(): never {
     "  auditspec verify-remediation <base.json> <head.json> [fingerprint ...]",
     "  auditspec map-controls <assessment.json> <mapping-profile.json>",
     "  auditspec query-evidence <assessment.json> [--kind K] [--rule R] [--path P] [--confidence C] [--source boundary|finding]",
-    "  auditspec export-oscal <assessment.json> <assessment-plan-href> [--title T] [--version V]",
+    "  auditspec export-oscal <assessment.json> <request.json>",
     "",
   ].join("\n"));
   process.exit(2);
@@ -236,15 +236,11 @@ async function main(): Promise<void> {
 
   if (command === "export-oscal") {
     const assessmentPath = args[1];
-    const assessmentPlanHref = args[2];
-    if (!assessmentPath || !assessmentPlanHref) usage();
+    const requestPath = args[2];
+    if (!assessmentPath || !requestPath) usage();
     const assessment = readJson(assessmentPath);
+    const request = readJson(requestPath);
     assertAssessmentReport(assessment);
-    const request: OscalExportRequest = {
-      assessment_plan_href: assessmentPlanHref,
-      ...(optionValue(args, "--title") ? { title: optionValue(args, "--title") } : {}),
-      ...(optionValue(args, "--version") ? { version: optionValue(args, "--version") } : {}),
-    };
     assertOscalExportRequest(request);
     print(exportOscalAssessmentResults(assessment, request));
     return;
