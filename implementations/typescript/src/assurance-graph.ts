@@ -379,7 +379,6 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
           id: stableId("node", `${language}:${path}:${scope.id}:${scope.qualified_name}`),
           kind: "scope",
           language,
-          ...(language === "ruby" ? { framework: "rails" as const } : { framework: "frappe" as const }),
           name: scope.name,
           qualified_name: scope.qualified_name,
           location: { path, line: scope.start_line, column: scope.start_column },
