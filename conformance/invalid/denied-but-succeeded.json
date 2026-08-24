@@ -1,0 +1,17 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_invalid_denied_succeeded",
+  "source": "urn:example:billing",
+  "actor": { "type": "user", "id": "usr_42" },
+  "action": "invoice.delete",
+  "targets": [
+    { "type": "invoice", "id": "INV-0042" }
+  ],
+  "authorization": {
+    "decision": "denied",
+    "reason": "missing_scope"
+  },
+  "result": { "status": "succeeded" },
+  "occurred_at": "2026-08-24T15:09:00Z",
+  "recorded_at": "2026-08-24T15:09:00.002Z"
+}
