@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes the same validation, Inspector, Assurance Graph, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes the same validation, Inspector, Assurance Graph, topology diff, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -27,10 +27,11 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 - `auditspec.validate_agent_profile` - validate Agent Profile data.
 - `auditspec.inspect` - inspect a local repository and return an Assessment Report.
 - `auditspec.build_assurance_graph` - build a conservative cross-file static Assurance Graph with supported framework dispatch edges.
+- `auditspec.diff_assurance_graphs` - compare two repository graphs and report topology changes such as new entrypoints, framework dispatches, and mutation paths.
 - `auditspec.find_assurance_path` - return the best resolved assurance path for a repository-relative source location.
 - `auditspec.get_findings` - return compact findings, optionally filtered by rule.
 - `auditspec.explain_gap` - explain a stable Inspector rule.
-- `auditspec.diff_assessments` - compare base/head reports using finding fingerprints.
+- `auditspec.diff_assessments` - compare base/head reports using finding and boundary fingerprints, including reachability deltas.
 - `auditspec.plan_remediation` - create a structured remediation plan without modifying source.
 - `auditspec.verify_remediation` - verify requested finding fingerprints against a later assessment.
 - `auditspec.map_controls` - map evidence/findings to external controls without pass/fail claims.
@@ -51,6 +52,11 @@ agent
   |       |
   |       v
   |    calls + route/hook/job/queue dispatch + unresolved calls
+  |
+  +--> auditspec.diff_assurance_graphs
+  |       |
+  |       v
+  |    new entrypoints + dispatches + mutation paths
   |
   +--> auditspec.find_assurance_path
   |       |
@@ -96,9 +102,11 @@ The Assurance Graph is static-source evidence. It deliberately leaves ambiguous 
 
 Supported framework provenance currently includes explicit Rails routes, ActiveJob/Sidekiq dispatch, Frappe whitelisted functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets. Framework edges retain their declaration/call locations so agents can explain why a path exists.
 
-This separation lets an agent ask why a mutation is considered covered and inspect the exact resolved path without turning repository-wide coincidence into evidence.
+`auditspec.diff_assurance_graphs` is deliberately separate from Assessment Diff. It compares architecture topology by stable semantic identities rather than source line numbers. A new route to an existing mutation can therefore appear as a new topology path even when the mutation source and its existing finding fingerprint did not change.
 
-See `docs/assurance-graph.md` for the contract and confidence model.
+This separation lets an agent ask both why a mutation is considered covered and how application exposure changed across a patch without turning repository-wide coincidence into evidence.
+
+See `docs/assurance-graph.md` for the graph, topology-diff, and confidence contracts.
 
 ## OSCAL boundary
 
@@ -120,6 +128,7 @@ The MCP server deliberately does not modify source code in v0.1. Assessment/evid
 
 - richer Rails `resources`, namespaces, callbacks and generated dispatch
 - richer Frappe dynamic hooks and `enqueue(method=...)` resolution
+- privileged-path and authorization-bypass topology analysis
 - message-bus/RPC edges
 - runtime/OTel evidence ingestion and graph correlation
 - official OSCAL schema validation in conformance
