@@ -13,9 +13,13 @@
     "new_findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
     "resolved_findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
     "unchanged_findings": { "type": "integer", "minimum": 0 },
-    "coverage": { "$ref": "#/$defs/coverage" }
+    "coverage": { "$ref": "#/$defs/coverage" },
+    "reachability": { "$ref": "#/$defs/reachabilityDiff" }
   },
   "$defs": {
+    "confidence": {
+      "enum": ["certain", "high", "medium", "low"]
+    },
     "endpoint": {
       "type": "object",
       "additionalProperties": false,
@@ -32,7 +36,8 @@
       "required": ["path"],
       "properties": {
         "path": { "type": "string", "minLength": 1 },
-        "line": { "type": "integer", "minimum": 1 }
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
       }
     },
     "finding": {
@@ -44,7 +49,7 @@
         "rule_id": { "type": "string", "pattern": "^AS-[A-Z]+-[0-9]{3}$" },
         "title": { "type": "string", "minLength": 1 },
         "severity": { "enum": ["info", "warning", "error"] },
-        "confidence": { "enum": ["certain", "high", "medium", "low"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
         "location": { "$ref": "#/$defs/location" }
       }
     },
@@ -56,6 +61,59 @@
         "base": { "type": "number", "minimum": 0, "maximum": 1 },
         "head": { "type": "number", "minimum": 0, "maximum": 1 },
         "delta": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
+    "entrypoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "qualified_name"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "qualified_name": { "type": "string", "minLength": 1 },
+        "framework": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "boundaryReachability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "confidence"],
+      "properties": {
+        "status": { "enum": ["reachable", "unknown"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "entrypoint": { "$ref": "#/$defs/entrypoint" },
+        "path": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "kind", "operation", "audit_status", "confidence", "location", "reachability"],
+      "properties": {
+        "fingerprint": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["mutation", "authorization", "agent", "tool", "export", "access"] },
+        "framework": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "minLength": 1 },
+        "audit_status": { "enum": ["covered", "partial", "uncovered", "unknown"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "location": { "$ref": "#/$defs/location" },
+        "reachability": { "$ref": "#/$defs/boundaryReachability" }
+      }
+    },
+    "reachabilityDiff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_reachable", "head_reachable", "delta", "newly_reachable", "no_longer_statically_reachable", "unchanged_reachable"],
+      "properties": {
+        "base_reachable": { "type": "integer", "minimum": 0 },
+        "head_reachable": { "type": "integer", "minimum": 0 },
+        "delta": { "type": "integer" },
+        "newly_reachable": { "type": "array", "items": { "$ref": "#/$defs/boundary" } },
+        "no_longer_statically_reachable": { "type": "array", "items": { "$ref": "#/$defs/boundary" } },
+        "unchanged_reachable": { "type": "integer", "minimum": 0 }
       }
     }
   }
