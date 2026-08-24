@@ -1,0 +1,20 @@
+{
+  "result_version": "0.1",
+  "generated_at": "2026-08-24T20:00:00Z",
+  "framework": { "id": "nist-sp800-53", "version": "5.2.0" },
+  "source_assessment": { "subject_path": "/repo", "generated_at": "2026-08-24T19:00:00Z" },
+  "controls": [
+    {
+      "control_id": "AU-2",
+      "relations": [
+        {
+          "rule_id": "AS-AUDIT-001",
+          "relation": "passed",
+          "rationale": "AuditSpec mapping output cannot assert control pass/fail.",
+          "finding_fingerprints": ["fp_1"]
+        }
+      ]
+    }
+  ],
+  "caveat": "Mappings express evidence relevance only."
+}
