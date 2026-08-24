@@ -15,6 +15,7 @@ export type RuntimeEvidenceTrust = "authoritative" | "attributed" | "self_report
 export type RuntimeEvidenceCoverage = "point" | "sampled" | "window" | "exhaustive";
 export type RuntimeEvidenceState = "observed" | "not_observed" | "contradicted";
 export type CorroborationRelation = "supports" | "contradicts" | "inconclusive";
+export type RuntimeProducerType = "application" | "database" | "collector" | "proxy" | "kernel" | "agent" | "external";
 
 export interface RuntimeEvidenceRecord {
   record_version: "0.1";
@@ -22,7 +23,7 @@ export interface RuntimeEvidenceRecord {
   kind: RuntimeEvidenceKind;
   producer: {
     name: string;
-    type: "application" | "database" | "collector" | "proxy" | "kernel" | "agent" | "external";
+    type: RuntimeProducerType;
     version?: string;
     instance?: string;
   };
@@ -48,6 +49,14 @@ export interface RuntimeEvidenceRecord {
 
 export interface RuntimeCorroborationMatch {
   evidence_id: string;
+  evidence_kind: RuntimeEvidenceKind;
+  producer: {
+    name: string;
+    type: RuntimeProducerType;
+    version?: string;
+    instance?: string;
+  };
+  observed_at: string;
   boundary_fingerprint?: string;
   finding_fingerprint?: string;
   relation: CorroborationRelation;
@@ -132,6 +141,9 @@ export function corroborateAssessment(
     const { relation, rationale } = relationFor(record);
     matches.push({
       evidence_id: record.id,
+      evidence_kind: record.kind,
+      producer: { ...record.producer },
+      observed_at: record.observed_at,
       ...(boundaryMatch ? { boundary_fingerprint: boundaryFingerprint } : {}),
       ...(findingMatch ? { finding_fingerprint: findingFingerprint } : {}),
       relation,
@@ -159,7 +171,7 @@ export function corroborateAssessment(
       "Runtime corroboration is reported separately and does not rewrite the source Assessment Report or its static coverage score.",
       "v0.1 matches stable boundary/finding fingerprints only; trace/session correlation without an explicit target remains unmatched.",
       "Finding-target evidence requires an explicit assessment_relation because raw observation state alone cannot determine the polarity of an arbitrary finding claim.",
-      "Producer trust and observation coverage are preserved as evidence attributes rather than collapsed into one confidence score.",
+      "Producer identity, evidence kind, observation time, trust, and observation coverage remain explicit rather than being collapsed into one confidence score.",
     ],
   };
 }
