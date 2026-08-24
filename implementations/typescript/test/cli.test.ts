@@ -80,3 +80,54 @@ test("CLI builds and queries an Assurance Graph", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("CLI reports Assurance Graph topology changes", () => {
+  const base = mkdtempSync(join(tmpdir(), "auditspec-cli-graph-base-"));
+  const head = mkdtempSync(join(tmpdir(), "auditspec-cli-graph-head-"));
+  try {
+    for (const root of [base, head]) mkdirSync(join(root, "app/services"), { recursive: true });
+    writeFileSync(
+      join(base, "app/services/refund_service.rb"),
+      [
+        "class RefundService",
+        "  def self.call(refund)",
+        "    refund.update!(status: 'refunded')",
+        "  end",
+        "end",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(head, "app/services/refund_service.rb"),
+      [
+        "class RefundService",
+        "  def self.call(refund)",
+        "    refund.update!(status: 'refunded')",
+        "  end",
+        "end",
+      ].join("\n"),
+    );
+    mkdirSync(join(head, "app/controllers"), { recursive: true });
+    mkdirSync(join(head, "config"), { recursive: true });
+    writeFileSync(join(head, "config/routes.rb"), "post '/refunds/:id', to: 'refunds#perform'\n");
+    writeFileSync(
+      join(head, "app/controllers/refunds_controller.rb"),
+      [
+        "class RefundsController < ApplicationController",
+        "  def perform",
+        "    RefundService.call(refund)",
+        "  end",
+        "end",
+      ].join("\n"),
+    );
+
+    const result = run("graph-diff", base, head);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /"diff_version": "0.1"/);
+    assert.match(result.stdout, /"new_entrypoints"/);
+    assert.match(result.stdout, /"new_mutation_paths"/);
+    assert.match(result.stdout, /RefundService#call/);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+    rmSync(head, { recursive: true, force: true });
+  }
+});
