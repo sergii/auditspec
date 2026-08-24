@@ -11,6 +11,12 @@ interface CandidatePath {
   edgeConfidences: Array<"high" | "medium">;
 }
 
+export interface AssurancePathSet {
+  paths: AssurancePathEvidence[];
+  truncated: boolean;
+  max_paths: number;
+}
+
 function nodeForLocation(graph: AssuranceGraph, location: SourceLocation): AssuranceGraphNode | undefined {
   if (!location.line) return undefined;
   return graph.nodes
@@ -49,9 +55,9 @@ export function findAssurancePaths(
   location: SourceLocation,
   maxDepth = 8,
   maxPaths = 64,
-): AssurancePathEvidence[] {
+): AssurancePathSet {
   const target = nodeForLocation(graph, location);
-  if (!target) return [];
+  if (!target) return { paths: [], truncated: false, max_paths: maxPaths };
 
   const byId = new Map(graph.nodes.map((node) => [node.id, node]));
   const incoming = new Map<string, AssuranceGraphEdge[]>();
@@ -62,12 +68,16 @@ export function findAssurancePaths(
   }
 
   const candidates: CandidatePath[] = [];
+  let truncated = false;
   const visit = (
     current: string,
     reversedIds: string[],
     confidences: Array<"high" | "medium">,
   ): void => {
-    if (candidates.length >= maxPaths) return;
+    if (candidates.length >= maxPaths) {
+      truncated = true;
+      return;
+    }
     const node = byId.get(current);
     if (!node) return;
 
@@ -85,7 +95,10 @@ export function findAssurancePaths(
     for (const edge of predecessors) {
       if (reversedIds.includes(edge.from)) continue;
       visit(edge.from, [...reversedIds, edge.from], [...confidences, edge.confidence]);
-      if (candidates.length >= maxPaths) break;
+      if (candidates.length >= maxPaths) {
+        if (predecessors.at(-1) !== edge) truncated = true;
+        break;
+      }
     }
   };
 
@@ -99,9 +112,11 @@ export function findAssurancePaths(
     unique.set(value.node_ids.join("->"), value);
   }
 
-  return [...unique.values()].sort((a, b) => {
+  const paths = [...unique.values()].sort((a, b) => {
     const entrypointDelta = Number(b.roles.includes("entrypoint")) - Number(a.roles.includes("entrypoint"));
     if (entrypointDelta !== 0) return entrypointDelta;
     return a.qualified_names.join("->").localeCompare(b.qualified_names.join("->"));
   });
+
+  return { paths, truncated, max_paths: maxPaths };
 }
