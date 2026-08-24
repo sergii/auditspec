@@ -1,0 +1,8 @@
+{
+  "assessment_plan_href": "./assessment-plan.json",
+  "title": "AuditSpec example assessment",
+  "description": "Static source assessment exported to OSCAL without a compliance assertion.",
+  "version": "0.1",
+  "start": "2026-08-24T16:45:00Z",
+  "end": "2026-08-24T16:46:00Z"
+}
