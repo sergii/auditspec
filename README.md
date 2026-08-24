@@ -88,12 +88,15 @@ This repository is an early `v0.1` working draft. Breaking changes are still exp
 ## Repository map
 
 - `SPEC.md` - normative v0.1 working specification.
-- `schema/` - JSON Schema and canonical examples.
+- `schema/` - JSON Schema and canonical examples, including Assessment Report and Assessment Diff contracts.
 - `spec/` - focused design notes.
 - `conformance/` - valid and invalid vectors shared by implementations.
 - `tools/conformance/` - executable validator and container runner.
 - `implementations/` - language-level reference implementations.
-- `frameworks/` - framework integration examples.
+- `frameworks/` - framework adapters and integration guidance.
+- `docs/inspector.md` - system assessment model.
+- `docs/github-action.md` - advisory PR ratchet integration.
+- `docs/mcp.md` - MCP server and agent-facing tools.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.
 - `WORKING_NOTES.md` - temporary v0.1 design backlog; intended to be removed or promoted before release.
@@ -111,6 +114,61 @@ Or:
 docker build -f tools/conformance/Dockerfile -t auditspec-conformance .
 docker run --rm auditspec-conformance
 ```
+
+## Inspector
+
+The TypeScript reference includes the first executable Inspector. Current adapters are deliberately heuristic and preserve uncertainty rather than claiming full program understanding.
+
+```bash
+cd implementations/typescript
+npm install
+npm run build
+node dist/cli.js inspect ../.. --json
+```
+
+Initial adapters:
+
+- Rails
+- Frappe / ERPNext
+
+The canonical output is `schema/assessment-report.schema.json` and includes discovered boundaries, evidence, findings, confidence, and coverage.
+
+## GitHub Action
+
+AuditSpec can run as a non-blocking PR ratchet. Existing findings remain visible in summary while inline warnings focus on gaps newly introduced by the pull request.
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+
+  - uses: sergii/auditspec@v0.1
+    with:
+      baseline: auto
+```
+
+The Action runs inside the repository's GitHub Actions runner; source code does not need to be uploaded to an AuditSpec service.
+
+## MCP server
+
+The same Inspector and validators are exposed through a local MCP v2 stdio server:
+
+```bash
+cd implementations/typescript
+npm install
+npm run build
+npm run mcp
+```
+
+Initial tools:
+
+- `auditspec.validate_event`
+- `auditspec.validate_agent_profile`
+- `auditspec.inspect`
+- `auditspec.get_findings`
+- `auditspec.explain_gap`
+- `auditspec.diff_assessments`
+
+The MCP surface does not write source code in v0.1. Coding agents can use findings and remediation guidance, make changes through their own authorized tools, and then re-run the Inspector to verify the result.
 
 ## Design principles
 
