@@ -7,6 +7,7 @@ import type {
   AssessmentFinding,
   SourceLocation,
 } from "./assessment-types.js";
+import { findAstCalls, type AstCallCandidate } from "./ast-calls.js";
 
 const SKIP_DIRECTORIES = new Set([
   ".git",
@@ -21,11 +22,10 @@ const SKIP_DIRECTORIES = new Set([
   "venv",
 ]);
 
-const AUDIT_RE = /\b(?:AuditSpec|auditspec)\.(?:emit|record)\s*\(|\bemit_audit\s*\(/;
-const AUTHORIZATION_RE = /\bfrappe\.has_permission\s*\(|\bfrappe\.only_for\s*\(|\.check_permission\s*\(|\bfrappe\.get_roles\s*\(|\bPermissionError\b/;
+const AUDIT_RE = /\b(?:AuditSpec|auditspec)\.(?:emit|record)\b|\bemit_audit\b/;
+const AUTHORIZATION_METHODS = new Set(["has_permission", "only_for", "check_permission", "get_roles"]);
 const FRAPPE_CONTEXT_RE = /\bimport\s+frappe\b|\bfrom\s+frappe\b|\bfrappe\.get_doc\s*\(|\bDocument\b/;
-const DOC_MUTATION_RE = /\.\s*(save|insert|submit|cancel|delete)\s*\(/;
-const BYPASS_RE = /ignore_permissions\s*=\s*True|\.db_(set|insert|update)\s*\(|\bfrappe\.db\.(set_value|update|bulk_update|delete|truncate)\s*\(/;
+const DOCUMENT_MUTATIONS = new Set(["save", "insert", "submit", "cancel", "delete"]);
 
 function stableId(prefix: string, value: string): string {
   const digest = createHash("sha256").update(value).digest("hex").slice(0, 12);
@@ -69,28 +69,25 @@ async function collectPythonFiles(root: string, directory = root, output: string
   return output;
 }
 
-function detectMutation(line: string): { operation: string; direct: boolean; irreversible: boolean } | null {
-  const frappeDb = line.match(/\bfrappe\.db\.(set_value|update|bulk_update|delete|truncate)\s*\(/);
-  if (frappeDb?.[1]) {
+function detectMutation(call: AstCallCandidate): { operation: string; direct: boolean; irreversible: boolean } | null {
+  if (/^frappe\.db\.(set_value|update|bulk_update|delete|truncate)$/.test(call.callee)) {
     return {
-      operation: `frappe.db.${frappeDb[1]}`,
+      operation: call.callee,
       direct: true,
-      irreversible: frappeDb[1] === "truncate",
+      irreversible: call.callee === "frappe.db.truncate",
     };
   }
 
-  if (/\bfrappe\.delete_doc\s*\(/.test(line)) {
+  if (call.callee === "frappe.delete_doc") {
     return { operation: "frappe.delete_doc", direct: true, irreversible: false };
   }
 
-  const dbMethod = line.match(/\.db_(set|insert|update)\s*\(/);
-  if (dbMethod?.[1]) {
-    return { operation: `db_${dbMethod[1]}`, direct: true, irreversible: false };
+  if (["db_set", "db_insert", "db_update"].includes(call.method)) {
+    return { operation: call.method, direct: true, irreversible: false };
   }
 
-  const docMutation = line.match(DOC_MUTATION_RE);
-  if (docMutation?.[1]) {
-    return { operation: docMutation[1], direct: false, irreversible: false };
+  if (DOCUMENT_MUTATIONS.has(call.method)) {
+    return { operation: call.method, direct: false, irreversible: false };
   }
 
   return null;
@@ -118,7 +115,7 @@ function finding(
     message,
     location,
     boundary_id: boundaryId,
-    evidence: [{ kind: "source_match", detail: evidenceDetail, location }],
+    evidence: [{ kind: "ast_analysis", detail: evidenceDetail, location }],
     remediation: { summary: remediation },
   };
 }
@@ -128,6 +125,7 @@ export interface FrappeInspectionResult {
   frameworkEvidence: string[];
   boundaries: AssessmentBoundary[];
   findings: AssessmentFinding[];
+  astFailures: number;
 }
 
 export async function inspectFrappeRepository(root: string): Promise<FrappeInspectionResult> {
@@ -135,6 +133,7 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
   const frameworkEvidence: string[] = [];
   const boundaries: AssessmentBoundary[] = [];
   const findings: AssessmentFinding[] = [];
+  let astFailures = 0;
 
   for (const absolutePath of files) {
     const content = await readText(absolutePath);
@@ -152,23 +151,30 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
 
     if (!frappeContext) continue;
 
-    const hasAudit = AUDIT_RE.test(content);
-    const hasAuthorization = AUTHORIZATION_RE.test(content);
-    const lines = content.split(/\r?\n/);
+    const scan = findAstCalls(content, "python");
+    if (!scan.parsed) {
+      astFailures += 1;
+      continue;
+    }
 
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index];
-      if (line === undefined) continue;
+    const hasAudit = scan.calls.some((call) => AUDIT_RE.test(call.callee));
+    const hasAuthorization = scan.calls.some((call) => AUTHORIZATION_METHODS.has(call.method));
+    const seen = new Set<string>();
 
-      const mutation = detectMutation(line);
+    for (const call of scan.calls) {
+      const mutation = detectMutation(call);
       if (!mutation) continue;
 
       const { operation, direct, irreversible } = mutation;
-      const location: SourceLocation = { path, line: index + 1 };
-      const boundaryId = stableId("boundary", `${path}:${index + 1}:frappe:${operation}`);
-      const sourceIdentity = `${path}:frappe:${operation}:${line.trim()}`;
+      const dedupeKey = `${call.line}:${call.column}:${operation}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      const location: SourceLocation = { path, line: call.line, column: call.column };
+      const boundaryId = stableId("boundary", `${path}:${call.line}:${call.column}:frappe:${operation}`);
+      const sourceIdentity = `${path}:frappe:${operation}:${call.text.replace(/\s+/g, " ").trim()}`;
       const auditStatus: AssessmentBoundary["audit_status"] = hasAudit ? "partial" : "uncovered";
-      const confidence: AssessmentBoundary["confidence"] = direct ? "high" : "medium";
+      const confidence: AssessmentBoundary["confidence"] = "high";
 
       boundaries.push({
         id: boundaryId,
@@ -180,10 +186,10 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
         confidence,
         evidence: [
           {
-            kind: "source_match",
+            kind: "ast_call",
             detail: direct
-              ? `Detected direct Frappe database mutation ${operation}`
-              : `Detected Frappe document mutation .${operation}()`,
+              ? `Tree-sitter AST detected direct Frappe database mutation ${operation}`
+              : `Tree-sitter AST detected Frappe document mutation .${operation}()`,
             location,
           },
         ],
@@ -194,28 +200,29 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
           finding(
             "AS-AUDIT-001",
             "Unaudited mutation boundary",
-            confidence,
-            `Detected Frappe mutation ${operation} without a visible AuditSpec emission marker in the same source file.`,
+            "medium",
+            `Detected Frappe mutation ${operation} without a visible AuditSpec emission call in the same source file.`,
             location,
             boundaryId,
             sourceIdentity,
-            `No AuditSpec/auditspec emission marker found in ${path}`,
+            `AST confirms ${operation}; no AuditSpec/auditspec emission call found in ${path}`,
             "Emit a semantic AuditSpec event at the Frappe service/controller boundary that owns this mutation while preserving native Version and Access Log behavior.",
           ),
         );
       }
 
-      if (BYPASS_RE.test(line) && !hasAuthorization) {
+      const bypass = direct || /ignore_permissions\s*=\s*True/.test(call.text);
+      if (bypass && !hasAuthorization) {
         findings.push(
           finding(
             "AS-AUTH-001",
             "Permission-bypassing mutation without visible authorization evidence",
             "medium",
-            "This Frappe mutation uses a path that can bypass normal ORM hooks or permission checks, but no explicit authorization evidence is visible in the same source file.",
+            "This AST-confirmed Frappe mutation uses a direct or permission-bypassing path, but no explicit authorization call is visible in the same source file.",
             location,
             boundaryId,
             sourceIdentity,
-            `Bypass/direct database marker found near ${operation}; no has_permission/only_for/check_permission marker found in ${path}`,
+            `Direct/bypass mutation ${operation}; no has_permission/only_for/check_permission call found in ${path}`,
             "Make the authorization decision explicit and audit it when the operation is privileged. Avoid permission bypass or direct DB mutation unless the boundary is intentionally controlled.",
           ),
         );
@@ -231,7 +238,7 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
             location,
             boundaryId,
             sourceIdentity,
-            `Detected irreversible ${operation} boundary`,
+            `AST detected irreversible ${operation} boundary`,
             "Treat this as a special audit boundary. Record intent before execution and durable completion/failure evidence after execution; do not claim normal transaction atomicity.",
           ),
         );
@@ -245,5 +252,6 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
     frameworkEvidence: uniqueEvidence,
     boundaries,
     findings,
+    astFailures,
   };
 }

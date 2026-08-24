@@ -23,6 +23,9 @@
     "mcp": "node dist/mcp-server.js"
   },
   "dependencies": {
+    "@ast-grep/lang-python": "0.0.6",
+    "@ast-grep/lang-ruby": "0.0.7",
+    "@ast-grep/napi": "0.45.2",
     "@modelcontextprotocol/server": "2.0.0",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",

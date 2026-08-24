@@ -24,8 +24,9 @@ def activate(name):
 
   const report = await inspectRepository(root);
   assert.ok(report.frameworks.some((framework) => framework.name === "frappe"));
-  assert.ok(report.inspector.adapters.includes("frappe-heuristic-v0.1"));
+  assert.ok(report.inspector.adapters.includes("frappe-ast-assisted-v0.1"));
   assert.ok(report.findings.some((finding) => finding.rule_id === "AS-AUDIT-001"));
+  assert.equal(report.boundaries[0]?.evidence?.[0]?.kind, "ast_call");
   assert.equal(validateAssessmentReport(report).valid, true);
 });
 
@@ -75,4 +76,16 @@ def clear_logs():
   const report = await inspectRepository(root);
   const atomicity = report.findings.find((finding) => finding.rule_id === "AS-ATOMIC-001");
   assert.equal(atomicity?.confidence, "certain");
+});
+
+test("Inspector ignores mutation-looking Python comments", async () => {
+  const root = await makeFrappeRepo(`
+import frappe
+
+def noop():
+    # frappe.db.delete("ToDo", {})
+    return "frappe.db.set_value('Project', 'X', 'status', 'Fake')"
+`);
+  const report = await inspectRepository(root);
+  assert.equal(report.boundaries.length, 0);
 });

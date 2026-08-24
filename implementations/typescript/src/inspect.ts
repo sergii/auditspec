@@ -8,6 +8,7 @@ import type {
   AssessmentReport,
   SourceLocation,
 } from "./assessment-types.js";
+import { findAstCalls, type AstCallCandidate } from "./ast-calls.js";
 import { inspectFrappeRepository } from "./frappe-inspect.js";
 
 const SKIP_DIRECTORIES = new Set([
@@ -23,10 +24,24 @@ const SKIP_DIRECTORIES = new Set([
   "vendor",
 ]);
 
-const MUTATION_RE = /\.\s*(save!|update!|update|destroy!|destroy|create!|create|delete|delete_all|destroy_all|update_all|insert_all|upsert_all)(?=\s|\(|$)/;
+const MUTATION_METHODS = new Set([
+  "save!",
+  "update!",
+  "update",
+  "destroy!",
+  "destroy",
+  "create!",
+  "create",
+  "delete",
+  "delete_all",
+  "destroy_all",
+  "update_all",
+  "insert_all",
+  "upsert_all",
+]);
 const AUDIT_RE = /\bAuditSpec\.(?:emit!?|record!?)\b/;
-const TRANSACTION_RE = /(?:ApplicationRecord|ActiveRecord::Base)\.transaction\b|\btransaction\s+do\b/;
-const AUTHORIZATION_RE = /\bauthorize(?:\s|\()|\bpolicy_scope\b|\bPundit\b|\ballowed_to\?\b|\bcan\?\b/;
+const TRANSACTION_RE = /(?:ApplicationRecord|ActiveRecord::Base)\.transaction\b|\btransaction\b/;
+const AUTHORIZATION_METHODS = new Set(["authorize", "policy_scope", "allowed_to?", "can?"]);
 const PRIVILEGED_RE = /\b(delete|destroy|refund|approve|role|permission|impersonat\w*|grant|revoke|cancel)\b/i;
 
 function stableId(prefix: string, value: string): string {
@@ -105,36 +120,48 @@ function finding(
     message,
     location,
     boundary_id: boundaryId,
-    evidence: [{ kind: "source_match", detail: evidenceDetail, location }],
+    evidence: [{ kind: "ast_analysis", detail: evidenceDetail, location }],
     remediation: { summary: remediation },
   };
 }
 
-async function inspectRails(root: string): Promise<{ boundaries: AssessmentBoundary[]; findings: AssessmentFinding[] }> {
+function uniqueMutationCalls(calls: AstCallCandidate[]): AstCallCandidate[] {
+  const seen = new Set<string>();
+  return calls.filter((call) => {
+    if (!MUTATION_METHODS.has(call.method)) return false;
+    const key = `${call.line}:${call.column}:${call.method}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function inspectRails(root: string): Promise<{ boundaries: AssessmentBoundary[]; findings: AssessmentFinding[]; astFailures: number }> {
   const boundaries: AssessmentBoundary[] = [];
   const findings: AssessmentFinding[] = [];
   const files = await collectRubyFiles(root);
+  let astFailures = 0;
 
   for (const absolutePath of files) {
     const content = await readText(absolutePath);
     if (content === null || content.length > 1_000_000) continue;
 
     const path = repoPath(root, absolutePath);
-    const hasAudit = AUDIT_RE.test(content);
-    const hasTransaction = TRANSACTION_RE.test(content);
-    const hasAuthorization = AUTHORIZATION_RE.test(content);
-    const lines = content.split(/\r?\n/);
+    const scan = findAstCalls(content, "ruby");
+    if (!scan.parsed) {
+      astFailures += 1;
+      continue;
+    }
 
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index];
-      if (line === undefined) continue;
-      const match = line.match(MUTATION_RE);
-      const operation = match?.[1];
-      if (!operation) continue;
+    const hasAudit = scan.calls.some((call) => AUDIT_RE.test(call.callee) || AUDIT_RE.test(call.text));
+    const hasTransaction = scan.calls.some((call) => call.method === "transaction" && TRANSACTION_RE.test(call.callee));
+    const hasAuthorization = scan.calls.some((call) => AUTHORIZATION_METHODS.has(call.method) || /\bPundit\b/.test(call.callee));
 
-      const location: SourceLocation = { path, line: index + 1 };
-      const boundaryId = stableId("boundary", `${path}:${index + 1}:${operation}`);
-      const sourceIdentity = `${path}:${operation}:${line.trim()}`;
+    for (const call of uniqueMutationCalls(scan.calls)) {
+      const operation = call.method;
+      const location: SourceLocation = { path, line: call.line, column: call.column };
+      const boundaryId = stableId("boundary", `${path}:${call.line}:${call.column}:${operation}`);
+      const sourceIdentity = `${path}:${operation}:${call.text.replace(/\s+/g, " ").trim()}`;
       const auditStatus: AssessmentBoundary["audit_status"] = !hasAudit
         ? "uncovered"
         : hasTransaction
@@ -148,11 +175,11 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
         operation,
         location,
         audit_status: auditStatus,
-        confidence: "medium",
+        confidence: "high",
         evidence: [
           {
-            kind: "source_match",
-            detail: `Detected Rails mutation method .${operation}`,
+            kind: "ast_call",
+            detail: `Tree-sitter AST detected Rails mutation call .${operation}`,
             location,
           },
         ],
@@ -164,11 +191,11 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
             "AS-AUDIT-001",
             "Unaudited mutation boundary",
             "medium",
-            `Detected Rails mutation .${operation} without a visible AuditSpec emission marker in the same source file.`,
+            `Detected Rails mutation .${operation} without a visible AuditSpec emission call in the same source file.`,
             location,
             boundaryId,
             sourceIdentity,
-            `No AuditSpec.emit!/record! marker found in ${path}`,
+            `AST confirms .${operation} call; no AuditSpec.emit!/record! call found in ${path}`,
             "Emit a semantic AuditSpec event at the service/domain boundary that owns this mutation.",
           ),
         );
@@ -178,27 +205,27 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
             "AS-ATOMIC-001",
             "Mutation and audit are not visibly atomic",
             "low",
-            "This file contains both a Rails mutation and an AuditSpec emission marker, but no visible Active Record transaction boundary.",
+            "AST analysis found both a Rails mutation and AuditSpec emission in the file, but no visible Active Record transaction call.",
             location,
             boundaryId,
             sourceIdentity,
-            `Audit marker found but no ApplicationRecord/ActiveRecord transaction marker found in ${path}`,
+            `AST found audit and mutation calls but no ApplicationRecord/ActiveRecord transaction call in ${path}`,
             "Couple the mutation and durable audit write in one transaction, or use a transactional outbox when they cannot share a store.",
           ),
         );
       }
 
-      if (PRIVILEGED_RE.test(`${path} ${line}`) && !hasAuthorization) {
+      if (PRIVILEGED_RE.test(`${path} ${call.text}`) && !hasAuthorization) {
         findings.push(
           finding(
             "AS-AUTH-001",
             "Privileged mutation without visible authorization evidence",
             "low",
-            "This mutation looks privileged, but no common Rails authorization marker is visible in the same source file.",
+            "This AST-confirmed mutation looks privileged, but no common Rails authorization call is visible in the same source file.",
             location,
             boundaryId,
             sourceIdentity,
-            `Privileged keyword detected near .${operation}; no authorize/policy marker found in ${path}`,
+            `Privileged keyword detected around .${operation}; no authorize/policy call found in ${path}`,
             "Make the authorization boundary explicit and audit the authorization decision when it is relevant to accountability or security.",
           ),
         );
@@ -206,7 +233,7 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
     }
   }
 
-  return { boundaries, findings };
+  return { boundaries, findings, astFailures };
 }
 
 export async function inspectRepository(inputPath: string): Promise<AssessmentReport> {
@@ -217,18 +244,20 @@ export async function inspectRepository(inputPath: string): Promise<AssessmentRe
   const adapters: string[] = [];
   const boundaries: AssessmentBoundary[] = [];
   const findings: AssessmentFinding[] = [];
+  let astParseFailures = frappe.astFailures;
 
   if (rails.detected) {
     frameworks.push({ name: "rails", confidence: "high", evidence: rails.evidence });
-    adapters.push("rails-heuristic-v0.1");
+    adapters.push("rails-ast-assisted-v0.1");
     const railsResult = await inspectRails(root);
     boundaries.push(...railsResult.boundaries);
     findings.push(...railsResult.findings);
+    astParseFailures += railsResult.astFailures;
   }
 
   if (frappe.detected) {
     frameworks.push({ name: "frappe", confidence: "high", evidence: frappe.frameworkEvidence });
-    adapters.push("frappe-heuristic-v0.1");
+    adapters.push("frappe-ast-assisted-v0.1");
     boundaries.push(...frappe.boundaries);
     findings.push(...frappe.findings);
   }
@@ -259,8 +288,9 @@ export async function inspectRepository(inputPath: string): Promise<AssessmentRe
       audit_coverage: boundaries.length === 0 ? 0 : covered / boundaries.length,
     },
     metadata: {
-      assessment_kind: "static_source_heuristic",
+      assessment_kind: "static_source_ast_assisted",
       non_blocking_recommended: true,
+      ast_parse_failures: astParseFailures,
     },
   };
 }

@@ -9,7 +9,8 @@ The Inspector is not a compliance certifier and a finding is not automatically a
 ```mermaid
 flowchart LR
     R[Repository / system] --> D[Discovery adapters]
-    D --> B[Auditable boundaries]
+    D --> A[AST / structured evidence]
+    A --> B[Auditable boundaries]
     B --> E[Evidence]
     E --> F[Findings]
     F --> C[Coverage + confidence]
@@ -22,68 +23,36 @@ flowchart LR
 
 ## Assessment Report
 
-`schema/assessment-report.schema.json` is the framework-neutral output contract.
+`schema/assessment-report.schema.json` is the framework-neutral output contract. It contains subject, inspector/adapters, detected frameworks, boundaries, evidence, findings, confidence and coverage.
 
-A report contains:
-
-- assessment subject
-- inspector identity and adapter versions
-- detected frameworks
-- discovered boundaries
-- evidence for each boundary/finding
-- findings with stable rule IDs
-- confidence
-- coverage counts
-
-This separation matters because discovery quality will evolve. A future Tree-sitter, language-server, call-graph, runtime, or eBPF adapter can provide stronger evidence without changing the report format.
+This separation matters because discovery quality will evolve. Tree-sitter AST, call graphs, runtime, OTel and eBPF evidence can strengthen an assessment without changing its report format or stable finding fingerprints.
 
 ## Boundaries
 
-A boundary is a location where an accountable action may need audit semantics. Initial kinds are:
-
-- `mutation`
-- `authorization`
-- `agent`
-- `tool`
-- `export`
-- `access`
-
-A boundary is classified as `covered`, `partial`, `uncovered`, or `unknown`.
+Initial boundary kinds are `mutation`, `authorization`, `agent`, `tool`, `export`, and `access`. A boundary is classified as `covered`, `partial`, `uncovered`, or `unknown`.
 
 `unknown` is first-class. An analyzer MUST prefer uncertainty over pretending that a dynamic or cross-service path has been proven.
 
+## AST-assisted adapters
+
+The v0.1 Rails and Frappe adapters use ast-grep/Tree-sitter to locate actual call AST nodes. This removes a major source of regex-only false positives: mutation-looking text inside comments or string literals is not treated as an executable call.
+
+AST evidence raises confidence that a call exists at a source location, but it still does not prove runtime reachability, cross-file authorization, dynamic dispatch, transaction propagation, or that every mutation surface has been discovered. Those require stronger call-graph/runtime evidence.
+
+Current adapters:
+
+- `rails-ast-assisted-v0.1`
+- `frappe-ast-assisted-v0.1`
+
+If a source file cannot be parsed, the adapter records an `ast_parse_failures` count in assessment metadata rather than silently downgrading the parse failure into certain evidence.
+
 ## Findings
 
-A finding includes:
-
-- stable `rule_id`
-- severity
-- confidence
-- source location
-- evidence
-- related boundary
-- remediation summary
-
-Initial rules are documented in `findings/RULES.md`.
+A finding includes stable rule/fingerprint, severity, confidence, location, evidence and remediation. Initial rules are documented in `findings/RULES.md`.
 
 ## Coverage
 
-`audit_coverage` currently means the fraction of detected boundaries classified as fully `covered` by the active adapter. Partial boundaries are reported separately rather than being assigned an arbitrary fractional score.
-
-Coverage is only as complete as discovery. It MUST NOT be presented as a compliance percentage or proof that all application behavior has been observed.
-
-## Initial Rails adapter
-
-`rails-heuristic-v0.1` performs a deliberately small static scan:
-
-1. Detect Rails from repository evidence.
-2. Find common Active Record mutation calls.
-3. Check the same file for AuditSpec emission markers.
-4. Check for visible transaction markers.
-5. Check privileged-looking mutations for visible authorization markers.
-6. Emit boundaries and advisory findings with explicit confidence.
-
-This first adapter is useful for bootstrapping and tests, but it does not build a Ruby call graph and cannot prove cross-file absence.
+`audit_coverage` is the fraction of detected boundaries classified as fully covered by active adapters. It is only as complete as discovery and MUST NOT be presented as a compliance percentage or proof that all application behavior has been observed.
 
 ## CLI
 
@@ -92,23 +61,8 @@ auditspec inspect .
 auditspec inspect . --json
 ```
 
-Human output is intended for local development. JSON output is the canonical integration surface.
+Human output is for local development. JSON Assessment Report is the canonical integration surface for GitHub, MCP and future Cloud.
 
-## GitHub ratchet direction
+## GitHub ratchet
 
-The future GitHub integration should compare the assessment of the base revision with the pull request revision:
-
-```text
-base findings + coverage
-        |
-        v
-      diff
-        |
-        +--> new findings
-        +--> resolved findings
-        +--> changed confidence / coverage
-```
-
-Default behavior should be advisory. Existing debt remains visible in summary, while inline warnings focus on **new gaps introduced by the pull request**.
-
-A stricter project may later opt into regression or enforcement policies without changing AuditSpec Core.
+PR integration compares base/head assessments using stable finding fingerprints. Existing debt stays in summary while inline warnings focus on new gaps. Stricter regression/enforcement policy is an opt-in layer, not a Core semantic.

@@ -41,8 +41,11 @@ test("inspector reports unaudited privileged Rails mutations", async () => {
 
       assert.equal(validateAssessmentReport(report).valid, true);
       assert.equal(report.frameworks[0]?.name, "rails");
+      assert.ok(report.inspector.adapters.includes("rails-ast-assisted-v0.1"));
       assert.equal(report.coverage.detected_boundaries, 1);
       assert.equal(report.coverage.uncovered_boundaries, 1);
+      assert.equal(report.boundaries[0]?.confidence, "high");
+      assert.equal(report.boundaries[0]?.evidence?.[0]?.kind, "ast_call");
       assert.ok(report.findings.some((finding) => finding.rule_id === "AS-AUDIT-001"));
       assert.ok(report.findings.some((finding) => finding.rule_id === "AS-AUTH-001"));
     },
@@ -73,6 +76,25 @@ test("inspector marks a visibly transactional audited mutation as covered", asyn
       assert.equal(report.coverage.covered_boundaries, 1);
       assert.equal(report.coverage.audit_coverage, 1);
       assert.equal(report.findings.length, 0);
+    },
+  );
+});
+
+test("inspector ignores mutation-looking Ruby comments and strings", async () => {
+  await withRailsRepo(
+    {
+      "app/services/noop.rb": [
+        "class Noop",
+        "  def call",
+        "    # user.destroy!",
+        '    "user.update!(name: \'fake\')"',
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const report = await inspectRepository(root);
+      assert.equal(report.coverage.detected_boundaries, 0);
     },
   );
 });
