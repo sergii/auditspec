@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { diffAssessments } from "./assessment-diff.js";
 import type { AssessmentFinding, AssessmentReport } from "./assessment-types.js";
+import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
 import type { ControlMappingProfile } from "./control-mapping.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
@@ -11,6 +12,7 @@ import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
   validateAgentProfile,
   validateAssessmentReport,
+  validateAssuranceGraph,
   validateAuditEvent,
   validateControlMappingProfile,
   validateControlMappingResult,
@@ -99,6 +101,49 @@ export function createAuditSpecMcpServer(): McpServer {
         return { content: [{ type: "text" as const, text: JSON.stringify(validation, null, 2) }], isError: true };
       }
       return asToolResult(report as unknown as Record<string, unknown>);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.build_assurance_graph",
+    {
+      description: "Build a conservative cross-file Assurance Graph. Ambiguous dynamic calls are not guessed and remain unresolved evidence.",
+      inputSchema: z.object({ path: z.string().default(".") }),
+    },
+    async ({ path }) => {
+      const graph = await buildAssuranceGraph(path);
+      const validation = validateAssuranceGraph(graph);
+      if (!validation.valid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(validation, null, 2) }], isError: true };
+      }
+      return asToolResult(graph as unknown as Record<string, unknown>);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.find_assurance_path",
+    {
+      description: "Resolve the best static assurance path for a repository-relative source location and report the roles proven on that path.",
+      inputSchema: z.object({
+        path: z.string().default("."),
+        source_path: z.string().min(1),
+        line: z.number().int().positive(),
+        column: z.number().int().positive().default(1),
+      }),
+    },
+    async ({ path, source_path, line, column }) => {
+      const graph = await buildAssuranceGraph(path);
+      const validation = validateAssuranceGraph(graph);
+      if (!validation.valid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(validation, null, 2) }], isError: true };
+      }
+      const assurancePath = findAssurancePath(graph, { path: source_path, line, column });
+      return asToolResult({
+        subject: graph.subject,
+        location: { path: source_path, line, column },
+        found: assurancePath !== null,
+        path: assurancePath,
+      });
     },
   );
 
