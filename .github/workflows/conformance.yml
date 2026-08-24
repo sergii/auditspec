@@ -59,7 +59,7 @@ jobs:
       - name: Run local AuditSpec Action
         uses: ./
         with:
-          baseline: off
+          baseline: auto
 
   real-world-inspector-smoke:
     runs-on: ubuntu-latest
