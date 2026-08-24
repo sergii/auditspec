@@ -6,6 +6,7 @@ import addFormats from "ajv-formats";
 import type { ErrorObject } from "ajv";
 import type { AssessmentDiff } from "./assessment-diff.js";
 import type { AssessmentReport } from "./assessment-types.js";
+import type { ControlMappingProfile, ControlMappingResult } from "./control-mapping.js";
 import type { RemediationPlan, RemediationVerificationResult } from "./remediation.js";
 import type { AuditEvent } from "./types.js";
 
@@ -42,12 +43,16 @@ const assessmentReportSchema = loadSchema("../../../schema/assessment-report.sch
 const assessmentDiffSchema = loadSchema("../../../schema/assessment-diff.schema.json");
 const remediationPlanSchema = loadSchema("../../../schema/remediation-plan.schema.json");
 const verificationResultSchema = loadSchema("../../../schema/verification-result.schema.json");
+const controlMappingProfileSchema = loadSchema("../../../schema/control-mapping-profile.schema.json");
+const controlMappingResultSchema = loadSchema("../../../schema/control-mapping-result.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
 const validateAssessment = ajv.compile<AssessmentReport>(assessmentReportSchema);
 const validateDiff = ajv.compile<AssessmentDiff>(assessmentDiffSchema);
 const validatePlan = ajv.compile<RemediationPlan>(remediationPlanSchema);
 const validateVerification = ajv.compile<RemediationVerificationResult>(verificationResultSchema);
+const validateControlProfile = ajv.compile<ControlMappingProfile>(controlMappingProfileSchema);
+const validateControlResult = ajv.compile<ControlMappingResult>(controlMappingResultSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
@@ -67,9 +72,7 @@ export function validateAuditEvent(input: unknown): ValidationResult {
 
 export function assertAuditEvent(input: unknown): asserts input is AuditEvent {
   const result = validateAuditEvent(input);
-  if (!result.valid) {
-    throw new TypeError(`Invalid AuditSpec event: ${JSON.stringify(result.errors)}`);
-  }
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec event: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateAssessmentReport(input: unknown): ValidationResult {
@@ -79,9 +82,7 @@ export function validateAssessmentReport(input: unknown): ValidationResult {
 
 export function assertAssessmentReport(input: unknown): asserts input is AssessmentReport {
   const result = validateAssessmentReport(input);
-  if (!result.valid) {
-    throw new TypeError(`Invalid AuditSpec assessment report: ${JSON.stringify(result.errors)}`);
-  }
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec assessment report: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateAssessmentDiff(input: unknown): ValidationResult {
@@ -91,9 +92,7 @@ export function validateAssessmentDiff(input: unknown): ValidationResult {
 
 export function assertAssessmentDiff(input: unknown): asserts input is AssessmentDiff {
   const result = validateAssessmentDiff(input);
-  if (!result.valid) {
-    throw new TypeError(`Invalid AuditSpec assessment diff: ${JSON.stringify(result.errors)}`);
-  }
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec assessment diff: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateRemediationPlan(input: unknown): ValidationResult {
@@ -103,9 +102,7 @@ export function validateRemediationPlan(input: unknown): ValidationResult {
 
 export function assertRemediationPlan(input: unknown): asserts input is RemediationPlan {
   const result = validateRemediationPlan(input);
-  if (!result.valid) {
-    throw new TypeError(`Invalid AuditSpec remediation plan: ${JSON.stringify(result.errors)}`);
-  }
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec remediation plan: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateVerificationResult(input: unknown): ValidationResult {
@@ -115,9 +112,27 @@ export function validateVerificationResult(input: unknown): ValidationResult {
 
 export function assertVerificationResult(input: unknown): asserts input is RemediationVerificationResult {
   const result = validateVerificationResult(input);
-  if (!result.valid) {
-    throw new TypeError(`Invalid AuditSpec verification result: ${JSON.stringify(result.errors)}`);
-  }
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec verification result: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateControlMappingProfile(input: unknown): ValidationResult {
+  if (validateControlProfile(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateControlProfile.errors) };
+}
+
+export function assertControlMappingProfile(input: unknown): asserts input is ControlMappingProfile {
+  const result = validateControlMappingProfile(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec control mapping profile: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateControlMappingResult(input: unknown): ValidationResult {
+  if (validateControlResult(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateControlResult.errors) };
+}
+
+export function assertControlMappingResult(input: unknown): asserts input is ControlMappingResult {
+  const result = validateControlMappingResult(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec control mapping result: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateAgentProfile(input: unknown): ValidationResult {
