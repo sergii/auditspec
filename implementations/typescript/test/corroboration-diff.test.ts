@@ -39,6 +39,9 @@ const base = report(
   [
     {
       evidence_id: "evidence-base-a",
+      evidence_kind: "trace_span",
+      producer: { name: "otel-base", type: "collector" },
+      observed_at: "2026-08-24T22:39:00Z",
       boundary_fingerprint: "bfp-a",
       relation: "contradicts",
       trust: "attributed",
@@ -54,6 +57,9 @@ const head = report(
   [
     {
       evidence_id: "evidence-head-a",
+      evidence_kind: "database_observation",
+      producer: { name: "postgres-observer", type: "database" },
+      observed_at: "2026-08-24T22:43:00Z",
       boundary_fingerprint: "bfp-a",
       relation: "contradicts",
       trust: "authoritative",
@@ -62,6 +68,9 @@ const head = report(
     },
     {
       evidence_id: "evidence-head-b",
+      evidence_kind: "authorization_decision",
+      producer: { name: "policy-engine", type: "application" },
+      observed_at: "2026-08-24T22:43:30Z",
       finding_fingerprint: "ffp-b",
       relation: "contradicts",
       trust: "authoritative",
@@ -87,13 +96,13 @@ test("diffs contradictions by target identity rather than evidence id", () => {
 
 test("no-longer-reported is not represented as resolved", () => {
   const emptyHead = report("git:head-empty", [], "2026-08-24T22:44:00Z");
-  const diff = diffCorroation(base, emptyHead);
+  const diff = diffReports(base, emptyHead);
   assert.equal(diff.summary.no_longer_reported, 1);
   assert.equal(diff.no_longer_reported_contradictions[0]?.target.fingerprint, "bfp-a");
   assert.ok(diff.limitations.some((item) => item.includes("not automatically resolved")));
 });
 
-function diffCorroation(
+function diffReports(
   left: RuntimeCorroborationReport,
   right: RuntimeCorroborationReport,
 ): RuntimeCorroborationDiff {
