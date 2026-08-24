@@ -1,8 +1,22 @@
 import { createHash } from "node:crypto";
 import type { AssessmentFinding, AssessmentReport } from "./assessment-types.js";
 
+export interface OscalFindingTargetStatus {
+  state: "satisfied" | "not-satisfied";
+  reason?: string;
+  remarks?: string;
+}
+
+export interface OscalFindingTarget {
+  type: "statement-id" | "objective-id";
+  target_id: string;
+  status: OscalFindingTargetStatus;
+}
+
 export interface OscalExportRequest {
   assessment_plan_href: string;
+  reviewed_control_ids: string[];
+  finding_targets: Record<string, OscalFindingTarget>;
   title?: string;
   description?: string;
   version?: string;
@@ -28,7 +42,11 @@ function propsForFinding(finding: AssessmentFinding): Array<Record<string, strin
   ];
 }
 
-function observationForFinding(finding: AssessmentFinding, inspectorPartyUuid: string): Record<string, unknown> {
+function observationForFinding(
+  finding: AssessmentFinding,
+  inspectorPartyUuid: string,
+  collected: string,
+): Record<string, unknown> {
   const relevantEvidence = finding.evidence.map((item) => ({
     description: item.location
       ? `${item.detail} (${item.location.path}:${item.location.line ?? 1})`
@@ -41,6 +59,7 @@ function observationForFinding(finding: AssessmentFinding, inspectorPartyUuid: s
     description: finding.message,
     methods: ["EXAMINE"],
     types: ["discovery"],
+    collected,
     props: propsForFinding(finding),
     origins: [
       {
@@ -56,7 +75,11 @@ function observationForFinding(finding: AssessmentFinding, inspectorPartyUuid: s
   };
 }
 
-function findingForFinding(finding: AssessmentFinding, inspectorPartyUuid: string): Record<string, unknown> {
+function findingForFinding(
+  finding: AssessmentFinding,
+  inspectorPartyUuid: string,
+  target: OscalFindingTarget,
+): Record<string, unknown> {
   return {
     uuid: uuidFrom(`finding:${finding.fingerprint}`),
     title: finding.title,
@@ -72,6 +95,15 @@ function findingForFinding(finding: AssessmentFinding, inspectorPartyUuid: strin
         ],
       },
     ],
+    target: {
+      type: target.type,
+      "target-id": target.target_id,
+      status: {
+        state: target.status.state,
+        ...(target.status.reason ? { reason: target.status.reason } : {}),
+        ...(target.status.remarks ? { remarks: target.status.remarks } : {}),
+      },
+    },
     "related-observations": [
       {
         "observation-uuid": uuidFrom(`observation:${finding.fingerprint}`),
@@ -80,13 +112,29 @@ function findingForFinding(finding: AssessmentFinding, inspectorPartyUuid: strin
   };
 }
 
+function validateAssessmentContext(assessment: AssessmentReport, request: OscalExportRequest): void {
+  if (!request.assessment_plan_href.trim()) {
+    throw new TypeError("assessment_plan_href is required for OSCAL Assessment Results export");
+  }
+  if (request.reviewed_control_ids.length === 0) {
+    throw new TypeError("reviewed_control_ids must identify at least one caller-confirmed assessed control");
+  }
+
+  const missingTargets = assessment.findings
+    .map((finding) => finding.fingerprint)
+    .filter((fingerprint) => request.finding_targets[fingerprint] === undefined);
+  if (missingTargets.length > 0) {
+    throw new TypeError(
+      `OSCAL finding target/status must be supplied by the caller for: ${missingTargets.join(", ")}`,
+    );
+  }
+}
+
 export function exportOscalAssessmentResults(
   assessment: AssessmentReport,
   request: OscalExportRequest,
 ): OscalAssessmentResultsDocument {
-  if (!request.assessment_plan_href.trim()) {
-    throw new TypeError("assessment_plan_href is required for OSCAL Assessment Results export");
-  }
+  validateAssessmentContext(assessment, request);
 
   const now = new Date().toISOString();
   const start = request.start ?? assessment.generated_at;
@@ -100,7 +148,7 @@ export function exportOscalAssessmentResults(
     title: request.title ?? "AuditSpec static assessment",
     description:
       request.description ??
-      "AuditSpec Inspector observations and findings exported as OSCAL Assessment Results. This export does not assert compliance or certification.",
+      "AuditSpec Inspector observations and findings exported as OSCAL Assessment Results using caller-supplied assessment scope and finding conclusions. AuditSpec does not infer compliance or certification.",
     start,
     end,
     props: [
@@ -115,11 +163,24 @@ export function exportOscalAssessmentResults(
         value: String(assessment.coverage.audit_coverage),
       },
     ],
+    "reviewed-controls": {
+      "control-selections": [
+        {
+          "include-controls": request.reviewed_control_ids.map((controlId) => ({
+            "control-id": controlId,
+          })),
+        },
+      ],
+    },
   };
 
   if (findings.length > 0) {
-    result.observations = findings.map((finding) => observationForFinding(finding, inspectorPartyUuid));
-    result.findings = findings.map((finding) => findingForFinding(finding, inspectorPartyUuid));
+    result.observations = findings.map((finding) =>
+      observationForFinding(finding, inspectorPartyUuid, assessment.generated_at),
+    );
+    result.findings = findings.map((finding) =>
+      findingForFinding(finding, inspectorPartyUuid, request.finding_targets[finding.fingerprint]!),
+    );
   }
 
   return {
