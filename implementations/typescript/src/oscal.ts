@@ -15,8 +15,8 @@ export interface OscalFindingTarget {
 
 export interface OscalExportRequest {
   assessment_plan_href: string;
-  reviewed_control_ids: string[];
-  finding_targets: Record<string, OscalFindingTarget>;
+  reviewed_control_ids?: string[];
+  finding_targets?: Record<string, OscalFindingTarget>;
   title?: string;
   description?: string;
   version?: string;
@@ -112,29 +112,36 @@ function findingForFinding(
   };
 }
 
-function validateAssessmentContext(assessment: AssessmentReport, request: OscalExportRequest): void {
+function validateAssessmentContext(assessment: AssessmentReport, request: OscalExportRequest): {
+  reviewedControlIds: string[];
+  findingTargets: Record<string, OscalFindingTarget>;
+} {
   if (!request.assessment_plan_href.trim()) {
     throw new TypeError("assessment_plan_href is required for OSCAL Assessment Results export");
   }
-  if (request.reviewed_control_ids.length === 0) {
+  const reviewedControlIds = request.reviewed_control_ids ?? [];
+  if (reviewedControlIds.length === 0) {
     throw new TypeError("reviewed_control_ids must identify at least one caller-confirmed assessed control");
   }
 
+  const findingTargets = request.finding_targets ?? {};
   const missingTargets = assessment.findings
     .map((finding) => finding.fingerprint)
-    .filter((fingerprint) => request.finding_targets[fingerprint] === undefined);
+    .filter((fingerprint) => findingTargets[fingerprint] === undefined);
   if (missingTargets.length > 0) {
     throw new TypeError(
       `OSCAL finding target/status must be supplied by the caller for: ${missingTargets.join(", ")}`,
     );
   }
+
+  return { reviewedControlIds, findingTargets };
 }
 
 export function exportOscalAssessmentResults(
   assessment: AssessmentReport,
   request: OscalExportRequest,
 ): OscalAssessmentResultsDocument {
-  validateAssessmentContext(assessment, request);
+  const { reviewedControlIds, findingTargets } = validateAssessmentContext(assessment, request);
 
   const now = new Date().toISOString();
   const start = request.start ?? assessment.generated_at;
@@ -166,7 +173,7 @@ export function exportOscalAssessmentResults(
     "reviewed-controls": {
       "control-selections": [
         {
-          "include-controls": request.reviewed_control_ids.map((controlId) => ({
+          "include-controls": reviewedControlIds.map((controlId) => ({
             "control-id": controlId,
           })),
         },
@@ -179,7 +186,7 @@ export function exportOscalAssessmentResults(
       observationForFinding(finding, inspectorPartyUuid, assessment.generated_at),
     );
     result.findings = findings.map((finding) =>
-      findingForFinding(finding, inspectorPartyUuid, request.finding_targets[finding.fingerprint]!),
+      findingForFinding(finding, inspectorPartyUuid, findingTargets[finding.fingerprint]!),
     );
   }
 
