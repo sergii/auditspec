@@ -10,6 +10,7 @@ import { getFrameworkAdapter, listFrameworkAdapters } from "./framework-registry
 import { inspectRepository } from "./inspector.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
+import { corroborateAssessment, type RuntimeEvidenceRecord } from "./runtime-corroboration.js";
 import {
   validateAgentProfile,
   validateAssessmentReport,
@@ -18,9 +19,11 @@ import {
   validateAuditEvent,
   validateControlMappingProfile,
   validateControlMappingResult,
+  validateCorroborationReport,
   validateEvidenceQueryResult,
   validateOscalExportRequest,
   validateRemediationPlan,
+  validateRuntimeEvidenceRecord,
   validateVerificationResult,
 } from "./validate.js";
 
@@ -340,6 +343,32 @@ export function createAuditSpecMcpServer(): McpServer {
       return resultValidation.valid
         ? asToolResult(result as unknown as Record<string, unknown>)
         : validationError(resultValidation);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.corroborate_runtime",
+    {
+      description: "Corroborate a static Assessment Report with schema-valid runtime evidence without changing static coverage. Returns supports, contradicts, inconclusive, and unmatched relations with trust and observation coverage preserved.",
+      inputSchema: z.object({
+        assessment: z.unknown(),
+        evidence: z.array(z.unknown()),
+      }),
+    },
+    async ({ assessment, evidence }) => {
+      const assessmentValidation = validateAssessmentReport(assessment);
+      const evidenceValidation = evidence.map((record) => validateRuntimeEvidenceRecord(record));
+      if (!assessmentValidation.valid || evidenceValidation.some((result) => !result.valid)) {
+        return validationError({ assessment: assessmentValidation, evidence: evidenceValidation });
+      }
+      const report = corroborateAssessment(
+        assessment as AssessmentReport,
+        evidence as RuntimeEvidenceRecord[],
+      );
+      const reportValidation = validateCorroborationReport(report);
+      return reportValidation.valid
+        ? asToolResult(report as unknown as Record<string, unknown>)
+        : validationError(reportValidation);
     },
   );
 
