@@ -1,4 +1,5 @@
 import type {
+  CorroborationRelation,
   RuntimeEvidenceCoverage,
   RuntimeEvidenceRecord,
   RuntimeEvidenceState,
@@ -15,6 +16,7 @@ export interface DeliveryRuntimeReceipt {
   producer_instance?: string;
   boundary_fingerprint?: string;
   finding_fingerprint?: string;
+  assessment_relation?: CorroborationRelation;
   trace_id?: string;
   span_id?: string;
   request_id?: string;
@@ -36,6 +38,16 @@ export function runtimeEvidenceFromDeliveryReceipt(
   if (!receipt.boundary_fingerprint && !receipt.finding_fingerprint) {
     throw new TypeError(
       "Delivery runtime evidence requires an explicit boundary_fingerprint or finding_fingerprint",
+    );
+  }
+  if (receipt.finding_fingerprint && !receipt.assessment_relation) {
+    throw new TypeError(
+      "Delivery evidence targeting a finding requires explicit assessment_relation",
+    );
+  }
+  if (receipt.assessment_relation && !receipt.finding_fingerprint) {
+    throw new TypeError(
+      "Delivery assessment_relation requires finding_fingerprint",
     );
   }
 
@@ -76,6 +88,9 @@ export function runtimeEvidenceFromDeliveryReceipt(
         ? { finding_fingerprint: receipt.finding_fingerprint }
         : {}),
     },
+    ...(receipt.assessment_relation
+      ? { assessment_relation: receipt.assessment_relation }
+      : {}),
     ...(Object.keys(correlation).length > 0 ? { correlation } : {}),
     observation: {
       state: receipt.state ?? "observed",
@@ -87,6 +102,7 @@ export function runtimeEvidenceFromDeliveryReceipt(
       "A transport or broker acknowledgement proves only the fact represented by that acknowledgement; it does not necessarily prove end-consumer processing.",
       "Delivery evidence defaults to attributed trust. Mark it authoritative only when the receipt is produced by the system that directly owns the delivery fact being asserted.",
       "A single delivery receipt defaults to point coverage.",
+      "Evidence targeting a finding requires an explicit assessment relation because delivery evidence can support or contradict different findings depending on the finding semantics.",
       ...(receipt.limitations ?? []),
     ],
   };
