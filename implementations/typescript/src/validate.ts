@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import type { ErrorObject } from "ajv";
+import type { AssessmentReport } from "./assessment-types.js";
 import type { AuditEvent } from "./types.js";
 
 export interface ValidationIssue {
@@ -35,8 +36,10 @@ function createAjv(): Ajv2020 {
 
 const ajv = createAjv();
 const auditEventSchema = loadSchema("../../../schema/audit-event.schema.json");
+const assessmentReportSchema = loadSchema("../../../schema/assessment-report.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
+const validateAssessment = ajv.compile<AssessmentReport>(assessmentReportSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
@@ -58,6 +61,18 @@ export function assertAuditEvent(input: unknown): asserts input is AuditEvent {
   const result = validateAuditEvent(input);
   if (!result.valid) {
     throw new TypeError(`Invalid AuditSpec event: ${JSON.stringify(result.errors)}`);
+  }
+}
+
+export function validateAssessmentReport(input: unknown): ValidationResult {
+  if (validateAssessment(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateAssessment.errors) };
+}
+
+export function assertAssessmentReport(input: unknown): asserts input is AssessmentReport {
+  const result = validateAssessmentReport(input);
+  if (!result.valid) {
+    throw new TypeError(`Invalid AuditSpec assessment report: ${JSON.stringify(result.errors)}`);
   }
 }
 
