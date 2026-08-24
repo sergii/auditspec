@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EVENT_SCHEMA_PATH = ROOT / "schema" / "audit-event.schema.json"
 ASSESSMENT_SCHEMA_PATH = ROOT / "schema" / "assessment-report.schema.json"
 ASSESSMENT_DIFF_SCHEMA_PATH = ROOT / "schema" / "assessment-diff.schema.json"
+ASSURANCE_GRAPH_SCHEMA_PATH = ROOT / "schema" / "assurance-graph.schema.json"
 REMEDIATION_PLAN_SCHEMA_PATH = ROOT / "schema" / "remediation-plan.schema.json"
 VERIFICATION_RESULT_SCHEMA_PATH = ROOT / "schema" / "verification-result.schema.json"
 CONTROL_MAPPING_PROFILE_SCHEMA_PATH = ROOT / "schema" / "control-mapping-profile.schema.json"
@@ -27,6 +28,7 @@ EVENT_EXAMPLES = [
 ]
 ASSESSMENT_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-report.json"]
 ASSESSMENT_DIFF_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-diff.json"]
+ASSURANCE_GRAPH_EXAMPLES = [ROOT / "schema" / "examples" / "assurance-graph.json"]
 REMEDIATION_PLAN_EXAMPLES = [ROOT / "schema" / "examples" / "remediation-plan.json"]
 VERIFICATION_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "verification-result.json"]
 CONTROL_MAPPING_PROFILE_EXAMPLES = [ROOT / "mappings" / "controls" / "nist-sp800-53-r5.2.0.json"]
@@ -72,6 +74,7 @@ def main() -> int:
     event_validator = make_validator(EVENT_SCHEMA_PATH)
     assessment_validator = make_validator(ASSESSMENT_SCHEMA_PATH)
     assessment_diff_validator = make_validator(ASSESSMENT_DIFF_SCHEMA_PATH)
+    assurance_graph_validator = make_validator(ASSURANCE_GRAPH_SCHEMA_PATH)
     remediation_plan_validator = make_validator(REMEDIATION_PLAN_SCHEMA_PATH)
     verification_result_validator = make_validator(VERIFICATION_RESULT_SCHEMA_PATH)
     control_mapping_profile_validator = make_validator(CONTROL_MAPPING_PROFILE_SCHEMA_PATH)
@@ -87,6 +90,7 @@ def main() -> int:
     expect_valid(event_validator, valid_event_paths, "event", failures)
     expect_valid(assessment_validator, ASSESSMENT_EXAMPLES, "assessment", failures)
     expect_valid(assessment_diff_validator, ASSESSMENT_DIFF_EXAMPLES, "diff", failures)
+    expect_valid(assurance_graph_validator, ASSURANCE_GRAPH_EXAMPLES, "assurance-graph", failures)
     expect_valid(remediation_plan_validator, REMEDIATION_PLAN_EXAMPLES, "remediation", failures)
     expect_valid(verification_result_validator, VERIFICATION_RESULT_EXAMPLES, "verification", failures)
     expect_valid(control_mapping_profile_validator, CONTROL_MAPPING_PROFILE_EXAMPLES, "control-profile", failures)
@@ -109,6 +113,7 @@ def main() -> int:
         f"{len(invalid_event_paths)} invalid event vectors, "
         f"{len(ASSESSMENT_EXAMPLES)} assessment example(s), "
         f"{len(ASSESSMENT_DIFF_EXAMPLES)} diff example(s), "
+        f"{len(ASSURANCE_GRAPH_EXAMPLES)} assurance graph example(s), "
         f"{len(REMEDIATION_PLAN_EXAMPLES)} remediation example(s), "
         f"{len(VERIFICATION_RESULT_EXAMPLES)} verification example(s), "
         f"{len(CONTROL_MAPPING_PROFILE_EXAMPLES)} control profile example(s), "

@@ -93,6 +93,11 @@ function detectMutation(call: AstCallCandidate): { operation: string; direct: bo
   return null;
 }
 
+function callsInSameScope(call: AstCallCandidate, calls: AstCallCandidate[]): AstCallCandidate[] {
+  if (!call.scope) return calls.filter((candidate) => !candidate.scope);
+  return calls.filter((candidate) => candidate.scope?.id === call.scope?.id);
+}
+
 function finding(
   ruleId: string,
   title: string,
@@ -157,14 +162,15 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
       continue;
     }
 
-    const hasAudit = scan.calls.some((call) => AUDIT_RE.test(call.callee));
-    const hasAuthorization = scan.calls.some((call) => AUTHORIZATION_METHODS.has(call.method));
     const seen = new Set<string>();
 
     for (const call of scan.calls) {
       const mutation = detectMutation(call);
       if (!mutation) continue;
 
+      const scopedCalls = callsInSameScope(call, scan.calls);
+      const hasAudit = scopedCalls.some((candidate) => AUDIT_RE.test(candidate.callee));
+      const hasAuthorization = scopedCalls.some((candidate) => AUTHORIZATION_METHODS.has(candidate.method));
       const { operation, direct, irreversible } = mutation;
       const dedupeKey = `${call.line}:${call.column}:${operation}`;
       if (seen.has(dedupeKey)) continue;
@@ -201,11 +207,11 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
             "AS-AUDIT-001",
             "Unaudited mutation boundary",
             "medium",
-            `Detected Frappe mutation ${operation} without a visible AuditSpec emission call in the same source file.`,
+            `Detected Frappe mutation ${operation} without a visible AuditSpec emission call in the owning function scope.`,
             location,
             boundaryId,
             sourceIdentity,
-            `AST confirms ${operation}; no AuditSpec/auditspec emission call found in ${path}`,
+            `AST confirms ${operation}; no AuditSpec/auditspec emission call found in the same scope in ${path}`,
             "Emit a semantic AuditSpec event at the Frappe service/controller boundary that owns this mutation while preserving native Version and Access Log behavior.",
           ),
         );
@@ -218,11 +224,11 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
             "AS-AUTH-001",
             "Permission-bypassing mutation without visible authorization evidence",
             "medium",
-            "This AST-confirmed Frappe mutation uses a direct or permission-bypassing path, but no explicit authorization call is visible in the same source file.",
+            "This AST-confirmed Frappe mutation uses a direct or permission-bypassing path, but no explicit authorization call is visible in the owning function scope.",
             location,
             boundaryId,
             sourceIdentity,
-            `Direct/bypass mutation ${operation}; no has_permission/only_for/check_permission call found in ${path}`,
+            `Direct/bypass mutation ${operation}; no has_permission/only_for/check_permission call found in the same scope in ${path}`,
             "Make the authorization decision explicit and audit it when the operation is privileged. Avoid permission bypass or direct DB mutation unless the boundary is intentionally controlled.",
           ),
         );

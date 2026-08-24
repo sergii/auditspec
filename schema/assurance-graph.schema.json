@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/assurance-graph.schema.json",
+  "title": "AuditSpec Assurance Graph v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["graph_version", "generated_at", "subject", "nodes", "edges", "unresolved_calls", "summary"],
+  "properties": {
+    "graph_version": { "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "const": "repository" },
+        "path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "unresolved_calls": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unresolved" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "entrypoints", "mutation_nodes", "audit_nodes", "unresolved_calls"],
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 },
+        "entrypoints": { "type": "integer", "minimum": 0 },
+        "mutation_nodes": { "type": "integer", "minimum": 0 },
+        "audit_nodes": { "type": "integer", "minimum": 0 },
+        "unresolved_calls": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "role": {
+      "enum": ["entrypoint", "authorization", "transaction", "mutation", "audit"]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "language", "name", "qualified_name", "location", "range", "roles", "confidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "language": { "enum": ["ruby", "python"] },
+        "name": { "type": "string", "minLength": 1 },
+        "qualified_name": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" },
+        "range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start_line", "end_line"],
+          "properties": {
+            "start_line": { "type": "integer", "minimum": 1 },
+            "end_line": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/role" }
+        },
+        "confidence": { "enum": ["certain", "high", "medium", "low"] }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "kind", "confidence", "call"],
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "kind": { "const": "call" },
+        "confidence": { "enum": ["high", "medium"] },
+        "call": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callee", "location"],
+          "properties": {
+            "callee": { "type": "string", "minLength": 1 },
+            "location": { "$ref": "#/$defs/location" }
+          }
+        }
+      }
+    },
+    "unresolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "callee", "location", "reason"],
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "callee": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" },
+        "reason": { "enum": ["no_candidate", "ambiguous"] },
+        "candidates": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
