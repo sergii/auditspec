@@ -19,6 +19,7 @@ import {
   diffAssessments,
   planRemediation,
   verifyRemediation,
+  mapAssessmentToControls,
 } from "@auditspec/reference-typescript";
 ```
 
@@ -30,7 +31,7 @@ import {
 
 `validateAssessmentReport(value)` validates the framework-neutral Inspector output contract in `schema/assessment-report.schema.json`.
 
-Remediation plans and remediation verification results also have canonical JSON Schemas and validators.
+Remediation plans, remediation verification results, control mapping profiles, and control mapping results also have canonical JSON Schemas and validators.
 
 ### Normalization
 
@@ -75,6 +76,20 @@ The planner does not write code.
 
 Verification is scoped to active Inspector evidence. It does not claim runtime proof or compliance.
 
+### Control mapping
+
+`mapAssessmentToControls(assessment, profile)` maps active AuditSpec findings through a versioned external control profile.
+
+A mapping result contains:
+
+- external control identifiers
+- AuditSpec rule identifiers
+- concrete finding fingerprints
+- `potential_gap` or `relevant_evidence` relationships
+- rationale and an explicit non-certification caveat
+
+The first built-in profile targets NIST SP 800-53 Release 5.2.0. Control mappings express evidence relevance only. They do not turn an AuditSpec assessment into a compliance pass/fail result.
+
 ## CLI
 
 The package builds an `auditspec` executable:
@@ -90,6 +105,7 @@ auditspec inspect . --json
 auditspec diff-assessments base.json head.json
 auditspec plan-remediation assessment.json
 auditspec verify-remediation base.json head.json
+auditspec map-controls assessment.json mappings/controls/nist-sp800-53-r5.2.0.json
 ```
 
 `validate` and `validate-agent` exit with status `1` for invalid input and `0` for valid input, which makes them directly usable in CI scripts.
@@ -98,7 +114,7 @@ auditspec verify-remediation base.json head.json
 
 ## MCP
 
-The same engine is exposed over MCP. See `docs/mcp.md`. MCP assessment/remediation tools do not duplicate business logic and do not write source code in v0.1.
+The same engine is exposed over MCP. See `docs/mcp.md`. MCP assessment/remediation/control-mapping tools do not duplicate business logic and do not write source code in v0.1.
 
 ## Run
 
