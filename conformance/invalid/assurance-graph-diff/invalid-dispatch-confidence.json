@@ -1,0 +1,30 @@
+{
+  "diff_version": "0.1",
+  "generated_at": "2026-08-24T20:00:00Z",
+  "base": { "subject_path": "/repo", "generated_at": "2026-08-24T19:00:00Z" },
+  "head": { "subject_path": "/repo", "generated_at": "2026-08-24T20:00:00Z" },
+  "new_entrypoints": [],
+  "removed_entrypoints": [],
+  "new_framework_dispatches": [
+    {
+      "key": "dispatch_bad",
+      "from": "route",
+      "to": "controller",
+      "framework_kind": "rails_route",
+      "detail": "POST /refunds -> refunds#create",
+      "confidence": "certain",
+      "location": { "path": "config/routes.rb", "line": 1, "column": 1 }
+    }
+  ],
+  "removed_framework_dispatches": [],
+  "new_mutation_paths": [],
+  "removed_mutation_paths": [],
+  "unchanged_mutation_paths": 0,
+  "summary": {
+    "base_entrypoints": 0,
+    "head_entrypoints": 1,
+    "base_mutation_paths": 0,
+    "head_mutation_paths": 0,
+    "mutation_path_delta": 0
+  }
+}
