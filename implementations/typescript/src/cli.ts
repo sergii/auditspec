@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { diffAssessments } from "./assessment-diff.js";
+import { diffAssuranceGraphs } from "./assurance-graph-diff.js";
 import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
@@ -16,6 +17,7 @@ import {
   assertAssessmentDiff,
   assertAssessmentReport,
   assertAssuranceGraph,
+  assertAssuranceGraphDiff,
   assertAuditEvent,
   assertControlMappingProfile,
   assertControlMappingResult,
@@ -86,6 +88,7 @@ function usage(): never {
     "  auditspec to-cloudevent <event.json>",
     "  auditspec inspect [path] [--json]",
     "  auditspec graph [path]",
+    "  auditspec graph-diff <base-repository-path> <head-repository-path>",
     "  auditspec assurance-path <repository-path> <source-path> <line> [column]",
     "  auditspec diff-assessments <base.json> <head.json>",
     "  auditspec plan-remediation <assessment.json> [fingerprint ...]",
@@ -117,6 +120,22 @@ async function main(): Promise<void> {
     const graph = await buildAssuranceGraph(resolve(pathArg));
     assertAssuranceGraph(graph);
     print(graph);
+    return;
+  }
+
+  if (command === "graph-diff") {
+    const basePath = args[1];
+    const headPath = args[2];
+    if (!basePath || !headPath) usage();
+    const [baseGraph, headGraph] = await Promise.all([
+      buildAssuranceGraph(resolve(basePath)),
+      buildAssuranceGraph(resolve(headPath)),
+    ]);
+    assertAssuranceGraph(baseGraph);
+    assertAssuranceGraph(headGraph);
+    const diff = diffAssuranceGraphs(baseGraph, headGraph);
+    assertAssuranceGraphDiff(diff);
+    print(diff);
     return;
   }
 
