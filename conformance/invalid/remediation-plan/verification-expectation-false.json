@@ -1,0 +1,30 @@
+{
+  "plan_version": "0.1",
+  "generated_at": "2026-08-24T20:00:00Z",
+  "subject": { "path": "/repo" },
+  "source_assessment": {
+    "generated_at": "2026-08-24T19:00:00Z",
+    "inspector": "auditspec@0.1"
+  },
+  "items": [
+    {
+      "finding_fingerprint": "fp_1",
+      "rule_id": "AS-AUDIT-001",
+      "title": "Unaudited mutation boundary",
+      "confidence": "medium",
+      "location": { "path": "app/service.rb", "line": 1 },
+      "actions": [
+        {
+          "id": "action_1",
+          "kind": "code_change",
+          "summary": "Add audit evidence",
+          "rationale": "Mutation requires semantic audit evidence",
+          "acceptance_criteria": ["Audit event is emitted"]
+        }
+      ],
+      "verification": {
+        "expected_fingerprint_absent": false
+      }
+    }
+  ]
+}
