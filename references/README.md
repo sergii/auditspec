@@ -1,16 +1,50 @@
 # References and prior art
 
-AuditSpec is independently implemented and informed by established work in audit logging, event standards, observability, and agent security.
+AuditSpec is independently implemented and informed by established work in audit logging, provenance, event standards, observability, security, agent accountability, and machine-readable compliance.
 
-Initial references to document before v0.1 release:
+## Product audit logging
 
-- auditlog.dev by Maximilian Kaske / OpenStatus.
-- OpenStatus audit-log implementation and service-layer architecture.
-- WorkOS product audit logs and agent audit harness.
-- OWASP Logging Cheat Sheet and ASVS logging requirements.
-- CloudEvents specification.
-- OpenTelemetry trace context and semantic conventions.
-- Rails PaperTrail and Audited for model-level history comparison.
-- Frappe / ERPNext Version and Access Log behavior.
+- auditlog.dev by Maximilian Kaske / OpenStatus - semantic product audit model, actors, delegation, before/after changes, denied events, service-layer emission and transactional recording.
+- OpenStatus audit-log implementation - practical service-layer and same-transaction implementation patterns.
+- WorkOS Audit Logs - product-facing audit schema, target collections, schema evolution and delivery patterns.
+- WorkOS agent audit work - agent sessions/tool calls, payload digests/previews, and the distinction between endpoint self-reporting and stronger server-side evidence.
+- Retraced - open-source audit-log backend prior art; AuditSpec intentionally does not try to become another hosted/storage backend in Core.
 
-Do not copy source code or prose from prior-art projects unless their license and attribution requirements are explicitly satisfied.
+## Security and logging guidance
+
+- OWASP Logging Cheat Sheet - application-level event context, results, interaction identifiers, sensitive-data handling and log protection.
+- OWASP ASVS logging requirements - event metadata, timestamps and security logging expectations.
+
+## Event and observability standards
+
+- CloudEvents - portable event envelope and `(source, id)` event identity model.
+- OpenTelemetry Logs data model - timestamp, observed timestamp, trace/span correlation, resource and instrumentation context.
+- W3C Trace Context - interoperable trace and parent/span identifiers.
+
+## Provenance
+
+- W3C PROV / PROV-O - formal provenance model for Agent, Activity, Entity, association and `actedOnBehalfOf` delegation relationships.
+- JSON-LD - potential representation layer for future provenance mappings.
+- OpenLineage - prior art for a small core plus versioned, schema-addressed facets/extensions.
+
+## Security ecosystems and compliance
+
+- OCSF - vendor-neutral security event schema framework; candidate future mapping for SIEM/security ecosystems.
+- Elastic Common Schema (ECS) - candidate mapping for common security/observability fields.
+- NIST OSCAL - machine-readable control catalogs, profiles, system implementations, assessment plans/results, observations, findings, risks, evidence and remediation.
+
+## Integrity and transparency
+
+- RFC 8785 JSON Canonicalization Scheme (JCS) - candidate canonical JSON representation for deterministic hashing/signing.
+- SCITT architecture/receipts - candidate future integrity/transparency profile for signed statements and receipts.
+
+## Framework-level history
+
+- Rails PaperTrail and Audited - model history/versioning comparison; useful but semantically different from AuditSpec domain events.
+- Frappe / ERPNext Version and Access Log - native low-level history that should coexist with semantic AuditSpec events rather than be replaced.
+
+## Licensing and attribution
+
+AuditSpec must remain independently implemented. Do not copy source code, prose, fixtures, or UI from prior-art projects unless their licenses and attribution obligations are explicitly satisfied.
+
+In particular, concepts may be studied from copyleft projects while AuditSpec reference implementations should be independently authored unless deliberate license compatibility is chosen and documented.
