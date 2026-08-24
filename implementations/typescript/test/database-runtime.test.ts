@@ -28,7 +28,7 @@ test("maps a database-owned transaction receipt into authoritative point evidenc
   assert.equal(record.metadata?.transaction_id, "tx-8842");
 });
 
-test("supports authoritative audit and outbox persistence receipts", () => {
+test("preserves explicit relation for finding-target audit and outbox persistence receipts", () => {
   for (const kind of ["audit_persist", "outbox_persist"] as const) {
     const record = runtimeEvidenceFromDatabaseReceipt({
       id: `db_${kind}_001`,
@@ -36,12 +36,30 @@ test("supports authoritative audit and outbox persistence receipts", () => {
       observed_at: "2026-08-24T22:15:00Z",
       producer_name: "postgres-audit-observer",
       finding_fingerprint: "fp_example_001",
+      assessment_relation: "contradicts",
       detail: `Database-owned observer saw ${kind}.`,
     });
 
+    assert.equal(validateRuntimeEvidenceRecord(record).valid, true);
     assert.equal(record.kind, kind);
     assert.equal(record.trust, "authoritative");
+    assert.equal(record.assessment_relation, "contradicts");
   }
+});
+
+test("finding-target database receipt fails closed without assessment relation", () => {
+  assert.throws(
+    () =>
+      runtimeEvidenceFromDatabaseReceipt({
+        id: "db_finding_missing_relation",
+        kind: "audit_persist",
+        observed_at: "2026-08-24T22:15:00Z",
+        producer_name: "postgres-audit-observer",
+        finding_fingerprint: "fp_example_001",
+        detail: "The observation is linked to a finding but does not state what it means for that finding.",
+      }),
+    /requires explicit assessment_relation/,
+  );
 });
 
 test("requires an explicit static assessment target", () => {
