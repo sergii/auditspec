@@ -20,6 +20,7 @@ module AuditSpec
     oscal_export_request: "schema/oscal-export-request.schema.json",
     runtime_evidence_record: "schema/runtime-evidence-record.schema.json",
     corroboration_report: "schema/corroboration-report.schema.json",
+    corroboration_diff: "schema/corroboration-diff.schema.json",
     agent_profile: "profiles/agent/agent-profile.schema.json"
   }.freeze
 
