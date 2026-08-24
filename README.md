@@ -6,7 +6,7 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-This repository is an early `v0.1` working draft. Breaking changes are still expected while the Core model is being completed.
+This repository is an early `v0.1` working draft. Breaking changes are still expected while the Core and executable assurance surfaces are being completed.
 
 ## AuditSpec is
 
@@ -14,7 +14,8 @@ This repository is an early `v0.1` working draft. Breaking changes are still exp
 - A JSON Schema and executable conformance corpus.
 - A model for humans, services, API keys, automation, and AI agents.
 - A model for delegation, impersonation, authorization, execution results, correlation, redaction, evidence trust, ordering, and extensions.
-- A foundation for framework adapters, agent/MCP inspection, CI assessment, runtime evidence, provenance, and compliance mappings.
+- An executable Inspector and assessment model for finding auditability gaps.
+- A foundation for framework adapters, agent/MCP inspection, CI assessment, runtime evidence, provenance, and compliance evidence mappings.
 
 ## AuditSpec is not
 
@@ -88,12 +89,13 @@ This repository is an early `v0.1` working draft. Breaking changes are still exp
 ## Repository map
 
 - `SPEC.md` - normative v0.1 working specification.
-- `schema/` - JSON Schema and canonical examples, including Assessment Report and Assessment Diff contracts.
+- `schema/` - JSON Schemas and canonical examples for events, assessments, diffs, remediation, verification, and control mappings.
 - `spec/` - focused design notes.
 - `conformance/` - valid and invalid vectors shared by implementations.
 - `tools/conformance/` - executable validator and container runner.
 - `implementations/` - language-level reference implementations.
 - `frameworks/` - framework adapters and integration guidance.
+- `mappings/` - CloudEvents, OpenTelemetry, W3C PROV, OSCAL guidance, and control mapping profiles.
 - `docs/inspector.md` - system assessment model.
 - `docs/github-action.md` - advisory PR ratchet integration.
 - `docs/mcp.md` - MCP server and agent-facing tools.
@@ -133,6 +135,27 @@ Initial adapters:
 
 The canonical output is `schema/assessment-report.schema.json` and includes discovered boundaries, evidence, findings, confidence, and coverage.
 
+## Agent remediation loop
+
+Assessment findings can be converted into a structured Remediation Plan and verified against a later assessment using stable finding fingerprints.
+
+```bash
+auditspec plan-remediation assessment.json
+auditspec verify-remediation before.json after.json
+```
+
+The planner does not modify source code. A coding agent or developer performs the change through separate authorized tools; AuditSpec then re-assesses and reports `resolved`, `still_open`, and `new` findings.
+
+```text
+inspect
+  -> plan remediation
+  -> code change
+  -> inspect again
+  -> verify remediation
+```
+
+Verification is scoped to the evidence available to the active Inspector adapters. It is not a runtime proof or compliance verdict.
+
 ## GitHub Action
 
 AuditSpec can run as a non-blocking PR ratchet. Existing findings remain visible in summary while inline warnings focus on gaps newly introduced by the pull request.
@@ -150,7 +173,7 @@ The Action runs inside the repository's GitHub Actions runner; source code does 
 
 ## MCP server
 
-The same Inspector and validators are exposed through a local MCP v2 stdio server:
+The same Inspector, remediation, verification, and control-mapping engine is exposed through a local MCP v2 stdio server:
 
 ```bash
 cd implementations/typescript
@@ -159,7 +182,7 @@ npm run build
 npm run mcp
 ```
 
-Initial tools:
+Current tools:
 
 - `auditspec.validate_event`
 - `auditspec.validate_agent_profile`
@@ -167,8 +190,33 @@ Initial tools:
 - `auditspec.get_findings`
 - `auditspec.explain_gap`
 - `auditspec.diff_assessments`
+- `auditspec.plan_remediation`
+- `auditspec.verify_remediation`
+- `auditspec.map_controls`
 
-The MCP surface does not write source code in v0.1. Coding agents can use findings and remediation guidance, make changes through their own authorized tools, and then re-run the Inspector to verify the result.
+The MCP surface does not write source code in v0.1. Coding agents can use a structured remediation plan, make changes through their own authorized tools, and then verify the new assessment.
+
+## Control mapping and OSCAL
+
+AuditSpec keeps external control frameworks outside Core and Inspector rules. Versioned Control Mapping Profiles translate concrete AuditSpec findings into `potential_gap` or `relevant_evidence` relationships.
+
+The first built-in profile is:
+
+```text
+mappings/controls/nist-sp800-53-r5.2.0.json
+```
+
+Use it with:
+
+```bash
+auditspec map-controls \
+  assessment.json \
+  mappings/controls/nist-sp800-53-r5.2.0.json
+```
+
+This is a relevance crosswalk, not a NIST control assessment or compliance score.
+
+`mappings/oscal/README.md` defines the intended bridge from AuditSpec Assessment Reports to NIST OSCAL Assessment Results. A future OSCAL exporter must require real Assessment Plan/SSP context and validate output against official OSCAL schemas rather than inventing missing assessment data.
 
 ## Design principles
 
@@ -184,10 +232,12 @@ The MCP surface does not write source code in v0.1. Coding agents can use findin
 10. AuditSpec does not require global event ordering; sequence semantics are scoped to a declared stream.
 11. Core stays small through versioned profiles and namespaced extensions.
 12. Storage and transport are implementation details. AuditSpec defines semantics.
+13. Assessment uncertainty is explicit; static heuristics must not masquerade as proof.
+14. External control mappings express relevance, never certification by implication.
 
 ## Direction
 
-The intended ecosystem includes framework/language adapters, a system Inspector, MCP tools for agents, GitHub PR assessment, provenance and observability mappings, compliance evidence mappings, and optional runtime corroboration. The Core specification remains useful independently of any cloud service.
+The intended ecosystem includes stronger language/framework adapters, agent-native remediation, GitHub PR assessment, provenance and observability mappings, OSCAL/control evidence bridges, runtime corroboration, and eventually optional continuous-assurance cloud services. The Core specification remains useful independently of any cloud service.
 
 ## License
 
