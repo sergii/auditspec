@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 EVENT_SCHEMA_PATH = ROOT / "schema" / "audit-event.schema.json"
 ASSESSMENT_SCHEMA_PATH = ROOT / "schema" / "assessment-report.schema.json"
 ASSESSMENT_DIFF_SCHEMA_PATH = ROOT / "schema" / "assessment-diff.schema.json"
+REMEDIATION_PLAN_SCHEMA_PATH = ROOT / "schema" / "remediation-plan.schema.json"
+VERIFICATION_RESULT_SCHEMA_PATH = ROOT / "schema" / "verification-result.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
@@ -21,6 +23,8 @@ EVENT_EXAMPLES = [
 ]
 ASSESSMENT_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-report.json"]
 ASSESSMENT_DIFF_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-diff.json"]
+REMEDIATION_PLAN_EXAMPLES = [ROOT / "schema" / "examples" / "remediation-plan.json"]
+VERIFICATION_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "verification-result.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 
 
@@ -53,13 +57,15 @@ def expect_valid(validator, paths, label, failures):
                 + "\n  ".join(error.message for error in errors)
             )
         else:
-            print(f"PASS valid   {label:<10} {relative(path)}")
+            print(f"PASS valid   {label:<12} {relative(path)}")
 
 
 def main() -> int:
     event_validator = make_validator(EVENT_SCHEMA_PATH)
     assessment_validator = make_validator(ASSESSMENT_SCHEMA_PATH)
     assessment_diff_validator = make_validator(ASSESSMENT_DIFF_SCHEMA_PATH)
+    remediation_plan_validator = make_validator(REMEDIATION_PLAN_SCHEMA_PATH)
+    verification_result_validator = make_validator(VERIFICATION_RESULT_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
 
     failures = []
@@ -69,6 +75,8 @@ def main() -> int:
     expect_valid(event_validator, valid_event_paths, "event", failures)
     expect_valid(assessment_validator, ASSESSMENT_EXAMPLES, "assessment", failures)
     expect_valid(assessment_diff_validator, ASSESSMENT_DIFF_EXAMPLES, "diff", failures)
+    expect_valid(remediation_plan_validator, REMEDIATION_PLAN_EXAMPLES, "remediation", failures)
+    expect_valid(verification_result_validator, VERIFICATION_RESULT_EXAMPLES, "verification", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
     for path in invalid_event_paths:
@@ -76,7 +84,7 @@ def main() -> int:
         if not errors:
             failures.append(f"EXPECTED INVALID event: {relative(path)}")
         else:
-            print(f"PASS invalid event      {relative(path)}")
+            print(f"PASS invalid event        {relative(path)}")
 
     print()
     print(
@@ -85,6 +93,8 @@ def main() -> int:
         f"{len(invalid_event_paths)} invalid event vectors, "
         f"{len(ASSESSMENT_EXAMPLES)} assessment example(s), "
         f"{len(ASSESSMENT_DIFF_EXAMPLES)} diff example(s), "
+        f"{len(REMEDIATION_PLAN_EXAMPLES)} remediation example(s), "
+        f"{len(VERIFICATION_RESULT_EXAMPLES)} verification example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s)"
     )
 
