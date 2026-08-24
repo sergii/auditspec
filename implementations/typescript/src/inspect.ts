@@ -183,6 +183,7 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
         location,
         audit_status: auditStatus,
         confidence: "high",
+        reachability: { status: "unknown", confidence: "low" },
         evidence: [
           {
             kind: "ast_call",
@@ -247,7 +248,7 @@ function assuranceDetail(path: AssurancePathEvidence): string {
   return `Resolved assurance path: ${path.qualified_names.join(" -> ")} [roles: ${path.roles.join(", ")}; confidence: ${path.confidence}]`;
 }
 
-function reachabilityForPath(boundary: AssessmentBoundary, path: AssurancePathEvidence): NonNullable<AssessmentBoundary["reachability"]> {
+function reachabilityForPath(boundary: AssessmentBoundary, path: AssurancePathEvidence): AssessmentBoundary["reachability"] {
   if (!path.roles.includes("entrypoint") || path.qualified_names.length === 0) {
     return { status: "unknown", confidence: path.confidence, path: path.qualified_names };
   }
@@ -383,15 +384,13 @@ export async function inspectRepository(inputPath: string): Promise<AssessmentRe
   if (assuranceGraph.nodes.length > 0) {
     adapters.push("assurance-call-graph-v0.1");
     findings = reconcileWithAssuranceGraph(boundaries, findings, assuranceGraph);
-  } else {
-    for (const boundary of boundaries) boundary.reachability = { status: "unknown", confidence: "low" };
   }
 
   const covered = boundaries.filter((boundary) => boundary.audit_status === "covered").length;
   const partial = boundaries.filter((boundary) => boundary.audit_status === "partial").length;
   const uncovered = boundaries.filter((boundary) => boundary.audit_status === "uncovered").length;
   const unknown = boundaries.filter((boundary) => boundary.audit_status === "unknown").length;
-  const reachableBoundaries = boundaries.filter((boundary) => boundary.reachability?.status === "reachable").length;
+  const reachableBoundaries = boundaries.filter((boundary) => boundary.reachability.status === "reachable").length;
   const unknownReachability = boundaries.length - reachableBoundaries;
 
   return {
