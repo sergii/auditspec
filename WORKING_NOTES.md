@@ -20,8 +20,9 @@ AuditSpec should evolve from an event schema into an executable assurance ecosys
 - Structured remediation plans and verification.
 - Control mappings without compliance overclaiming.
 - Evidence querying.
-- OSCAL Assessment Results export.
-- Future runtime corroboration via OpenTelemetry, eBPF and other evidence producers.
+- NIST-schema-valid OSCAL Assessment Results export with explicit assessor context.
+- Runtime corroboration with explicit producer trust, observation coverage and static/runtime separation.
+- Machine-readable framework and runtime-producer capability registries.
 
 ## GitHub direction
 
@@ -36,21 +37,30 @@ Implemented PR ratchets:
 
 Future modes may add explicit regression/enforcement policy, but policy must remain separate from the Core semantic contracts.
 
+Potential runtime PR/continuous-assurance ratchets:
+
+- new static path with no corresponding runtime evidence should remain informational unless observation scope is known to be relevant;
+- static/runtime contradiction should be a separate signal, not a rewrite of the static finding;
+- only `not_observed + exhaustive` may produce a non-observation contradiction;
+- evidence freshness/observation-window expiry should prevent stale runtime observations from being treated as current corroboration.
+
 ## Agent / MCP direction
 
 Desired loop:
 
 ```text
-inspect
+list framework/runtime capabilities
+  -> inspect
   -> build/diff assurance graph
-  -> query evidence
+  -> query static evidence
+  -> ingest/corroborate runtime evidence
   -> explain
   -> plan remediation
   -> coding agent changes
   -> inspect
   -> verify
   -> map controls
-  -> export evidence
+  -> export evidence / OSCAL
 ```
 
 AuditSpec MCP must not duplicate Inspector semantics and should keep source-writing authority separate from assessment authority in v0.1.
@@ -60,7 +70,8 @@ AuditSpec MCP must not duplicate Inspector semantics and should keep source-writ
 - AuditSpec does not certify SOC 2, ISO 27001, NIST or any other framework.
 - Mappings express evidence relevance or potential gaps.
 - OSCAL is the preferred machine-readable bridge for NIST-style assessment artifacts.
-- OSCAL Assessment Results export must require caller-provided Assessment Plan context rather than inventing it.
+- OSCAL Assessment Results export requires caller-provided Assessment Plan, reviewed-control scope and finding target/status context rather than inventing assessor conclusions.
+- Generated OSCAL 1.2.3 is validated in CI against the complete official SHA-256-pinned NIST release JSON Schema.
 - Add SOC 2 / ISO mappings only with careful control provenance and licensing review.
 
 ## Research / assurance direction
@@ -75,10 +86,67 @@ AuditSpec MCP must not duplicate Inspector semantics and should keep source-writ
 - Reference corpus from real audit ecosystems with information-loss reports.
 - Competency questions and formal/TLA+ pipeline model later.
 - Formalize graph/path invariants: unresolved edges never strengthen assurance, path enumeration truncation never strengthens coverage, alternate weaker paths cannot be hidden by a stronger path.
+- Formalize corroboration invariants: bounded non-observation is inconclusive, producer trust never broadens authority scope, and runtime evidence never mutates static coverage.
 
 ## Runtime evidence direction
 
-Runtime evidence is corroboration, not business-semantic truth. eBPF can prove process/syscall/network/file observations but cannot independently prove that a SQL write means `invoice.approve`. Future adapters can ingest Tetragon/Falco/OTel/osquery/Linux Audit/ETW evidence and correlate it with semantic events.
+Implemented L4 foundation:
+
+- `RuntimeEvidenceRecord` schema;
+- `CorroborationReport` schema;
+- `observed -> supports`;
+- `contradicted -> contradicts`;
+- `not_observed + exhaustive -> contradicts`;
+- bounded non-observation -> `inconclusive`;
+- CLI `corroborate`;
+- MCP `auditspec.corroborate_runtime`;
+- TypeScript/Python/Ruby schema conformance;
+- reference OpenTelemetry producer with explicit target fingerprints;
+- reference database receipt producer for transaction/audit/outbox persistence;
+- reference delivery receipt producer;
+- machine-readable runtime producer manifests with separate CI validation;
+- producer-to-corroboration integration tests.
+
+Runtime evidence is corroboration, not business-semantic truth. eBPF can prove process/syscall/network/file observations but cannot independently prove that a SQL write means `invoice.approve`.
+
+Next runtime producer candidates:
+
+- authorization-decision producer from the policy engine or application authorization boundary;
+- reverse-proxy/request receipt producer;
+- Linux Audit / osquery / ETW adapters;
+- Tetragon/Falco/eBPF producer for kernel-visible facts;
+- signed/attested runtime receipts, potentially using JCS/signatures and later SCITT-style transparency/receipts.
+
+Runtime hardening backlog:
+
+- define observation-window identity and freshness/expiry semantics;
+- define whether an evidence record may supersede/revoke a prior record without destroying append-only history;
+- add integrity/signature fields or a separate signed evidence envelope;
+- define explicit producer authority scopes as policy inputs, not only documentation;
+- add static/runtime contradiction diff/ratchet without conflating it with static Assessment Diff;
+- add multi-producer corroboration rules without naive majority voting;
+- add temporal graph/history views for evidence freshness and contradiction resolution;
+- preserve trace/request/session/tool-call correlation but never create semantic graph edges from correlation coincidence alone.
+
+## eBPF boundary
+
+Potential eBPF/Tetragon/Falco evidence can corroborate kernel-visible facts such as:
+
+- process execution;
+- network connect/accept;
+- file access/write;
+- selected syscall behavior;
+- container/process identity where reliably observed.
+
+It cannot by itself establish:
+
+- business intent;
+- human/agent accountability;
+- application authorization policy semantics;
+- correctness of a semantic AuditSpec action name;
+- that a SQL statement represents a specific business operation.
+
+Therefore eBPF remains an evidence producer beneath semantic application auditing, not a replacement for it.
 
 ## Implemented Inspector hardening
 
@@ -97,13 +165,11 @@ Runtime evidence is corroboration, not business-semantic truth. eBPF can prove p
 
 ## Release hardening backlog
 
-- Validate generated OSCAL 1.2.3 documents against the complete official NIST JSON Schema offline in conformance. Do not vendor a release schema until the source and checksum are verified.
 - Expand Rails framework resolution for `resources`, nested/namespaced routes, callbacks, concerns, ActionCable and framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
+- Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
-- Add graph/path property tests and fuzzing around cycles, path explosion, ambiguity and stable semantic fingerprints.
-- Expand invalid conformance corpus across every non-Core contract.
-- Add differential conformance beyond TypeScript/Python schema validation.
 - Add actual Apache-2.0 LICENSE before tag.
+- Review every current `future`/`planned` statement in README/docs against implementation before release.
 - Remove/promote this working notes file before the first release.
 - Squash the v0.1 working history into a clean release commit.
