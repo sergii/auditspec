@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes validation, framework capability discovery, Inspector, Assurance Graph, topology diff, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment diff over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes validation, framework capability discovery, Inspector, Assurance Graph, topology diff, findings, remediation, verification, evidence query, runtime corroboration, control mapping, OSCAL projection, and assessment diff over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -37,6 +37,7 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 - `auditspec.verify_remediation` - verify requested finding fingerprints against a later assessment.
 - `auditspec.map_controls` - map evidence/findings to external controls without pass/fail claims.
 - `auditspec.query_evidence` - query evidence already present in an Assessment Report.
+- `auditspec.corroborate_runtime` - compare static Assessment targets with schema-valid runtime observations without rewriting static coverage.
 - `auditspec.export_oscal` - project an Assessment Report into OSCAL 1.2.3 Assessment Results using an explicit validated export request.
 
 ## Intended agent loop
@@ -52,7 +53,7 @@ agent
   +--> auditspec.inspect
   |       |
   |       v
-  |    findings + evidence + confidence
+  |    findings + static evidence + confidence
   |
   +--> auditspec.build_assurance_graph
   |       |
@@ -72,7 +73,12 @@ agent
   +--> auditspec.query_evidence
   |       |
   |       v
-  |    focused evidence projection
+  |    focused static evidence projection
+  |
+  +--> auditspec.corroborate_runtime
+  |       |
+  |       v
+  |    supports / contradicts / inconclusive / unmatched
   |
   +--> auditspec.plan_remediation
   |       |
@@ -128,6 +134,35 @@ Supported framework provenance currently includes explicit Rails routes, ActiveJ
 
 See `docs/assurance-graph.md` for graph, topology-diff, and confidence contracts.
 
+## Runtime corroboration boundary
+
+`auditspec.corroborate_runtime` accepts:
+
+- `assessment` - a valid static Assessment Report;
+- `evidence` - an array of individually valid `RuntimeEvidenceRecord` objects.
+
+The tool returns a schema-valid Corroboration Report. Runtime observations are matched only to stable boundary/finding fingerprints explicitly present in the evidence record. Unknown targets remain unmatched.
+
+The relation rules are conservative:
+
+```text
+observed
+  -> supports
+
+contradicted
+  -> contradicts
+
+not_observed + exhaustive coverage
+  -> contradicts
+
+not_observed + point/sample/window coverage
+  -> inconclusive
+```
+
+Producer trust and observation coverage are preserved separately. Runtime evidence does not mutate the Assessment Report or automatically increase static audit coverage.
+
+See `docs/runtime-corroboration.md` for producer trust, observation coverage, OpenTelemetry/database/eBPF boundaries, and future correlation rules.
+
 ## OSCAL boundary
 
 `auditspec.export_oscal` accepts:
@@ -159,7 +194,8 @@ The MCP server deliberately does not modify source code in v0.1. Assessment/evid
 - richer Frappe dynamic hooks and background dispatch resolution
 - full pinned Frappe Bench behavioral runtime lab
 - message-bus/RPC edges
-- runtime/OpenTelemetry evidence ingestion and graph correlation
+- OpenTelemetry runtime evidence producer adapter
+- database/outbox/delivery receipt producer adapters
 - graph visualization and richer graph/evidence queries
 - optional kernel/eBPF corroboration as evidence, never as a replacement for semantic application audit
 
