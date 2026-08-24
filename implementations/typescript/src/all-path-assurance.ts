@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import type { AssessmentBoundary, AssessmentFinding, AssessmentReport } from "./assessment-types.js";
+import {
+  evaluateAssurancePathSet,
+  type AssurancePathEvaluation,
+} from "./assurance-evaluation.js";
 import { findAssurancePaths, type AssurancePathSet } from "./assurance-paths.js";
 import type { AssuranceGraph, AssurancePathEvidence, AssuranceRole } from "./assurance-graph.js";
 
@@ -7,12 +11,6 @@ const PRIVILEGED_RE = /\b(delete|destroy|refund|approve|role|permission|imperson
 
 function stableId(prefix: string, value: string): string {
   return `${prefix}_${createHash("sha256").update(value).digest("hex").slice(0, 12)}`;
-}
-
-function weakestConfidence(paths: AssurancePathEvidence[]): AssessmentFinding["confidence"] {
-  if (paths.some((path) => path.confidence === "low")) return "low";
-  if (paths.some((path) => path.confidence === "medium")) return "medium";
-  return "high";
 }
 
 function isPrivileged(boundary: AssessmentBoundary): boolean {
@@ -30,14 +28,13 @@ function missingPath(paths: AssurancePathEvidence[], role: AssuranceRole): Assur
   return paths.find((path) => !path.roles.includes(role));
 }
 
-function pathSetDetail(pathSet: AssurancePathSet, reachable: AssurancePathEvidence[]): string {
-  const counts = (role: AssuranceRole) => reachable.filter((path) => path.roles.includes(role)).length;
+function pathSetDetail(pathSet: AssurancePathSet, evaluation: AssurancePathEvaluation): string {
   return [
-    `Evaluated ${reachable.length} statically reachable assurance path(s)`,
-    `audit ${counts("audit")}/${reachable.length}`,
-    `transaction ${counts("transaction")}/${reachable.length}`,
-    `authorization ${counts("authorization")}/${reachable.length}`,
-    pathSet.truncated ? `enumeration truncated at ${pathSet.max_paths} paths` : "enumeration not truncated",
+    `Evaluated ${evaluation.reachable_paths} statically reachable assurance path(s)`,
+    `audit ${evaluation.counts.audit}/${evaluation.reachable_paths}`,
+    `transaction ${evaluation.counts.transaction}/${evaluation.reachable_paths}`,
+    `authorization ${evaluation.counts.authorization}/${evaluation.reachable_paths}`,
+    pathSet.truncated ? `enumeration truncated at ${pathSet.max_paths} paths or the depth limit` : "enumeration not truncated",
   ].join("; ");
 }
 
@@ -73,11 +70,6 @@ function alternatePathFinding(
   };
 }
 
-function mixedRole(paths: AssurancePathEvidence[], role: AssuranceRole): boolean {
-  const count = paths.filter((path) => path.roles.includes(role)).length;
-  return count > 0 && count < paths.length;
-}
-
 function removeSuperseded(
   findings: AssessmentFinding[],
   boundaryId: string,
@@ -97,43 +89,32 @@ export function hardenAssessmentAcrossPaths(
 
   for (const boundary of report.boundaries) {
     const pathSet = findAssurancePaths(graph, boundary.location);
-    const reachable = pathSet.paths.filter((path) => path.roles.includes("entrypoint"));
-    if (reachable.length === 0) continue;
+    const evaluation = evaluateAssurancePathSet(pathSet, boundary.framework);
+    if (!evaluation) continue;
 
+    const reachable = evaluation.reachable;
     pathSetsEvaluated += 1;
-    if (pathSet.truncated) truncatedPathSets += 1;
+    if (evaluation.truncated) truncatedPathSets += 1;
 
-    const auditCount = reachable.filter((path) => path.roles.includes("audit")).length;
-    const transactionCount = reachable.filter((path) => path.roles.includes("transaction")).length;
-    const authorizationCount = reachable.filter((path) => path.roles.includes("authorization")).length;
-    const allAudit = auditCount === reachable.length;
-    const allTransaction = transactionCount === reachable.length;
-
-    if (pathSet.truncated) {
-      boundary.audit_status = "unknown";
+    if (evaluation.audit_status !== null) {
+      boundary.audit_status = evaluation.audit_status;
+    }
+    if (evaluation.truncated) {
       boundary.confidence = "low";
-    } else if (boundary.framework === "rails") {
-      boundary.audit_status = auditCount === 0
-        ? "uncovered"
-        : allAudit && allTransaction
-          ? "covered"
-          : "partial";
-    } else if (boundary.framework === "frappe") {
-      boundary.audit_status = auditCount === 0 ? "uncovered" : "partial";
     }
 
     boundary.evidence = [
       ...(boundary.evidence ?? []),
       {
         kind: "assurance_path_set",
-        detail: pathSetDetail(pathSet, reachable),
+        detail: pathSetDetail(pathSet, evaluation),
         location: boundary.location,
       },
     ];
 
-    const confidence = pathSet.truncated ? "low" : weakestConfidence(reachable);
+    const confidence = evaluation.confidence;
 
-    if (mixedRole(reachable, "audit")) {
+    if (evaluation.mixed.audit) {
       findings = removeSuperseded(findings, boundary.id, "AS-AUDIT-001");
       const missing = missingPath(reachable, "audit")!;
       findings.push(alternatePathFinding(
@@ -148,7 +129,7 @@ export function hardenAssessmentAcrossPaths(
       alternatePathFindings += 1;
     }
 
-    if (boundary.framework === "rails" && allAudit && mixedRole(reachable, "transaction")) {
+    if (boundary.framework === "rails" && evaluation.all.audit && evaluation.mixed.transaction) {
       findings = removeSuperseded(findings, boundary.id, "AS-ATOMIC-001");
       const missing = missingPath(reachable, "transaction")!;
       findings.push(alternatePathFinding(
@@ -163,7 +144,7 @@ export function hardenAssessmentAcrossPaths(
       alternatePathFindings += 1;
     }
 
-    if (isPrivileged(boundary) && mixedRole(reachable, "authorization")) {
+    if (isPrivileged(boundary) && evaluation.mixed.authorization) {
       findings = removeSuperseded(findings, boundary.id, "AS-AUTH-001");
       const missing = missingPath(reachable, "authorization")!;
       findings.push(alternatePathFinding(
@@ -178,12 +159,12 @@ export function hardenAssessmentAcrossPaths(
       alternatePathFindings += 1;
     }
 
-    if (pathSet.truncated) {
+    if (evaluation.truncated) {
       const affected = findings.filter((finding) => finding.boundary_id === boundary.id);
       for (const finding of affected) finding.confidence = "low";
     }
 
-    if (authorizationCount === reachable.length) {
+    if (evaluation.reachable_paths > 0 && evaluation.all.authorization) {
       findings = findings.filter(
         (finding) => !(finding.boundary_id === boundary.id && finding.rule_id === "AS-AUTH-001"),
       );
