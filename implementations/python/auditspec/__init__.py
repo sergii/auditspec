@@ -25,6 +25,7 @@ SCHEMAS = {
     "runtime_evidence_record": "schema/runtime-evidence-record.schema.json",
     "corroboration_report": "schema/corroboration-report.schema.json",
     "corroboration_diff": "schema/corroboration-diff.schema.json",
+    "corroboration_query_result": "schema/corroboration-query-result.schema.json",
     "agent_profile": "profiles/agent/agent-profile.schema.json",
 }
 
