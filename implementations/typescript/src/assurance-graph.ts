@@ -6,25 +6,37 @@ import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } 
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
 
 export type AssuranceRole = "entrypoint" | "authorization" | "transaction" | "mutation" | "audit";
+export type AssuranceFramework = "rails" | "frappe";
 
 export interface AssuranceGraphNode {
   id: string;
+  kind: "scope" | "surface";
   language: AstLanguage;
+  framework?: AssuranceFramework;
   name: string;
   qualified_name: string;
   location: SourceLocation;
   range: { start_line: number; end_line: number };
   roles: AssuranceRole[];
   confidence: AssessmentConfidence;
+  surface?: {
+    kind: string;
+    detail: string;
+  };
 }
 
 export interface AssuranceGraphEdge {
   from: string;
   to: string;
-  kind: "call";
+  kind: "call" | "framework_dispatch";
   confidence: "high" | "medium";
-  call: {
+  call?: {
     callee: string;
+    location: SourceLocation;
+  };
+  framework?: {
+    kind: string;
+    detail: string;
     location: SourceLocation;
   };
 }
@@ -51,6 +63,8 @@ export interface AssuranceGraph {
     mutation_nodes: number;
     audit_nodes: number;
     unresolved_calls: number;
+    surface_nodes: number;
+    framework_edges: number;
   };
 }
 
@@ -104,6 +118,7 @@ const RUBY_MUTATIONS = new Set([
 const RUBY_AUTHORIZATION = new Set(["authorize", "policy_scope", "allowed_to?", "can?"]);
 const PYTHON_AUTHORIZATION = new Set(["has_permission", "only_for", "check_permission", "get_roles"]);
 const PYTHON_DOCUMENT_MUTATIONS = new Set(["save", "insert", "submit", "cancel", "delete", "db_set", "db_insert", "db_update"]);
+const RAILS_JOB_DISPATCH = new Set(["perform_later", "perform_now", "perform_async", "perform_in", "perform_at"]);
 const AUDIT_RE = /\b(?:AuditSpec|auditspec)\.(?:emit!?|record!?)\b|\bemit_audit\b/;
 
 function stableId(prefix: string, value: string): string {
@@ -173,14 +188,10 @@ function rolesForCalls(calls: AstCallCandidate[], language: AstLanguage): Assura
   return [...roles].sort();
 }
 
-function isEntrypoint(path: string, scope: AstScope, source: string, language: AstLanguage): boolean {
-  if (language === "ruby" && path.startsWith("app/controllers/")) return true;
-  if (language === "python") {
-    const lines = source.split("\n");
-    const before = lines.slice(Math.max(0, scope.start_line - 5), scope.start_line - 1).join("\n");
-    return /@frappe\.whitelist(?:\([^)]*\))?/.test(before);
-  }
-  return false;
+function isWhitelistedFrappeScope(scope: AstScope, source: string): boolean {
+  const lines = source.split("\n");
+  const before = lines.slice(Math.max(0, scope.start_line - 5), scope.start_line - 1).join("\n");
+  return /@frappe\.whitelist(?:\([^)]*\))?/.test(before);
 }
 
 function scopeKey(path: string, scope: AstScope): string {
@@ -213,15 +224,137 @@ function isSemanticCall(call: AstCallCandidate, language: AstLanguage): boolean 
   return isPythonMutation(call) || PYTHON_AUTHORIZATION.has(call.method);
 }
 
+function addRole(node: AssuranceGraphNode, role: AssuranceRole): void {
+  if (!node.roles.includes(role)) node.roles = [...node.roles, role].sort() as AssuranceRole[];
+}
+
+function isRailsJobScope(item: IndexedScope): boolean {
+  if (item.node.language !== "ruby" || item.node.name !== "perform") return false;
+  const container = containerHint(item.node);
+  if (!container) return false;
+  const escaped = container.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`class\\s+${escaped}\\s*<\\s*(?:ApplicationJob|ActiveJob::Base)\\b`).test(item.source)
+    || /include\s+Sidekiq::(?:Job|Worker)\b/.test(item.source);
+}
+
+function camelizeController(value: string): string {
+  return value
+    .split("/")
+    .map((segment) => segment.split("_").map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`).join(""))
+    .join("::") + "Controller";
+}
+
+function lineAt(source: string, offset: number): number {
+  return source.slice(0, offset).split("\n").length;
+}
+
+function routeDeclarations(source: string): Array<{ verb: string; path: string; controller: string; action: string; line: number }> {
+  const results: Array<{ verb: string; path: string; controller: string; action: string; line: number }> = [];
+  const patterns = [
+    /^\s*(get|post|put|patch|delete)\s+["']([^"']+)["']\s*,\s*to:\s*["']([^"'#]+)#([^"']+)["']/gm,
+    /^\s*(get|post|put|patch|delete)\s+["']([^"']+)["']\s*=>\s*["']([^"'#]+)#([^"']+)["']/gm,
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      results.push({
+        verb: match[1]!.toUpperCase(),
+        path: match[2]!,
+        controller: match[3]!,
+        action: match[4]!,
+        line: lineAt(source, match.index ?? 0),
+      });
+    }
+  }
+  return results;
+}
+
+function dottedTarget(callText: string): string | undefined {
+  return callText.match(/["']([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)["']/)?.[1];
+}
+
+function resolvePythonDottedTarget(indexed: IndexedScope[], target: string): IndexedScope | undefined {
+  const parts = target.split(".");
+  if (parts.length < 2) return undefined;
+  const name = parts.at(-1)!;
+  const modulePath = `${parts.slice(0, -1).join("/")}.py`;
+  const candidates = indexed.filter((item) => item.node.language === "python" && item.node.name === name && item.node.location.path.endsWith(modulePath));
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
+function assignmentBlock(source: string, name: string): { text: string; offset: number } | null {
+  const match = new RegExp(`\\b${name}\\s*=\\s*\\{`).exec(source);
+  if (!match || match.index === undefined) return null;
+  const open = source.indexOf("{", match.index);
+  if (open < 0) return null;
+  let depth = 0;
+  let quote: string | null = null;
+  let escaped = false;
+  for (let index = open; index < source.length; index += 1) {
+    const char = source[index]!;
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return { text: source.slice(open, index + 1), offset: open };
+    }
+  }
+  return null;
+}
+
+function hookTargets(source: string, assignment: string): Array<{ target: string; line: number }> {
+  const block = assignmentBlock(source, assignment);
+  if (!block) return [];
+  const targets: Array<{ target: string; line: number }> = [];
+  const stringPattern = /["']([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*){2,})["']/g;
+  for (const match of block.text.matchAll(stringPattern)) {
+    targets.push({ target: match[1]!, line: lineAt(source, block.offset + (match.index ?? 0)) });
+  }
+  return targets;
+}
+
+function frameworkSurface(
+  language: AstLanguage,
+  framework: AssuranceFramework,
+  surfaceKind: string,
+  detail: string,
+  location: SourceLocation,
+): AssuranceGraphNode {
+  const qualified = `${framework}.${surfaceKind}:${detail}`;
+  return {
+    id: stableId("surface", `${qualified}:${location.path}:${location.line ?? 0}`),
+    kind: "surface",
+    language,
+    framework,
+    name: surfaceKind,
+    qualified_name: qualified,
+    location,
+    range: { start_line: location.line ?? 1, end_line: location.line ?? 1 },
+    roles: ["entrypoint"],
+    confidence: "high",
+    surface: { kind: surfaceKind, detail },
+  };
+}
+
 export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceGraph> {
   const root = resolve(inputPath);
   const files = await collectSourceFiles(root);
   const indexed: IndexedScope[] = [];
+  const sourceByPath = new Map<string, string>();
 
   for (const absolutePath of files) {
     const source = await readText(absolutePath);
     if (source === null || source.length > 1_000_000) continue;
     const path = repoPath(root, absolutePath);
+    sourceByPath.set(path, source);
     const language = languageFor(path);
     const scan = findAstCalls(source, language);
     if (!scan.parsed) continue;
@@ -237,14 +370,16 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
 
     for (const { scope, calls } of scopes.values()) {
       const roles = rolesForCalls(calls, language);
-      if (isEntrypoint(path, scope, source, language)) roles.push("entrypoint");
+      if (language === "python" && isWhitelistedFrappeScope(scope, source)) roles.push("entrypoint");
       const normalizedRoles = [...new Set(roles)].sort() as AssuranceRole[];
       indexed.push({
         source,
         calls,
         node: {
           id: stableId("node", `${language}:${path}:${scope.id}:${scope.qualified_name}`),
+          kind: "scope",
           language,
+          ...(language === "ruby" ? { framework: "rails" as const } : { framework: "frappe" as const }),
           name: scope.name,
           qualified_name: scope.qualified_name,
           location: { path, line: scope.start_line, column: scope.start_column },
@@ -256,6 +391,10 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
     }
   }
 
+  for (const item of indexed) {
+    if (isRailsJobScope(item)) addRole(item.node, "entrypoint");
+  }
+
   const byName = new Map<string, IndexedScope[]>();
   for (const item of indexed) {
     const items = byName.get(item.node.name) ?? [];
@@ -263,9 +402,18 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
     byName.set(item.node.name, items);
   }
 
+  const nodes: AssuranceGraphNode[] = indexed.map((item) => item.node);
   const edges: AssuranceGraphEdge[] = [];
   const unresolved: AssuranceUnresolvedCall[] = [];
   const edgeKeys = new Set<string>();
+
+  const pushEdge = (edge: AssuranceGraphEdge): void => {
+    const location = edge.call?.location ?? edge.framework?.location;
+    const key = `${edge.kind}:${edge.from}:${edge.to}:${location?.path ?? ""}:${location?.line ?? 0}:${location?.column ?? 0}`;
+    if (edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push(edge);
+  };
 
   for (const sourceScope of indexed) {
     for (const call of sourceScope.calls) {
@@ -299,10 +447,7 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
         continue;
       }
 
-      const key = `${sourceScope.node.id}:${resolved.candidate.node.id}:${call.line}:${call.column}`;
-      if (edgeKeys.has(key)) continue;
-      edgeKeys.add(key);
-      edges.push({
+      pushEdge({
         from: sourceScope.node.id,
         to: resolved.candidate.node.id,
         kind: "call",
@@ -312,7 +457,93 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
     }
   }
 
-  const nodes = indexed.map((item) => item.node);
+  const routesSource = sourceByPath.get("config/routes.rb");
+  if (routesSource) {
+    for (const route of routeDeclarations(routesSource)) {
+      const targetName = `${camelizeController(route.controller)}#${route.action}`;
+      const target = indexed.find((item) => item.node.qualified_name === targetName);
+      if (!target) continue;
+      const location: SourceLocation = { path: "config/routes.rb", line: route.line, column: 1 };
+      const surface = frameworkSurface("ruby", "rails", "rails_route", `${route.verb} ${route.path} -> ${route.controller}#${route.action}`, location);
+      nodes.push(surface);
+      pushEdge({
+        from: surface.id,
+        to: target.node.id,
+        kind: "framework_dispatch",
+        confidence: "high",
+        framework: { kind: "rails_route", detail: surface.surface!.detail, location },
+      });
+    }
+  }
+
+  for (const sourceScope of indexed.filter((item) => item.node.language === "ruby")) {
+    for (const call of sourceScope.calls) {
+      if (!RAILS_JOB_DISPATCH.has(call.method)) continue;
+      const receiver = receiverHint(call.callee, call.method);
+      if (!receiver) continue;
+      const candidates = indexed.filter((item) => item.node.language === "ruby" && item.node.name === "perform" && containerHint(item.node) === receiver);
+      if (candidates.length !== 1) continue;
+      const target = candidates[0]!;
+      addRole(target.node, "entrypoint");
+      const location: SourceLocation = { path: sourceScope.node.location.path, line: call.line, column: call.column };
+      pushEdge({
+        from: sourceScope.node.id,
+        to: target.node.id,
+        kind: "framework_dispatch",
+        confidence: "high",
+        framework: { kind: "rails_job_dispatch", detail: `${call.callee} -> ${target.node.qualified_name}`, location },
+      });
+    }
+  }
+
+  for (const [path, source] of sourceByPath) {
+    if (!path.endsWith("hooks.py")) continue;
+    for (const [assignment, surfaceKind] of [["doc_events", "frappe_doc_event"], ["scheduler_events", "frappe_scheduler"]] as const) {
+      for (const hook of hookTargets(source, assignment)) {
+        const target = resolvePythonDottedTarget(indexed, hook.target);
+        if (!target) continue;
+        const location: SourceLocation = { path, line: hook.line, column: 1 };
+        const surface = frameworkSurface("python", "frappe", surfaceKind, hook.target, location);
+        nodes.push(surface);
+        pushEdge({
+          from: surface.id,
+          to: target.node.id,
+          kind: "framework_dispatch",
+          confidence: "high",
+          framework: { kind: surfaceKind, detail: `${assignment} -> ${hook.target}`, location },
+        });
+      }
+    }
+  }
+
+  for (const sourceScope of indexed.filter((item) => item.node.language === "python")) {
+    for (const call of sourceScope.calls) {
+      if (call.callee !== "frappe.enqueue" && call.method !== "enqueue") continue;
+      const targetName = dottedTarget(call.text);
+      if (!targetName) continue;
+      const target = resolvePythonDottedTarget(indexed, targetName);
+      if (!target) continue;
+      addRole(target.node, "entrypoint");
+      const location: SourceLocation = { path: sourceScope.node.location.path, line: call.line, column: call.column };
+      pushEdge({
+        from: sourceScope.node.id,
+        to: target.node.id,
+        kind: "framework_dispatch",
+        confidence: "high",
+        framework: { kind: "frappe_enqueue", detail: `frappe.enqueue -> ${targetName}`, location },
+      });
+    }
+  }
+
+  const routedControllers = new Set(
+    edges.filter((edge) => edge.kind === "framework_dispatch" && edge.framework?.kind === "rails_route").map((edge) => edge.to),
+  );
+  for (const item of indexed) {
+    if (item.node.language === "ruby" && item.node.location.path.startsWith("app/controllers/") && !routedControllers.has(item.node.id)) {
+      addRole(item.node, "entrypoint");
+    }
+  }
+
   return {
     graph_version: "0.1",
     generated_at: new Date().toISOString(),
@@ -327,6 +558,8 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
       mutation_nodes: nodes.filter((node) => node.roles.includes("mutation")).length,
       audit_nodes: nodes.filter((node) => node.roles.includes("audit")).length,
       unresolved_calls: unresolved.length,
+      surface_nodes: nodes.filter((node) => node.kind === "surface").length,
+      framework_edges: edges.filter((edge) => edge.kind === "framework_dispatch").length,
     },
   };
 }
@@ -334,7 +567,7 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
 function nodeForLocation(graph: AssuranceGraph, location: SourceLocation): AssuranceGraphNode | undefined {
   if (!location.line) return undefined;
   return graph.nodes
-    .filter((node) => node.location.path === location.path && location.line! >= node.range.start_line && location.line! <= node.range.end_line)
+    .filter((node) => node.kind === "scope" && node.location.path === location.path && location.line! >= node.range.start_line && location.line! <= node.range.end_line)
     .sort((a, b) => (a.range.end_line - a.range.start_line) - (b.range.end_line - b.range.start_line))[0];
 }
 
@@ -382,14 +615,14 @@ export function findAssurancePath(
 
   const scored = candidates
     .map((candidate) => {
-      const nodes = candidate.ids.map((id) => byId.get(id)).filter((node): node is AssuranceGraphNode => Boolean(node));
-      const roles = pathRoles(nodes);
+      const pathNodes = candidate.ids.map((id) => byId.get(id)).filter((node): node is AssuranceGraphNode => Boolean(node));
+      const roles = pathRoles(pathNodes);
       const score = (roles.includes("audit") ? 8 : 0)
         + (roles.includes("transaction") ? 6 : 0)
         + (roles.includes("authorization") ? 3 : 0)
         + (roles.includes("entrypoint") ? 1 : 0)
         - candidate.ids.length * 0.01;
-      return { ...candidate, nodes, roles, score };
+      return { ...candidate, nodes: pathNodes, roles, score };
     })
     .sort((a, b) => b.score - a.score)[0];
   if (!scored) return null;
