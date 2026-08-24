@@ -1,0 +1,30 @@
+name: Conformance
+
+on:
+  push:
+    branches:
+      - v0.1
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema-conformance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install conformance dependencies
+        run: pip install -r tools/conformance/requirements.txt
+
+      - name: Run AuditSpec conformance
+        run: python tools/conformance/run.py
