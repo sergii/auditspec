@@ -1,0 +1,81 @@
+{
+  "manifest_version": "0.1",
+  "id": "frappe-v0.1",
+  "framework": "frappe",
+  "language": "python",
+  "framework_versions": ["v15+ transaction-hook semantics"],
+  "language_versions": ["3.11.16", "3.14.7"],
+  "layers": {
+    "language_reference": {
+      "status": "implemented",
+      "proof": "contract",
+      "evidence": [
+        "implementations/python/",
+        ".github/workflows/python-reference.yml"
+      ]
+    },
+    "transaction_adapter": {
+      "status": "implemented",
+      "proof": "contract",
+      "evidence": [
+        "frameworks/frappe/auditspec_frappe.py",
+        "frameworks/frappe/test_auditspec_frappe.py",
+        ".github/workflows/frappe-adapter.yml"
+      ],
+      "limitations": [
+        "The adapter is transaction-neutral and relies on the active Frappe request/job/application transaction boundary."
+      ]
+    },
+    "behavioral_runtime_lab": {
+      "status": "partial",
+      "proof": "contract",
+      "evidence": [
+        "frameworks/frappe/test_auditspec_frappe.py"
+      ],
+      "limitations": [
+        "No full pinned Frappe Bench site runtime failure-injection lab is implemented yet."
+      ]
+    },
+    "inspector_adapter": {
+      "status": "implemented",
+      "proof": "pinned_real_world_static",
+      "adapter_id": "frappe-ast-assisted-v0.1",
+      "evidence": [
+        "implementations/typescript/src/inspector-frappe.ts",
+        ".github/workflows/conformance.yml"
+      ],
+      "limitations": [
+        "Static reachability is not runtime execution proof."
+      ]
+    },
+    "runtime_corroboration": {
+      "status": "planned",
+      "proof": "none",
+      "evidence": [],
+      "limitations": [
+        "No Frappe production runtime corroboration profile is implemented in v0.1."
+      ]
+    }
+  },
+  "transaction": {
+    "ownership": "Frappe request/job/application transaction boundary",
+    "hidden_commit": false,
+    "same_store_atomicity": "partial",
+    "durable_outbox": "supported",
+    "after_commit_wakeup": "supported",
+    "special_cases": [
+      {
+        "operation": "frappe.db.truncate",
+        "semantics": "Commits before TRUNCATE and cannot be represented as normal rollback-capable same-transaction atomicity."
+      },
+      {
+        "operation": "frappe.db.set_value / frappe.db.update / frappe.db.bulk_update",
+        "semantics": "Direct database mutation surfaces bypass normal Document events or validations and remain explicit audit boundaries."
+      }
+    ]
+  },
+  "references": [
+    "frameworks/README.md",
+    "frameworks/frappe/README.md"
+  ]
+}
