@@ -47,7 +47,7 @@ Incomplete search is uncertainty, not success.
 
 Reaching the maximum traversal depth before a known entrypoint is found MUST be treated as truncated evidence.
 
-A depth cap is an implementation bound, not evidence that no earlier caller or entrypoint exists.
+A depth cap is an implementation bound, not evidence that no earlier caller or entrypoint exists. Even when no entrypoint was resolved before the cap, canonical all-path hardening treats the boundary as `unknown` with low confidence instead of preserving an optimistic local `covered` result.
 
 ## 6. Ordering does not change semantics
 
@@ -73,14 +73,50 @@ Combining evidence sources MUST preserve provenance and confidence. A lower-conf
 
 This applies to future OpenTelemetry, eBPF, framework metadata, runtime instrumentation, and remote evidence sources as well as static source analysis.
 
+## Pure path-set evaluation
+
+`evaluateAssurancePathSet()` is the v0.1 pure classification function. It takes a bounded path set plus framework identity and returns:
+
+- resolved reachable-path count;
+- audit, transaction, and authorization counts;
+- `all` and `mixed` role flags;
+- truncation state;
+- resulting audit status when the framework has defined semantics;
+- resulting confidence.
+
+The function deliberately returns no coverage classification for an unknown framework. Evidence counts are preserved, but AuditSpec does not invent framework semantics.
+
+Current framework rules are intentionally conservative:
+
+```text
+Rails
+  no audited reachable path           -> uncovered
+  every path audited + transactional   -> covered
+  otherwise                            -> partial
+  truncated search                     -> unknown / low
+
+Frappe
+  no audited reachable path            -> uncovered
+  any audited reachable path           -> partial
+  truncated search                     -> unknown / low
+```
+
+Frappe remains `partial` even when transaction-looking evidence exists because v0.1 does not claim the same atomicity proof used for the Rails reference adapter.
+
 ## Executable regression surface
 
-The TypeScript reference implementation currently tests these invariants in:
+The TypeScript reference implementation separates three complementary test layers:
 
 ```text
 implementations/typescript/test/assurance-invariants.test.ts
+implementations/typescript/test/assurance-evaluation.test.ts
+implementations/typescript/test/all-path-model.test.ts
 ```
 
-The suite covers weaker alternate paths, unresolved edges, cycles, path-count truncation, depth truncation, and graph-order determinism.
+`assurance-invariants.test.ts` covers weaker alternate paths, unresolved edges, cycles, path-count truncation, depth truncation, and graph-order determinism.
+
+`assurance-evaluation.test.ts` tests the pure path-set classification function directly, including the rule that a truncated search with zero resolved entrypoints is still `unknown/low`.
+
+`all-path-model.test.ts` exhaustively evaluates the small state space of one to three entrypoints across all combinations of audit, transaction, and authorization evidence. That is 584 path-set combinations checked against an independent oracle for coverage status and `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002` behavior.
 
 These tests are intended to grow alongside the Inspector. A new adapter that violates an invariant should change the invariant only through an explicit specification decision, not by weakening a test to make CI pass.
