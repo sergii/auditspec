@@ -7,6 +7,7 @@ import { diffAssuranceGraphs } from "./assurance-graph-diff.js";
 import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
+import { diffCorroborationReports } from "./corroboration-diff.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspector.js";
 import { normalizeAuditEvent } from "./normalize.js";
@@ -22,6 +23,7 @@ import {
   assertAuditEvent,
   assertControlMappingProfile,
   assertControlMappingResult,
+  assertCorroborationDiff,
   assertCorroborationReport,
   assertEvidenceQueryResult,
   assertOscalExportRequest,
@@ -107,6 +109,7 @@ function usage(): never {
     "  auditspec map-controls <assessment.json> <mapping-profile.json>",
     "  auditspec query-evidence <assessment.json> [--kind K] [--rule R] [--path P] [--confidence C] [--source boundary|finding]",
     "  auditspec corroborate <assessment.json> <runtime-evidence-array.json>",
+    "  auditspec diff-corroboration <base-corroboration.json> <head-corroboration.json>",
     "  auditspec export-oscal <assessment.json> <request.json>",
     "",
   ].join("\n"));
@@ -256,6 +259,20 @@ async function main(): Promise<void> {
     const report = corroborateAssessment(assessment, evidence);
     assertCorroborationReport(report);
     print(report);
+    return;
+  }
+
+  if (command === "diff-corroboration") {
+    const basePath = args[1];
+    const headPath = args[2];
+    if (!basePath || !headPath) usage();
+    const base = readJson(basePath);
+    const head = readJson(headPath);
+    assertCorroborationReport(base);
+    assertCorroborationReport(head);
+    const diff = diffCorroborationReports(base, head);
+    assertCorroborationDiff(diff);
+    print(diff);
     return;
   }
 
