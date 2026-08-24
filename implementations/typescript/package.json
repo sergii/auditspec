@@ -1,0 +1,21 @@
+{
+  "name": "@auditspec/reference-typescript",
+  "version": "0.1.0-draft",
+  "private": true,
+  "type": "module",
+  "description": "Executable TypeScript reference implementation for AuditSpec v0.1",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}

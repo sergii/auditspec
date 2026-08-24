@@ -28,3 +28,23 @@ jobs:
 
       - name: Run AuditSpec conformance
         run: python tools/conformance/run.py
+
+  typescript-reference:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript reference dependencies
+        working-directory: implementations/typescript
+        run: npm install --no-audit --no-fund
+
+      - name: Build and test TypeScript reference
+        working-directory: implementations/typescript
+        run: npm run check
