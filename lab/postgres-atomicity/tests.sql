@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
-TRUNCATE business_records, audit_events, audit_outbox;
+TRUNCATE business_records, audit_events, audit_outbox, audit_sink;
 
 -- Same-store success commits the business mutation and audit record together.
 DO $$
@@ -100,6 +100,46 @@ BEGIN
   SELECT count(*) INTO retry_count FROM audit_outbox WHERE event_id = 'aud_retry';
   IF retry_count <> 1 THEN
     RAISE EXCEPTION 'idempotent retry created % durable rows', retry_count;
+  END IF;
+END
+$$;
+
+-- Simulate a publisher crash after the sink accepted the event but before the outbox was marked delivered.
+INSERT INTO audit_outbox (event_id, payload)
+VALUES ('aud_publish', '{"spec_version":"0.1","id":"aud_publish"}'::jsonb);
+
+INSERT INTO audit_sink (event_id, payload)
+SELECT event_id, payload
+FROM audit_outbox
+WHERE event_id = 'aud_publish'
+ON CONFLICT (event_id) DO NOTHING;
+
+-- The process "crashes" here: delivered_at is intentionally left NULL.
+
+-- Retry performs the same delivery again and then records completion.
+INSERT INTO audit_sink (event_id, payload)
+SELECT event_id, payload
+FROM audit_outbox
+WHERE event_id = 'aud_publish'
+ON CONFLICT (event_id) DO NOTHING;
+
+UPDATE audit_outbox
+SET delivered_at = now()
+WHERE event_id = 'aud_publish';
+
+DO $$
+DECLARE
+  sink_count integer;
+  delivery_time timestamptz;
+BEGIN
+  SELECT count(*) INTO sink_count FROM audit_sink WHERE event_id = 'aud_publish';
+  SELECT delivered_at INTO delivery_time FROM audit_outbox WHERE event_id = 'aud_publish';
+
+  IF sink_count <> 1 THEN
+    RAISE EXCEPTION 'publisher retry created % sink occurrences', sink_count;
+  END IF;
+  IF delivery_time IS NULL THEN
+    RAISE EXCEPTION 'publisher retry did not mark durable intent delivered';
   END IF;
 END
 $$;
