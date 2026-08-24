@@ -55,6 +55,10 @@ function printAssessment(report: AssessmentReport): void {
   const percent = report.coverage.detected_boundaries === 0
     ? "n/a"
     : `${Math.round(report.coverage.audit_coverage * 100)}%`;
+  const reachable = report.reachability?.reachable_boundaries ?? 0;
+  const reachabilityPercent = report.coverage.detected_boundaries === 0
+    ? "n/a"
+    : `${Math.round((reachable / report.coverage.detected_boundaries) * 100)}%`;
   process.stdout.write([
     "AuditSpec assessment",
     `Subject: ${report.subject.path}`,
@@ -64,6 +68,7 @@ function printAssessment(report: AssessmentReport): void {
     `Partial: ${report.coverage.partial_boundaries}`,
     `Uncovered: ${report.coverage.uncovered_boundaries}`,
     `Audit coverage: ${percent}`,
+    `Statically reachable: ${reachable}/${report.coverage.detected_boundaries} (${reachabilityPercent})`,
     `Findings: ${report.findings.length}`,
     "",
     ...report.findings.map((finding) => `[${finding.severity}] ${finding.rule_id} ${finding.location.path}:${finding.location.line ?? 1} - ${finding.title} (${finding.confidence})`),
