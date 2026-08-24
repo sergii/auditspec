@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes the same validation, Inspector, findings, remediation, verification, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes the same validation, Inspector, findings, remediation, verification, control mapping, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -65,6 +65,12 @@ Compare before/after Assessment Reports and verify whether requested finding fin
 
 Verification is explicitly scoped to the active Inspector adapters. It does not claim that absence of a static finding proves runtime behavior or compliance.
 
+### `auditspec.map_controls`
+
+Map Assessment findings through a versioned Control Mapping Profile. The output connects concrete finding fingerprints to external control IDs using `potential_gap` or `relevant_evidence` relationships.
+
+The tool never returns control pass/fail or certification status. The first repository profile targets NIST SP 800-53 Release 5.2.0.
+
 ## Intended agent loop
 
 ```text
@@ -88,9 +94,14 @@ agent
   |    new assessment
   |
   +--> auditspec.verify_remediation
+  |       |
+  |       v
+  |    resolved / still open / new gaps
+  |
+  +--> auditspec.map_controls
           |
           v
-       resolved / still open / new gaps
+       control relevance / evidence bridge
 ```
 
 This separation is intentional:
@@ -99,17 +110,17 @@ This separation is intentional:
 2. A coding agent or developer decides whether and how to change code.
 3. AuditSpec re-assesses the result.
 4. Verification states only what the active evidence can support.
+5. Control mapping translates evidence relevance without pretending to perform certification.
 
 The MCP server deliberately does not modify source code in v0.1. This keeps assessment and evidence separate from code-writing authority.
 
 ## Next surfaces
 
-Planned after the remediation loop:
+Planned after the current loop:
 
-- `auditspec.map_controls`
 - `auditspec.export_oscal`
 - `auditspec.query_evidence`
 
-OSCAL export should represent AuditSpec observations, evidence, findings, and assessment subjects without turning Inspector heuristics into certification claims.
+OSCAL export should represent AuditSpec observations, evidence, findings, and assessment subjects without turning Inspector heuristics into certification claims. It must require real Assessment Plan/SSP context rather than inventing it.
 
 A future hosted HTTP transport can expose the same server factory. The initial reference uses stdio because it is local, simple, and keeps repository source on the user's machine.
