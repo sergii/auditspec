@@ -6,7 +6,7 @@ test("loads schema-valid runtime producer manifests", () => {
   const manifests = listRuntimeProducers();
   assert.deepEqual(
     manifests.map((manifest) => manifest.id),
-    ["database-receipt", "delivery-receipt", "opentelemetry"],
+    ["authorization-decision", "database-receipt", "delivery-receipt", "opentelemetry"],
   );
 });
 
@@ -16,6 +16,14 @@ test("OpenTelemetry producer advertises conservative defaults", () => {
   assert.equal(manifest.default_trust, "attributed");
   assert.equal(manifest.default_coverage, "point");
   assert.equal(manifest.explicit_target_required, true);
+});
+
+test("authorization producer defaults to attributed point evidence", () => {
+  const manifest = getRuntimeProducer("authorization-decision");
+  assert.ok(manifest);
+  assert.equal(manifest.default_trust, "attributed");
+  assert.equal(manifest.default_coverage, "point");
+  assert.ok(manifest.authority_scope.some((item) => item.includes("authorization decision")));
 });
 
 test("database receipt authority is explicitly narrow", () => {
