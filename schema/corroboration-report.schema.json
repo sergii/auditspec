@@ -46,12 +46,51 @@
     }
   },
   "$defs": {
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["application", "database", "collector", "proxy", "kernel", "agent", "external"]
+        },
+        "version": { "type": "string", "minLength": 1 },
+        "instance": { "type": "string", "minLength": 1 }
+      }
+    },
     "match": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["evidence_id", "relation", "trust", "coverage", "rationale"],
+      "required": [
+        "evidence_id",
+        "evidence_kind",
+        "producer",
+        "observed_at",
+        "relation",
+        "trust",
+        "coverage",
+        "rationale"
+      ],
       "properties": {
         "evidence_id": { "type": "string", "minLength": 1 },
+        "evidence_kind": {
+          "type": "string",
+          "enum": [
+            "application_execution",
+            "authorization_decision",
+            "transaction_commit",
+            "audit_persist",
+            "outbox_persist",
+            "delivery_receipt",
+            "trace_span",
+            "database_observation",
+            "kernel_observation"
+          ]
+        },
+        "producer": { "$ref": "#/$defs/producer" },
+        "observed_at": { "type": "string", "format": "date-time" },
         "boundary_fingerprint": { "type": "string", "minLength": 1 },
         "finding_fingerprint": { "type": "string", "minLength": 1 },
         "relation": {
