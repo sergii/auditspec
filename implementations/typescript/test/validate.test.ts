@@ -12,9 +12,11 @@ import {
   validateAuditEvent,
   validateControlMappingProfile,
   validateControlMappingResult,
+  validateCorroborationReport,
   validateEvidenceQueryResult,
   validateOscalExportRequest,
   validateRemediationPlan,
+  validateRuntimeEvidenceRecord,
   validateVerificationResult,
   type ValidationResult,
 } from "../src/validate.js";
@@ -46,6 +48,8 @@ const canonicalValidators: Record<string, Validator> = {
   "control-mapping-result.json": validateControlMappingResult,
   "evidence-query-result.json": validateEvidenceQueryResult,
   "oscal-export-request.json": validateOscalExportRequest,
+  "runtime-evidence-record.json": validateRuntimeEvidenceRecord,
+  "corroboration-report.json": validateCorroborationReport,
 };
 
 const invalidContractValidators: Record<string, Validator> = {
@@ -59,6 +63,8 @@ const invalidContractValidators: Record<string, Validator> = {
   "control-mapping-result": validateControlMappingResult,
   "evidence-query-result": validateEvidenceQueryResult,
   "oscal-export-request": validateOscalExportRequest,
+  "runtime-evidence-record": validateRuntimeEvidenceRecord,
+  "corroboration-report": validateCorroborationReport,
   "agent-profile": validateAgentProfile,
 };
 
