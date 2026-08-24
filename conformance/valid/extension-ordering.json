@@ -1,0 +1,29 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_extension_001",
+  "source": "urn:example:erp",
+  "idempotency_key": "cmd_4f7f",
+  "actor": { "type": "automation", "id": "nightly_reconcile" },
+  "action": "invoice.reconcile",
+  "action_version": 2,
+  "action_schema": "https://example.com/audit/invoice.reconcile/2",
+  "targets": [
+    { "type": "invoice", "id": "INV-0042" }
+  ],
+  "authorization": { "decision": "not_applicable" },
+  "result": { "status": "succeeded" },
+  "ordering": {
+    "stream_id": "tenant:org_123",
+    "sequence": 18421
+  },
+  "extensions": {
+    "com.example.billing": {
+      "schema": "https://example.com/auditspec/extensions/billing/1",
+      "data": {
+        "reconciliation_batch": "batch_20260824"
+      }
+    }
+  },
+  "occurred_at": "2026-08-24T15:08:00Z",
+  "recorded_at": "2026-08-24T15:08:00.010Z"
+}
