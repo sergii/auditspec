@@ -30,5 +30,41 @@
     "base": 0,
     "head": 1,
     "delta": 1
+  },
+  "reachability": {
+    "base_reachable": 0,
+    "head_reachable": 1,
+    "delta": 1,
+    "newly_reachable": [
+      {
+        "fingerprint": "bfp_invoice_approve",
+        "kind": "mutation",
+        "framework": "rails",
+        "operation": "update!",
+        "audit_status": "covered",
+        "confidence": "high",
+        "location": {
+          "path": "app/services/approve_invoice.rb",
+          "line": 12,
+          "column": 7
+        },
+        "reachability": {
+          "status": "reachable",
+          "confidence": "medium",
+          "entrypoint": {
+            "kind": "rails_route",
+            "qualified_name": "rails.rails_route:POST /invoices/:id/approve -> invoices#approve",
+            "framework": "rails"
+          },
+          "path": [
+            "rails.rails_route:POST /invoices/:id/approve -> invoices#approve",
+            "InvoicesController#approve",
+            "ApproveInvoice#call"
+          ]
+        }
+      }
+    ],
+    "no_longer_statically_reachable": [],
+    "unchanged_reachable": 0
   }
 }
