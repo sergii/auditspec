@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   validateAssessmentDiff,
   validateAssessmentReport,
+  validateAssuranceGraph,
   validateAuditEvent,
   validateControlMappingResult,
   validateEvidenceQueryResult,
@@ -35,6 +36,7 @@ const canonicalValidators: Record<string, Validator> = {
   "denied-action.json": validateAuditEvent,
   "assessment-report.json": validateAssessmentReport,
   "assessment-diff.json": validateAssessmentDiff,
+  "assurance-graph.json": validateAssuranceGraph,
   "remediation-plan.json": validateRemediationPlan,
   "verification-result.json": validateVerificationResult,
   "control-mapping-result.json": validateControlMappingResult,
