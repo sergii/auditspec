@@ -19,6 +19,8 @@ CONTROL_MAPPING_PROFILE_SCHEMA_PATH = ROOT / "schema" / "control-mapping-profile
 CONTROL_MAPPING_RESULT_SCHEMA_PATH = ROOT / "schema" / "control-mapping-result.schema.json"
 EVIDENCE_QUERY_RESULT_SCHEMA_PATH = ROOT / "schema" / "evidence-query-result.schema.json"
 OSCAL_EXPORT_REQUEST_SCHEMA_PATH = ROOT / "schema" / "oscal-export-request.schema.json"
+RUNTIME_EVIDENCE_RECORD_SCHEMA_PATH = ROOT / "schema" / "runtime-evidence-record.schema.json"
+CORROBORATION_REPORT_SCHEMA_PATH = ROOT / "schema" / "corroboration-report.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
@@ -37,6 +39,8 @@ CONTROL_MAPPING_PROFILE_EXAMPLES = [ROOT / "mappings" / "controls" / "nist-sp800
 CONTROL_MAPPING_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "control-mapping-result.json"]
 EVIDENCE_QUERY_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "evidence-query-result.json"]
 OSCAL_EXPORT_REQUEST_EXAMPLES = [ROOT / "schema" / "examples" / "oscal-export-request.json"]
+RUNTIME_EVIDENCE_RECORD_EXAMPLES = [ROOT / "schema" / "examples" / "runtime-evidence-record.json"]
+CORROBORATION_REPORT_EXAMPLES = [ROOT / "schema" / "examples" / "corroboration-report.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 
 
@@ -97,6 +101,8 @@ def main() -> int:
     control_mapping_result_validator = make_validator(CONTROL_MAPPING_RESULT_SCHEMA_PATH)
     evidence_query_result_validator = make_validator(EVIDENCE_QUERY_RESULT_SCHEMA_PATH)
     oscal_export_request_validator = make_validator(OSCAL_EXPORT_REQUEST_SCHEMA_PATH)
+    runtime_evidence_record_validator = make_validator(RUNTIME_EVIDENCE_RECORD_SCHEMA_PATH)
+    corroboration_report_validator = make_validator(CORROBORATION_REPORT_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
 
     failures = []
@@ -114,6 +120,8 @@ def main() -> int:
     expect_valid(control_mapping_result_validator, CONTROL_MAPPING_RESULT_EXAMPLES, "control-result", failures)
     expect_valid(evidence_query_result_validator, EVIDENCE_QUERY_RESULT_EXAMPLES, "evidence", failures)
     expect_valid(oscal_export_request_validator, OSCAL_EXPORT_REQUEST_EXAMPLES, "oscal-request", failures)
+    expect_valid(runtime_evidence_record_validator, RUNTIME_EVIDENCE_RECORD_EXAMPLES, "runtime-evidence", failures)
+    expect_valid(corroboration_report_validator, CORROBORATION_REPORT_EXAMPLES, "corroboration", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
     expect_invalid(event_validator, invalid_event_paths, "event", failures)
@@ -129,6 +137,8 @@ def main() -> int:
         (control_mapping_result_validator, invalid_contract_paths("control-mapping-result"), "control-result"),
         (evidence_query_result_validator, invalid_contract_paths("evidence-query-result"), "evidence"),
         (oscal_export_request_validator, invalid_contract_paths("oscal-export-request"), "oscal-request"),
+        (runtime_evidence_record_validator, invalid_contract_paths("runtime-evidence-record"), "runtime-evidence"),
+        (corroboration_report_validator, invalid_contract_paths("corroboration-report"), "corroboration"),
         (agent_validator, invalid_contract_paths("agent-profile"), "agent"),
     ]
 
@@ -153,6 +163,8 @@ def main() -> int:
         f"{len(CONTROL_MAPPING_RESULT_EXAMPLES)} control result example(s), "
         f"{len(EVIDENCE_QUERY_RESULT_EXAMPLES)} evidence example(s), "
         f"{len(OSCAL_EXPORT_REQUEST_EXAMPLES)} OSCAL request example(s), "
+        f"{len(RUNTIME_EVIDENCE_RECORD_EXAMPLES)} runtime evidence example(s), "
+        f"{len(CORROBORATION_REPORT_EXAMPLES)} corroboration example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s)"
     )
 
