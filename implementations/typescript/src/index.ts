@@ -13,6 +13,7 @@ export * from "./framework-registry.js";
 export * from "./runtime-producer-registry.js";
 export * from "./runtime-corroboration.js";
 export * from "./corroboration-diff.js";
+export * from "./corroboration-query.js";
 export * from "./oscal.js";
 export * from "./validate.js";
 export * from "./normalize.js";
