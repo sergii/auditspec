@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { diffAssessments } from "./assessment-diff.js";
 import { toCloudEvent } from "./cloudevents.js";
+import { mapAssessmentToControls } from "./control-mapping.js";
 import { inspectRepository } from "./inspect.js";
 import { normalizeAuditEvent } from "./normalize.js";
 import { redactAuditEvent } from "./redact.js";
@@ -12,6 +13,8 @@ import {
   assertAssessmentDiff,
   assertAssessmentReport,
   assertAuditEvent,
+  assertControlMappingProfile,
+  assertControlMappingResult,
   assertRemediationPlan,
   assertVerificationResult,
   validateAgentProfile,
@@ -60,6 +63,7 @@ function usage(): never {
     "  auditspec diff-assessments <base.json> <head.json>",
     "  auditspec plan-remediation <assessment.json> [fingerprint ...]",
     "  auditspec verify-remediation <base.json> <head.json> [fingerprint ...]",
+    "  auditspec map-controls <assessment.json> <mapping-profile.json>",
     "",
   ].join("\n"));
   process.exit(2);
@@ -116,6 +120,20 @@ async function main(): Promise<void> {
     const fingerprints = args.slice(3);
     const result = verifyRemediation(base, head, fingerprints.length > 0 ? fingerprints : undefined);
     assertVerificationResult(result);
+    print(result);
+    return;
+  }
+
+  if (command === "map-controls") {
+    const assessmentPath = args[1];
+    const profilePath = args[2];
+    if (!assessmentPath || !profilePath) usage();
+    const assessment = readJson(assessmentPath);
+    const profile = readJson(profilePath);
+    assertAssessmentReport(assessment);
+    assertControlMappingProfile(profile);
+    const result = mapAssessmentToControls(assessment, profile);
+    assertControlMappingResult(result);
     print(result);
     return;
   }
