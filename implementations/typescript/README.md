@@ -16,6 +16,9 @@ import {
   toCloudEvent,
   fromCloudEvent,
   inspectRepository,
+  diffAssessments,
+  planRemediation,
+  verifyRemediation,
 } from "@auditspec/reference-typescript";
 ```
 
@@ -26,6 +29,8 @@ import {
 `validateAgentProfile(value)` validates `dev.auditspec.agent` extension data against the Agent Profile schema.
 
 `validateAssessmentReport(value)` validates the framework-neutral Inspector output contract in `schema/assessment-report.schema.json`.
+
+Remediation plans and remediation verification results also have canonical JSON Schemas and validators.
 
 ### Normalization
 
@@ -52,13 +57,23 @@ repository
   -> coverage + confidence
 ```
 
-The first adapter is `rails-heuristic-v0.1`. It detects common Active Record mutation calls and emits advisory findings for:
+Current adapters include heuristic Rails and Frappe/ERPNext analysis. Findings are source-analysis evidence, not proof of complete system behavior. Every finding includes confidence, and the initial inspector recommends non-blocking use.
 
-- `AS-AUDIT-001` - mutation with no visible AuditSpec emission marker
-- `AS-ATOMIC-001` - audit + mutation without a visible transaction marker
-- `AS-AUTH-001` - privileged-looking mutation without visible authorization evidence
+### Remediation planning
 
-These are source heuristics, not proofs. Every finding includes confidence, and the initial inspector recommends non-blocking use. Future AST/call-graph/runtime adapters can increase confidence without changing the Assessment Report format.
+`planRemediation(assessment, fingerprints?)` converts open findings into a machine-readable plan with:
+
+- rule-aware actions
+- rationale
+- acceptance criteria
+- affected file hints
+- explicit verification expectation
+
+The planner does not write code.
+
+`verifyRemediation(base, head, fingerprints?)` compares stable finding fingerprints across assessments and returns `verified`, `partial`, or `not_verified`, plus resolved/still-open/new findings and coverage delta.
+
+Verification is scoped to active Inspector evidence. It does not claim runtime proof or compliance.
 
 ## CLI
 
@@ -72,11 +87,18 @@ auditspec redact event.json
 auditspec to-cloudevent event.json
 auditspec inspect .
 auditspec inspect . --json
+auditspec diff-assessments base.json head.json
+auditspec plan-remediation assessment.json
+auditspec verify-remediation base.json head.json
 ```
 
 `validate` and `validate-agent` exit with status `1` for invalid input and `0` for valid input, which makes them directly usable in CI scripts.
 
 `inspect` is advisory in v0.1 and exits successfully when findings exist. CI/GitHub integrations should decide separately whether any configured class of **new** finding should become blocking.
+
+## MCP
+
+The same engine is exposed over MCP. See `docs/mcp.md`. MCP assessment/remediation tools do not duplicate business logic and do not write source code in v0.1.
 
 ## Run
 
