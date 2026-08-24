@@ -7,7 +7,7 @@ import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { mapAssessmentToControls, type ControlMappingProfile } from "./control-mapping.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspector.js";
-import { exportOscalAssessmentResults, type OscalExportRequest } from "./oscal.js";
+import { exportOscalAssessmentResults } from "./oscal.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
   validateAgentProfile,
@@ -327,32 +327,24 @@ export function createAuditSpecMcpServer(): McpServer {
   server.registerTool(
     "auditspec.export_oscal",
     {
-      description: "Project an Assessment Report into OSCAL 1.2.3 Assessment Results using an explicit governing Assessment Plan href.",
+      description: "Project an Assessment Report into OSCAL 1.2.3 Assessment Results using an explicit validated OSCAL export request. AuditSpec never infers reviewed scope or assessor satisfied/not-satisfied conclusions.",
       inputSchema: z.object({
         assessment: z.unknown(),
-        assessment_plan_href: z.string().min(1),
-        title: z.string().optional(),
-        description: z.string().optional(),
-        version: z.string().optional(),
-        start: z.string().optional(),
-        end: z.string().optional(),
+        request: z.unknown(),
       }),
     },
-    async ({ assessment, assessment_plan_href, title, description, version, start, end }) => {
+    async ({ assessment, request }) => {
       const assessmentValidation = validateAssessmentReport(assessment);
-      const request: OscalExportRequest = {
-        assessment_plan_href,
-        ...(title ? { title } : {}),
-        ...(description ? { description } : {}),
-        ...(version ? { version } : {}),
-        ...(start ? { start } : {}),
-        ...(end ? { end } : {}),
-      };
       const requestValidation = validateOscalExportRequest(request);
       if (!assessmentValidation.valid || !requestValidation.valid) {
         return validationError({ assessment: assessmentValidation, request: requestValidation });
       }
-      return asToolResult(exportOscalAssessmentResults(assessment as AssessmentReport, request) as unknown as Record<string, unknown>);
+      return asToolResult(
+        exportOscalAssessmentResults(
+          assessment as AssessmentReport,
+          request as Parameters<typeof exportOscalAssessmentResults>[1],
+        ) as unknown as Record<string, unknown>,
+      );
     },
   );
 
