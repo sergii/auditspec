@@ -191,6 +191,7 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
         location,
         audit_status: auditStatus,
         confidence,
+        reachability: { status: "unknown", confidence: "low" },
         evidence: [
           {
             kind: "ast_call",
