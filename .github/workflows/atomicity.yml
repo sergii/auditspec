@@ -1,0 +1,22 @@
+name: Atomicity profile
+
+on:
+  push:
+    branches:
+      - v0.1
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-atomicity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run PostgreSQL failure-injection lab
+        run: bash lab/postgres-atomicity/run.sh
