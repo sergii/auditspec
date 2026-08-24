@@ -67,7 +67,7 @@ test("does not resolve an ambiguous method name", async () => {
       [
         "class JobsController < ApplicationController",
         "  def run",
-        "    call",
+        "    runner.call",
         "  end",
         "end",
       ].join("\n"),
@@ -77,7 +77,7 @@ test("does not resolve an ambiguous method name", async () => {
 
     const graph = await buildAssuranceGraph(root);
     assert.equal(graph.edges.length, 0);
-    assert.ok(graph.unresolved_calls.some((call) => call.reason === "ambiguous"));
+    assert.ok(graph.unresolved_calls.some((call) => call.reason === "ambiguous" && call.callee === "runner.call"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
