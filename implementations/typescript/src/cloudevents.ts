@@ -38,6 +38,9 @@ export function toCloudEvent(event: AuditEvent): CloudEvent<AuditEvent> {
 
 export function fromCloudEvent(envelope: CloudEvent<unknown>): AuditEvent {
   if (envelope.specversion !== "1.0") throw new TypeError("CloudEvents specversion must be 1.0");
+  if (envelope.datacontenttype !== "application/json") {
+    throw new TypeError("CloudEvent datacontenttype must be application/json");
+  }
 
   const data = envelope.data;
   assertAuditEvent(data);
@@ -50,6 +53,14 @@ export function fromCloudEvent(envelope: CloudEvent<unknown>): AuditEvent {
   }
   if (envelope.auditspecversion !== data.spec_version) {
     throw new TypeError("CloudEvent AuditSpec version does not match payload");
+  }
+
+  const expectedSubject = eventSubject(data);
+  if (envelope.subject !== undefined && envelope.subject !== expectedSubject) {
+    throw new TypeError("CloudEvent subject does not match AuditSpec primary target");
+  }
+  if (envelope.dataschema !== undefined && envelope.dataschema !== data.action_schema) {
+    throw new TypeError("CloudEvent dataschema does not match AuditSpec action_schema");
   }
 
   return data;
