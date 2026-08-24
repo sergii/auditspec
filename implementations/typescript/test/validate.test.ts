@@ -12,6 +12,7 @@ import {
   validateAuditEvent,
   validateControlMappingProfile,
   validateControlMappingResult,
+  validateCorroborationDiff,
   validateCorroborationReport,
   validateEvidenceQueryResult,
   validateOscalExportRequest,
@@ -50,6 +51,7 @@ const canonicalValidators: Record<string, Validator> = {
   "oscal-export-request.json": validateOscalExportRequest,
   "runtime-evidence-record.json": validateRuntimeEvidenceRecord,
   "corroboration-report.json": validateCorroborationReport,
+  "corroboration-diff.json": validateCorroborationDiff,
 };
 
 const invalidContractValidators: Record<string, Validator> = {
@@ -65,6 +67,7 @@ const invalidContractValidators: Record<string, Validator> = {
   "oscal-export-request": validateOscalExportRequest,
   "runtime-evidence-record": validateRuntimeEvidenceRecord,
   "corroboration-report": validateCorroborationReport,
+  "corroboration-diff": validateCorroborationDiff,
   "agent-profile": validateAgentProfile,
 };
 
