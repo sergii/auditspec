@@ -1,4 +1,5 @@
 import type {
+  CorroborationRelation,
   RuntimeEvidenceCoverage,
   RuntimeEvidenceRecord,
   RuntimeEvidenceState,
@@ -17,6 +18,7 @@ export interface DatabaseRuntimeReceipt {
   producer_instance?: string;
   boundary_fingerprint?: string;
   finding_fingerprint?: string;
+  assessment_relation?: CorroborationRelation;
   trace_id?: string;
   span_id?: string;
   request_id?: string;
@@ -38,6 +40,16 @@ export function runtimeEvidenceFromDatabaseReceipt(
   if (!receipt.boundary_fingerprint && !receipt.finding_fingerprint) {
     throw new TypeError(
       "Database runtime evidence requires an explicit boundary_fingerprint or finding_fingerprint",
+    );
+  }
+  if (receipt.finding_fingerprint && !receipt.assessment_relation) {
+    throw new TypeError(
+      "Database evidence targeting a finding requires explicit assessment_relation",
+    );
+  }
+  if (receipt.assessment_relation && !receipt.finding_fingerprint) {
+    throw new TypeError(
+      "Database assessment_relation requires finding_fingerprint",
     );
   }
 
@@ -76,6 +88,9 @@ export function runtimeEvidenceFromDatabaseReceipt(
         ? { finding_fingerprint: receipt.finding_fingerprint }
         : {}),
     },
+    ...(receipt.assessment_relation
+      ? { assessment_relation: receipt.assessment_relation }
+      : {}),
     ...(Object.keys(correlation).length > 0 ? { correlation } : {}),
     observation: {
       state: receipt.state ?? "observed",
@@ -86,6 +101,7 @@ export function runtimeEvidenceFromDatabaseReceipt(
     limitations: [
       "Database evidence is authoritative only for facts directly observed by the database-owned producer; it does not prove business intent, authorization semantics, or human accountability.",
       "A single receipt defaults to point coverage and does not establish that every possible execution follows the same persistence path.",
+      "Evidence targeting a finding requires an explicit assessment relation because persistence can support or contradict different findings depending on the finding semantics.",
       ...(receipt.limitations ?? []),
     ],
   };
