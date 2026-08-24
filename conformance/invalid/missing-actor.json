@@ -1,9 +1,12 @@
 {
   "spec_version": "0.1",
-  "id": "aud_invalid_001",
+  "id": "aud_invalid_missing_actor",
+  "source": "urn:example:project-service",
   "action": "project.update",
-  "target": { "type": "project", "id": "PRJ-0042" },
-  "outcome": "allowed",
+  "targets": [
+    { "type": "project", "id": "PRJ-0042" }
+  ],
+  "result": { "status": "succeeded" },
   "occurred_at": "2026-08-24T15:00:00Z",
   "recorded_at": "2026-08-24T15:00:00.001Z"
 }
