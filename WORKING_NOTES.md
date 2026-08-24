@@ -62,14 +62,22 @@ Runtime evidence is corroboration, not business-semantic truth. eBPF can prove p
 
 ## Implemented Inspector hardening
 
-Rails and Frappe mutation discovery now uses ast-grep/Tree-sitter call nodes instead of raw line regex. This removes comment/string false positives and upgrades mutation existence evidence to structured AST evidence. The current analysis remains file-local for audit/authorization/transaction relationships.
+- Rails and Frappe mutation discovery uses ast-grep/Tree-sitter call nodes instead of raw line regex, removing comment/string false positives.
+- Calls are attached to owning Ruby method/Python function scopes, so unrelated audit calls in the same file do not cover a mutation.
+- A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
+- Inspector coverage/findings are reconciled through Assurance Graph paths rather than repository-wide presence checks.
+- Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, ActiveJob/Sidekiq job dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
+- Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
+- Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening backlog
 
 - Validate generated OSCAL 1.2.3 documents against the complete official NIST JSON Schema offline in conformance. Do not vendor a release schema until the source and checksum are verified.
-- Extend AST-assisted Rails/Frappe analysis with cross-file call graphs and framework-aware data flow.
-- Run end-to-end Inspector tests against representative real public Rails and Frappe repositories.
+- Expand Rails framework resolution for `resources`, nested/namespaced routes, callbacks, concerns, ActionCable and framework-generated dispatch.
+- Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
+- Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
 - Expand invalid conformance corpus across every non-Core contract.
+- Add property-based/fuzz/mutation/failure-injection testing for schema and Inspector invariants.
 - Add actual Apache-2.0 LICENSE before tag.
 - Remove/promote this working notes file before the first release.
 - Squash the v0.1 working history into a clean release commit.
