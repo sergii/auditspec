@@ -48,3 +48,15 @@ jobs:
       - name: Build and test TypeScript reference
         working-directory: implementations/typescript
         run: npm run check
+
+  action-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run local AuditSpec Action
+        uses: ./
+        with:
+          baseline: off
