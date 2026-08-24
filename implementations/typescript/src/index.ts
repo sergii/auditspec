@@ -14,6 +14,7 @@ export * from "./validate.js";
 export * from "./normalize.js";
 export * from "./redact.js";
 export * from "./cloudevents.js";
+export * from "./opentelemetry.js";
 export * from "./inspector.js";
 export { inspectRepository as inspectRepositoryBase } from "./inspect.js";
 export * from "./frappe-inspect.js";
