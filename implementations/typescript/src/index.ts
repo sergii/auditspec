@@ -6,3 +6,5 @@ export * from "./normalize.js";
 export * from "./redact.js";
 export * from "./cloudevents.js";
 export * from "./inspect.js";
+export * from "./frappe-inspect.js";
+export * from "./mcp.js";

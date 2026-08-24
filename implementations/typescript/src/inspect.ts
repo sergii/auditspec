@@ -8,6 +8,7 @@ import type {
   AssessmentReport,
   SourceLocation,
 } from "./assessment-types.js";
+import { inspectFrappeRepository } from "./frappe-inspect.js";
 
 const SKIP_DIRECTORIES = new Set([
   ".git",
@@ -210,13 +211,27 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
 
 export async function inspectRepository(inputPath: string): Promise<AssessmentReport> {
   const root = resolve(inputPath);
-  const rails = await detectRails(root);
-  const frameworks: AssessmentReport["frameworks"] = rails.detected
-    ? [{ name: "rails", confidence: "high", evidence: rails.evidence }]
-    : [];
+  const [rails, frappe] = await Promise.all([detectRails(root), inspectFrappeRepository(root)]);
 
-  const railsResult = rails.detected ? await inspectRails(root) : { boundaries: [], findings: [] };
-  const boundaries = railsResult.boundaries;
+  const frameworks: AssessmentReport["frameworks"] = [];
+  const adapters: string[] = [];
+  const boundaries: AssessmentBoundary[] = [];
+  const findings: AssessmentFinding[] = [];
+
+  if (rails.detected) {
+    frameworks.push({ name: "rails", confidence: "high", evidence: rails.evidence });
+    adapters.push("rails-heuristic-v0.1");
+    const railsResult = await inspectRails(root);
+    boundaries.push(...railsResult.boundaries);
+    findings.push(...railsResult.findings);
+  }
+
+  if (frappe.detected) {
+    frameworks.push({ name: "frappe", confidence: "high", evidence: frappe.frameworkEvidence });
+    adapters.push("frappe-heuristic-v0.1");
+    boundaries.push(...frappe.boundaries);
+    findings.push(...frappe.findings);
+  }
 
   const covered = boundaries.filter((boundary) => boundary.audit_status === "covered").length;
   const partial = boundaries.filter((boundary) => boundary.audit_status === "partial").length;
@@ -230,11 +245,11 @@ export async function inspectRepository(inputPath: string): Promise<AssessmentRe
     inspector: {
       name: "auditspec-reference-inspector",
       version: "0.1.0-draft",
-      adapters: rails.detected ? ["rails-heuristic-v0.1"] : [],
+      adapters,
     },
     frameworks,
     boundaries,
-    findings: railsResult.findings,
+    findings,
     coverage: {
       detected_boundaries: boundaries.length,
       covered_boundaries: covered,

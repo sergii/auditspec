@@ -1,25 +1,39 @@
 # Frappe / ERPNext integration
 
-Frappe's native `Version`, `Access Log`, document history and related framework features should remain the low-level history mechanisms. AuditSpec complements them with semantic business, security, authorization and agent actions.
+Frappe's native Version and Access Log features remain the low-level document and access history mechanisms. AuditSpec complements them with semantic business, authorization, security, and agent actions.
 
-Examples include:
+## Semantic boundary
+
+Prefer emitting AuditSpec at the controller/service boundary that knows business intent rather than treating every database write as a product audit event.
+
+Examples:
 
 - `estimate.approve`
 - `member.role_change`
-- `project.update`
+- `agent.project_update`
 - `export.denied`
-- `agent.tool.call`
 
-A future Frappe adapter should:
+## Mutations the Inspector recognizes
 
-1. Preserve the immediate actor separately from delegated principals and agent identity.
-2. Capture Frappe authorization/permission decisions without re-evaluating them solely for audit.
-3. Identify DocType records as AuditSpec targets and affected users/organizations as subjects where appropriate.
-4. Capture semantic before/after fields rather than dumping complete documents.
-5. Redact passwords, API credentials, secrets and unnecessary personal data before persistence.
-6. Correlate web/API/background/agent execution with request, trace, session, turn and tool-call identifiers when available.
-7. Emit authoritative evidence at the service/framework boundary that actually performs the mutation.
-8. Use same-transaction persistence or a reliable outbox pattern when possible.
-9. Coexist with Frappe's native audit/history features rather than attempting to replace them.
+The initial `frappe-heuristic-v0.1` adapter looks for common mutation surfaces including:
 
-Inspector work should eventually recognize common mutation paths such as `doc.insert`, `doc.save`, `doc.submit`, `doc.cancel`, `doc.delete`, and `frappe.db.set_value`, then report semantic AuditSpec coverage and confidence instead of assuming every low-level database write requires its own business audit event.
+- `doc.save()`
+- `doc.insert()`
+- `doc.submit()`
+- `doc.cancel()`
+- `doc.db_set()`
+- `doc.db_insert()` / `doc.db_update()`
+- `frappe.db.set_value()` / `frappe.db.update()`
+- `frappe.delete_doc()`
+
+Direct database methods are especially important because Frappe documents that some of them bypass normal ORM triggers. The adapter therefore increases confidence around these mutation boundaries and looks for explicit authorization evidence when permission-bypassing patterns are present.
+
+## Atomicity
+
+Frappe transaction ownership is request/job dependent. A same-file AuditSpec marker is therefore classified as `partial` by the first heuristic adapter rather than being treated as proof of atomic persistence.
+
+A future Frappe adapter should understand transaction lifecycle, background jobs, hooks, DocType controllers, and the actual AuditSpec storage implementation before upgrading that confidence.
+
+## Native history still matters
+
+Do not disable Frappe `Track Changes`, Version, or Access Log merely because AuditSpec is present. Native history answers low-level document/access questions; AuditSpec answers semantic accountability questions and can correlate them with agent, authorization, trace, and external evidence.

@@ -13,16 +13,20 @@
     }
   },
   "bin": {
-    "auditspec": "./dist/cli.js"
+    "auditspec": "./dist/cli.js",
+    "auditspec-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "tsx --test test/*.test.ts",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "mcp": "node dist/mcp-server.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
     "ajv": "8.17.1",
-    "ajv-formats": "3.0.1"
+    "ajv-formats": "3.0.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "22.10.2",
