@@ -13,6 +13,8 @@ ASSESSMENT_SCHEMA_PATH = ROOT / "schema" / "assessment-report.schema.json"
 ASSESSMENT_DIFF_SCHEMA_PATH = ROOT / "schema" / "assessment-diff.schema.json"
 REMEDIATION_PLAN_SCHEMA_PATH = ROOT / "schema" / "remediation-plan.schema.json"
 VERIFICATION_RESULT_SCHEMA_PATH = ROOT / "schema" / "verification-result.schema.json"
+CONTROL_MAPPING_PROFILE_SCHEMA_PATH = ROOT / "schema" / "control-mapping-profile.schema.json"
+CONTROL_MAPPING_RESULT_SCHEMA_PATH = ROOT / "schema" / "control-mapping-result.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
@@ -25,6 +27,8 @@ ASSESSMENT_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-report.json"]
 ASSESSMENT_DIFF_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-diff.json"]
 REMEDIATION_PLAN_EXAMPLES = [ROOT / "schema" / "examples" / "remediation-plan.json"]
 VERIFICATION_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "verification-result.json"]
+CONTROL_MAPPING_PROFILE_EXAMPLES = [ROOT / "mappings" / "controls" / "nist-sp800-53-r5.2.0.json"]
+CONTROL_MAPPING_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "control-mapping-result.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 
 
@@ -57,7 +61,7 @@ def expect_valid(validator, paths, label, failures):
                 + "\n  ".join(error.message for error in errors)
             )
         else:
-            print(f"PASS valid   {label:<12} {relative(path)}")
+            print(f"PASS valid   {label:<14} {relative(path)}")
 
 
 def main() -> int:
@@ -66,6 +70,8 @@ def main() -> int:
     assessment_diff_validator = make_validator(ASSESSMENT_DIFF_SCHEMA_PATH)
     remediation_plan_validator = make_validator(REMEDIATION_PLAN_SCHEMA_PATH)
     verification_result_validator = make_validator(VERIFICATION_RESULT_SCHEMA_PATH)
+    control_mapping_profile_validator = make_validator(CONTROL_MAPPING_PROFILE_SCHEMA_PATH)
+    control_mapping_result_validator = make_validator(CONTROL_MAPPING_RESULT_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
 
     failures = []
@@ -77,6 +83,8 @@ def main() -> int:
     expect_valid(assessment_diff_validator, ASSESSMENT_DIFF_EXAMPLES, "diff", failures)
     expect_valid(remediation_plan_validator, REMEDIATION_PLAN_EXAMPLES, "remediation", failures)
     expect_valid(verification_result_validator, VERIFICATION_RESULT_EXAMPLES, "verification", failures)
+    expect_valid(control_mapping_profile_validator, CONTROL_MAPPING_PROFILE_EXAMPLES, "control-profile", failures)
+    expect_valid(control_mapping_result_validator, CONTROL_MAPPING_RESULT_EXAMPLES, "control-result", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
     for path in invalid_event_paths:
@@ -84,7 +92,7 @@ def main() -> int:
         if not errors:
             failures.append(f"EXPECTED INVALID event: {relative(path)}")
         else:
-            print(f"PASS invalid event        {relative(path)}")
+            print(f"PASS invalid event          {relative(path)}")
 
     print()
     print(
@@ -95,6 +103,8 @@ def main() -> int:
         f"{len(ASSESSMENT_DIFF_EXAMPLES)} diff example(s), "
         f"{len(REMEDIATION_PLAN_EXAMPLES)} remediation example(s), "
         f"{len(VERIFICATION_RESULT_EXAMPLES)} verification example(s), "
+        f"{len(CONTROL_MAPPING_PROFILE_EXAMPLES)} control profile example(s), "
+        f"{len(CONTROL_MAPPING_RESULT_EXAMPLES)} control result example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s)"
     )
 
