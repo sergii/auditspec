@@ -9,6 +9,7 @@ import type { AssessmentReport } from "./assessment-types.js";
 import type { AssuranceGraphDiff } from "./assurance-graph-diff.js";
 import type { AssuranceGraph } from "./assurance-graph.js";
 import type { ControlMappingProfile, ControlMappingResult } from "./control-mapping.js";
+import type { RuntimeCorroborationDiff } from "./corroboration-diff.js";
 import type { EvidenceQueryResult } from "./evidence-query.js";
 import type { OscalExportRequest } from "./oscal.js";
 import type { RemediationPlan, RemediationVerificationResult } from "./remediation.js";
@@ -56,6 +57,7 @@ const evidenceQueryResultSchema = loadSchema("../../../schema/evidence-query-res
 const oscalExportRequestSchema = loadSchema("../../../schema/oscal-export-request.schema.json");
 const runtimeEvidenceRecordSchema = loadSchema("../../../schema/runtime-evidence-record.schema.json");
 const corroborationReportSchema = loadSchema("../../../schema/corroboration-report.schema.json");
+const corroborationDiffSchema = loadSchema("../../../schema/corroboration-diff.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
 
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
@@ -71,6 +73,7 @@ const validateEvidenceResult = ajv.compile<EvidenceQueryResult>(evidenceQueryRes
 const validateOscalRequest = ajv.compile<OscalExportRequest>(oscalExportRequestSchema);
 const validateRuntimeEvidence = ajv.compile<RuntimeEvidenceRecord>(runtimeEvidenceRecordSchema);
 const validateCorroboration = ajv.compile<RuntimeCorroborationReport>(corroborationReportSchema);
+const validateCorroborationDiffSchema = ajv.compile<RuntimeCorroborationDiff>(corroborationDiffSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
@@ -211,6 +214,16 @@ export function validateCorroborationReport(input: unknown): ValidationResult {
 export function assertCorroborationReport(input: unknown): asserts input is RuntimeCorroborationReport {
   const result = validateCorroborationReport(input);
   if (!result.valid) throw new TypeError(`Invalid AuditSpec corroboration report: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateCorroborationDiff(input: unknown): ValidationResult {
+  if (validateCorroborationDiffSchema(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateCorroborationDiffSchema.errors) };
+}
+
+export function assertCorroborationDiff(input: unknown): asserts input is RuntimeCorroborationDiff {
+  const result = validateCorroborationDiff(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec corroboration diff: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateAgentProfile(input: unknown): ValidationResult {
