@@ -8,7 +8,7 @@ import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
-import { inspectRepository } from "./inspect.js";
+import { inspectRepository } from "./inspector.js";
 import { normalizeAuditEvent } from "./normalize.js";
 import { exportOscalAssessmentResults, type OscalExportRequest } from "./oscal.js";
 import { redactAuditEvent } from "./redact.js";
