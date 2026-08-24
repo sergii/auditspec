@@ -13,6 +13,7 @@ export * from "./oscal.js";
 export * from "./validate.js";
 export * from "./normalize.js";
 export * from "./redact.js";
+export * from "./delivery.js";
 export * from "./cloudevents.js";
 export * from "./opentelemetry.js";
 export * from "./w3c-prov.js";
