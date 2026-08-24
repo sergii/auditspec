@@ -15,6 +15,7 @@ Static source analysis answers questions such as:
 Runtime evidence answers different questions:
 
 - did a particular path execute?
+- did an authorization decision occur?
 - did a transaction actually commit?
 - was an audit/outbox row durably persisted?
 - did a delivery receipt arrive?
@@ -76,6 +77,38 @@ not_observed + exhaustive
 
 A bounded trace window cannot prove that an operation never executes.
 
+## Boundary versus finding semantics
+
+Boundary-target evidence can use observation state directly:
+
+```text
+observed
+  -> supports
+
+contradicted
+  -> contradicts
+
+not_observed + exhaustive
+  -> contradicts
+
+not_observed + point/sample/window
+  -> inconclusive
+```
+
+Finding-target evidence is different. Observing a runtime fact does not tell AuditSpec whether the fact supports or contradicts the finding.
+
+For example, an `AS-AUTH-001` finding may say that static analysis could not establish authorization. An authoritative runtime policy decision can therefore contradict the finding even though the runtime fact itself was `observed`.
+
+Any Runtime Evidence Record containing `targets.finding_fingerprint` MUST therefore declare:
+
+```json
+{
+  "assessment_relation": "supports | contradicts | inconclusive"
+}
+```
+
+Reference producers fail closed when a finding fingerprint is supplied without this relation.
+
 ## Relations
 
 Corroboration produces only three relations:
@@ -129,24 +162,14 @@ Agents can call:
 
 ```text
 auditspec.corroborate_runtime
+auditspec.list_runtime_producers
 ```
 
-with:
-
-```json
-{
-  "assessment": { "...": "Assessment Report" },
-  "evidence": [
-    { "...": "Runtime Evidence Record" }
-  ]
-}
-```
-
-The MCP surface uses the same validator and corroboration engine as the CLI/library.
+The MCP surface uses the same validators, producer registry and corroboration engine as the CLI/library.
 
 ## Reference runtime producers
 
-AuditSpec v0.1 includes three reference producers. Their defaults and authority scopes are machine-readable in `runtime/producers/*.json` and independently schema-validated in CI.
+AuditSpec v0.1 includes four reference producers. Their defaults and authority scopes are machine-readable in `runtime/producers/*.json` and independently schema-validated in CI.
 
 ### OpenTelemetry
 
@@ -163,7 +186,19 @@ trust    = attributed
 coverage = point
 ```
 
-The producer requires an explicit `auditspec.boundary.fingerprint` or `auditspec.finding.fingerprint` attribute. It never infers an AuditSpec target from a span or log name. Trace/span IDs and selected AuditSpec correlation attributes are preserved.
+The producer requires an explicit `auditspec.boundary.fingerprint` or `auditspec.finding.fingerprint` attribute. It never infers an AuditSpec target from a span or log name. Trace/span IDs and selected AuditSpec correlation attributes are preserved. Finding-target telemetry additionally requires `auditspec.assessment.relation` or an equivalent explicit producer option.
+
+### Authorization decisions
+
+Implementation:
+
+```text
+implementations/typescript/src/authorization-runtime.ts
+```
+
+The producer preserves `allowed|denied`, optional policy id/version, reason code, scopes and selected principal/resource context. It defaults to `attributed` trust. A decision-owning enforcement boundary may explicitly declare `authoritative` trust for the authorization decision it directly owns.
+
+An authorization decision does not prove that downstream business execution respected the decision, and one point decision does not prove that every alternate path crosses the same authorization boundary.
 
 ### Database receipts
 
@@ -216,10 +251,10 @@ This lets agents and future hosted services reason about evidence capability bef
 
 The v0.1 evidence contract remains producer-neutral. Additional candidates include:
 
-- application authorization decision records
 - reverse-proxy observations
 - operating-system audit sources
 - eBPF/kernel observations
+- signed vendor/backend receipts
 
 Each adapter must state what it actually observes, its trust relationship, and its coverage. Kernel proximity does not automatically imply exhaustive coverage or business-semantic authority.
 
