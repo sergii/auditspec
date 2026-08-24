@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { diffAssessments } from "./assessment-diff.js";
 import type { AssessmentFinding, AssessmentReport } from "./assessment-types.js";
+import { diffAssuranceGraphs } from "./assurance-graph-diff.js";
 import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
 import type { ControlMappingProfile } from "./control-mapping.js";
@@ -13,6 +14,7 @@ import {
   validateAgentProfile,
   validateAssessmentReport,
   validateAssuranceGraph,
+  validateAssuranceGraphDiff,
   validateAuditEvent,
   validateControlMappingProfile,
   validateControlMappingResult,
@@ -121,6 +123,31 @@ export function createAuditSpecMcpServer(): McpServer {
   );
 
   server.registerTool(
+    "auditspec.diff_assurance_graphs",
+    {
+      description: "Compare two repositories as Assurance Graphs and report topology changes including new entrypoints, framework dispatches, and mutation paths.",
+      inputSchema: z.object({ base_path: z.string().min(1), head_path: z.string().min(1) }),
+    },
+    async ({ base_path, head_path }) => {
+      const [base, head] = await Promise.all([buildAssuranceGraph(base_path), buildAssuranceGraph(head_path)]);
+      const baseValidation = validateAssuranceGraph(base);
+      const headValidation = validateAssuranceGraph(head);
+      if (!baseValidation.valid || !headValidation.valid) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ base: baseValidation, head: headValidation }, null, 2) }],
+          isError: true,
+        };
+      }
+      const diff = diffAssuranceGraphs(base, head);
+      const validation = validateAssuranceGraphDiff(diff);
+      if (!validation.valid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(validation, null, 2) }], isError: true };
+      }
+      return asToolResult(diff as unknown as Record<string, unknown>);
+    },
+  );
+
+  server.registerTool(
     "auditspec.find_assurance_path",
     {
       description: "Resolve the best static assurance path for a repository-relative source location and report the roles proven on that path.",
@@ -185,7 +212,7 @@ export function createAuditSpecMcpServer(): McpServer {
   server.registerTool(
     "auditspec.diff_assessments",
     {
-      description: "Compare two Assessment Reports and return new, resolved, and unchanged finding fingerprints plus coverage delta.",
+      description: "Compare two Assessment Reports and return new, resolved, and unchanged finding fingerprints plus coverage and reachability deltas.",
       inputSchema: z.object({ base: z.unknown(), head: z.unknown() }),
     },
     async ({ base, head }) => {
