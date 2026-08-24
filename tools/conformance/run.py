@@ -22,6 +22,7 @@ OSCAL_EXPORT_REQUEST_SCHEMA_PATH = ROOT / "schema" / "oscal-export-request.schem
 RUNTIME_EVIDENCE_RECORD_SCHEMA_PATH = ROOT / "schema" / "runtime-evidence-record.schema.json"
 CORROBORATION_REPORT_SCHEMA_PATH = ROOT / "schema" / "corroboration-report.schema.json"
 CORROBORATION_DIFF_SCHEMA_PATH = ROOT / "schema" / "corroboration-diff.schema.json"
+CORROBORATION_QUERY_RESULT_SCHEMA_PATH = ROOT / "schema" / "corroboration-query-result.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
@@ -43,6 +44,7 @@ OSCAL_EXPORT_REQUEST_EXAMPLES = [ROOT / "schema" / "examples" / "oscal-export-re
 RUNTIME_EVIDENCE_RECORD_EXAMPLES = [ROOT / "schema" / "examples" / "runtime-evidence-record.json"]
 CORROBORATION_REPORT_EXAMPLES = [ROOT / "schema" / "examples" / "corroboration-report.json"]
 CORROBORATION_DIFF_EXAMPLES = [ROOT / "schema" / "examples" / "corroboration-diff.json"]
+CORROBORATION_QUERY_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "corroboration-query-result.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 
 
@@ -106,6 +108,7 @@ def main() -> int:
     runtime_evidence_record_validator = make_validator(RUNTIME_EVIDENCE_RECORD_SCHEMA_PATH)
     corroboration_report_validator = make_validator(CORROBORATION_REPORT_SCHEMA_PATH)
     corroboration_diff_validator = make_validator(CORROBORATION_DIFF_SCHEMA_PATH)
+    corroboration_query_result_validator = make_validator(CORROBORATION_QUERY_RESULT_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
 
     failures = []
@@ -126,6 +129,7 @@ def main() -> int:
     expect_valid(runtime_evidence_record_validator, RUNTIME_EVIDENCE_RECORD_EXAMPLES, "runtime-evidence", failures)
     expect_valid(corroboration_report_validator, CORROBORATION_REPORT_EXAMPLES, "corroboration", failures)
     expect_valid(corroboration_diff_validator, CORROBORATION_DIFF_EXAMPLES, "corrob-diff", failures)
+    expect_valid(corroboration_query_result_validator, CORROBORATION_QUERY_RESULT_EXAMPLES, "corrob-query", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
     expect_invalid(event_validator, invalid_event_paths, "event", failures)
@@ -144,6 +148,7 @@ def main() -> int:
         (runtime_evidence_record_validator, invalid_contract_paths("runtime-evidence-record"), "runtime-evidence"),
         (corroboration_report_validator, invalid_contract_paths("corroboration-report"), "corroboration"),
         (corroboration_diff_validator, invalid_contract_paths("corroboration-diff"), "corrob-diff"),
+        (corroboration_query_result_validator, invalid_contract_paths("corroboration-query-result"), "corrob-query"),
         (agent_validator, invalid_contract_paths("agent-profile"), "agent"),
     ]
 
@@ -171,6 +176,7 @@ def main() -> int:
         f"{len(RUNTIME_EVIDENCE_RECORD_EXAMPLES)} runtime evidence example(s), "
         f"{len(CORROBORATION_REPORT_EXAMPLES)} corroboration example(s), "
         f"{len(CORROBORATION_DIFF_EXAMPLES)} corroboration diff example(s), "
+        f"{len(CORROBORATION_QUERY_RESULT_EXAMPLES)} corroboration query example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s)"
     )
 
