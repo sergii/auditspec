@@ -1,0 +1,86 @@
+{
+  "report_version": "0.1",
+  "generated_at": "2026-08-24T16:45:00Z",
+  "subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app",
+    "revision": "git:abc123"
+  },
+  "inspector": {
+    "name": "auditspec-reference-inspector",
+    "version": "0.1.0-draft",
+    "adapters": ["rails-heuristic-v0.1"]
+  },
+  "frameworks": [
+    {
+      "name": "rails",
+      "confidence": "high",
+      "evidence": ["Gemfile declares the rails gem"]
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "boundary_example_001",
+      "kind": "mutation",
+      "framework": "rails",
+      "operation": "update!",
+      "location": {
+        "path": "app/services/refund_service.rb",
+        "line": 12
+      },
+      "audit_status": "uncovered",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "kind": "source_match",
+          "detail": "Detected Rails mutation method .update!",
+          "location": {
+            "path": "app/services/refund_service.rb",
+            "line": 12
+          }
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "finding_example_001",
+      "rule_id": "AS-AUDIT-001",
+      "title": "Unaudited mutation boundary",
+      "severity": "warning",
+      "confidence": "medium",
+      "status": "open",
+      "message": "Detected Rails mutation without a visible AuditSpec emission marker in the same source file.",
+      "location": {
+        "path": "app/services/refund_service.rb",
+        "line": 12
+      },
+      "boundary_id": "boundary_example_001",
+      "evidence": [
+        {
+          "kind": "source_match",
+          "detail": "No AuditSpec.emit!/record! marker found in app/services/refund_service.rb",
+          "location": {
+            "path": "app/services/refund_service.rb",
+            "line": 12
+          }
+        }
+      ],
+      "remediation": {
+        "summary": "Emit a semantic AuditSpec event at the service/domain boundary that owns the mutation."
+      }
+    }
+  ],
+  "coverage": {
+    "detected_boundaries": 1,
+    "covered_boundaries": 0,
+    "partial_boundaries": 0,
+    "uncovered_boundaries": 1,
+    "unknown_boundaries": 0,
+    "audit_coverage": 0
+  },
+  "metadata": {
+    "assessment_kind": "static_source_heuristic",
+    "non_blocking_recommended": true
+  }
+}
