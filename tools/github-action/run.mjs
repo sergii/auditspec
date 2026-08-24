@@ -35,14 +35,38 @@ function annotation(finding) {
   console.log(`::warning file=${file},line=${line},title=${title}::${message}`);
 }
 
+function reachabilityAnnotation(boundary) {
+  const file = escapeProperty(boundary.location.path);
+  const line = boundary.location.line ?? 1;
+  const entrypoint = boundary.reachability?.entrypoint;
+  const via = entrypoint
+    ? `${entrypoint.kind} ${entrypoint.qualified_name}`
+    : "a newly resolved entrypoint";
+  const title = escapeProperty("AuditSpec newly reachable mutation");
+  const message = escapeCommandValue(
+    `${boundary.operation} became statically reachable via ${via} (${boundary.reachability?.confidence ?? boundary.confidence} confidence); audit status: ${boundary.audit_status}`,
+  );
+  console.log(`::warning file=${file},line=${line},title=${title}::${message}`);
+}
+
 function percentage(value) {
   return `${Math.round(value * 100)}%`;
+}
+
+function entrypointLabel(boundary) {
+  const entrypoint = boundary.reachability?.entrypoint;
+  if (!entrypoint) return "unknown entrypoint";
+  return `${entrypoint.kind}: ${entrypoint.qualified_name}`;
 }
 
 function writeSummary(head, diff, baselineNote) {
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
   if (!summaryPath) return;
 
+  const reachable = head.reachability?.reachable_boundaries ?? 0;
+  const reachabilityText = head.coverage.detected_boundaries === 0
+    ? "n/a"
+    : `${reachable}/${head.coverage.detected_boundaries} (${percentage(reachable / head.coverage.detected_boundaries)})`;
   const lines = [
     "## AuditSpec",
     "",
@@ -51,6 +75,7 @@ function writeSummary(head, diff, baselineNote) {
     `- Partial: **${head.coverage.partial_boundaries}**`,
     `- Uncovered: **${head.coverage.uncovered_boundaries}**`,
     `- Audit coverage: **${head.coverage.detected_boundaries === 0 ? "n/a" : percentage(head.coverage.audit_coverage)}**`,
+    `- Statically reachable: **${reachabilityText}**`,
   ];
 
   if (diff) {
@@ -59,6 +84,9 @@ function writeSummary(head, diff, baselineNote) {
       `- Resolved findings: **${diff.resolved_findings.length}**`,
       `- Existing findings: **${diff.unchanged_findings}**`,
       `- Coverage delta: **${diff.coverage.delta >= 0 ? "+" : ""}${Math.round(diff.coverage.delta * 100)} pp**`,
+      `- Newly statically reachable boundaries: **${diff.reachability.newly_reachable.length}**`,
+      `- No longer statically reachable: **${diff.reachability.no_longer_statically_reachable.length}**`,
+      `- Reachability delta: **${diff.reachability.delta >= 0 ? "+" : ""}${diff.reachability.delta} boundary/boundaries**`,
     );
   } else {
     lines.push(`- Findings: **${head.findings.length}**`);
@@ -86,9 +114,24 @@ function writeSummary(head, diff, baselineNote) {
     lines.push("", "No new AuditSpec findings were introduced by this change.");
   }
 
+  if (diff?.reachability.newly_reachable.length > 0) {
+    lines.push(
+      "",
+      "### Newly statically reachable boundaries",
+      "",
+      "| Location | Operation | Audit status | Confidence | Entrypoint |",
+      "| --- | --- | --- | --- | --- |",
+    );
+    for (const boundary of diff.reachability.newly_reachable) {
+      lines.push(
+        `| \`${boundary.location.path}:${boundary.location.line ?? 1}\` | \`${boundary.operation}\` | ${boundary.audit_status} | ${boundary.reachability.confidence} | ${entrypointLabel(boundary)} |`,
+      );
+    }
+  }
+
   lines.push(
     "",
-    "> AuditSpec assessment is advisory by default. Coverage reflects only boundaries detected by active adapters and is not a compliance score.",
+    "> AuditSpec assessment is advisory by default. Audit coverage reflects only boundaries detected by active adapters. Static reachability means a source path to a known entrypoint was resolved; it is not runtime proof or a compliance score.",
     "",
   );
 
@@ -140,6 +183,27 @@ const findingsToAnnotate = fingerprintsToAnnotate
   : head.findings;
 
 for (const finding of findingsToAnnotate) annotation(finding);
+
+let reachabilityWarnings = 0;
+if (diff) {
+  const boundaryIdsWithNewFindings = new Set(
+    head.findings
+      .filter((finding) => fingerprintsToAnnotate?.has(finding.fingerprint) && finding.boundary_id)
+      .map((finding) => finding.boundary_id),
+  );
+  const headByBoundaryFingerprint = new Map(
+    head.boundaries.filter((boundary) => boundary.fingerprint).map((boundary) => [boundary.fingerprint, boundary]),
+  );
+
+  for (const summary of diff.reachability.newly_reachable) {
+    if (summary.audit_status === "covered") continue;
+    const boundary = headByBoundaryFingerprint.get(summary.fingerprint);
+    if (!boundary || boundaryIdsWithNewFindings.has(boundary.id)) continue;
+    reachabilityAnnotation(summary);
+    reachabilityWarnings += 1;
+  }
+}
+
 writeSummary(head, diff, baselineNote);
 
 const outputPath = process.env.GITHUB_OUTPUT;
@@ -148,4 +212,6 @@ if (outputPath) {
   appendFileSync(outputPath, `diff_path=${diff ? diffPath : ""}\n`);
 }
 
-console.log(`AuditSpec: ${findingsToAnnotate.length} finding(s) surfaced, ${head.findings.length} total finding(s).`);
+console.log(
+  `AuditSpec: ${findingsToAnnotate.length} finding(s) surfaced, ${reachabilityWarnings} reachability warning(s), ${head.findings.length} total finding(s).`,
+);
