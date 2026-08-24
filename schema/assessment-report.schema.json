@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/assessment-report.schema.json",
+  "title": "AuditSpec Assessment Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "generated_at",
+    "subject",
+    "inspector",
+    "frameworks",
+    "boundaries",
+    "findings",
+    "coverage"
+  ],
+  "properties": {
+    "report_version": { "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "subject": { "$ref": "#/$defs/subject" },
+    "inspector": { "$ref": "#/$defs/inspector" },
+    "frameworks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/framework" }
+    },
+    "boundaries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/boundary" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "coverage": { "$ref": "#/$defs/coverage" },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+    "confidence": {
+      "enum": ["certain", "high", "medium", "low"]
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "const": "repository" },
+        "path": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "inspector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "adapters"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "adapters": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "confidence"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "operation", "location", "audit_status", "confidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": ["mutation", "authorization", "agent", "tool", "export", "access"]
+        },
+        "framework": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" },
+        "audit_status": {
+          "enum": ["covered", "partial", "uncovered", "unknown"]
+        },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "detail"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 1 },
+        "reference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rule_id",
+        "title",
+        "severity",
+        "confidence",
+        "status",
+        "message",
+        "location",
+        "evidence"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "rule_id": {
+          "type": "string",
+          "pattern": "^AS-[A-Z]+-[0-9]{3}$"
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "status": { "enum": ["open", "accepted", "resolved", "suppressed"] },
+        "message": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" },
+        "boundary_id": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "remediation": { "$ref": "#/$defs/remediation" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detected_boundaries",
+        "covered_boundaries",
+        "partial_boundaries",
+        "uncovered_boundaries",
+        "unknown_boundaries",
+        "audit_coverage"
+      ],
+      "properties": {
+        "detected_boundaries": { "type": "integer", "minimum": 0 },
+        "covered_boundaries": { "type": "integer", "minimum": 0 },
+        "partial_boundaries": { "type": "integer", "minimum": 0 },
+        "uncovered_boundaries": { "type": "integer", "minimum": 0 },
+        "unknown_boundaries": { "type": "integer", "minimum": 0 },
+        "audit_coverage": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}
