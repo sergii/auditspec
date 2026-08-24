@@ -38,6 +38,7 @@ export interface AssessmentReachability {
 
 export interface AssessmentBoundary {
   id: string;
+  fingerprint?: string;
   kind: "mutation" | "authorization" | "agent" | "tool" | "export" | "access";
   framework?: string;
   operation: string;
