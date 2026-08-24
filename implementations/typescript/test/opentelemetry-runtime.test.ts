@@ -47,7 +47,23 @@ test("does not infer an AuditSpec target from an OpenTelemetry span name", () =>
   );
 });
 
-test("explicit exhaustive coverage is preserved rather than inferred", () => {
+test("finding-target evidence requires an explicit assessment relation", () => {
+  assert.throws(
+    () =>
+      runtimeEvidenceFromOpenTelemetry({
+        signal: "log",
+        observed_at: "2026-08-24T22:10:00Z",
+        name: "audit coverage inventory",
+        attributes: {
+          "auditspec.evidence.id": "otel_inventory_missing_relation",
+          "auditspec.finding.fingerprint": "fp_example_001",
+        },
+      }),
+    /requires explicit assessment_relation/,
+  );
+});
+
+test("explicit exhaustive finding relation is preserved rather than inferred", () => {
   const record = runtimeEvidenceFromOpenTelemetry(
     {
       signal: "log",
@@ -56,6 +72,7 @@ test("explicit exhaustive coverage is preserved rather than inferred", () => {
       attributes: {
         "auditspec.evidence.id": "otel_inventory_001",
         "auditspec.finding.fingerprint": "fp_example_001",
+        "auditspec.assessment.relation": "contradicts",
       },
     },
     {
@@ -65,6 +82,8 @@ test("explicit exhaustive coverage is preserved rather than inferred", () => {
     },
   );
 
+  assert.equal(validateRuntimeEvidenceRecord(record).valid, true);
+  assert.equal(record.assessment_relation, "contradicts");
   assert.equal(record.observation.coverage, "exhaustive");
   assert.equal(record.observation.state, "not_observed");
 });
