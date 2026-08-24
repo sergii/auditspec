@@ -34,6 +34,7 @@ export interface RuntimeEvidenceRecord {
     finding_fingerprint?: string;
     assurance_node_id?: string;
   };
+  assessment_relation?: CorroborationRelation;
   correlation?: Record<string, string>;
   observation: {
     state: RuntimeEvidenceState;
@@ -73,30 +74,37 @@ export interface RuntimeCorroborationReport {
 }
 
 function relationFor(record: RuntimeEvidenceRecord): { relation: CorroborationRelation; rationale: string } {
+  if (record.assessment_relation) {
+    return {
+      relation: record.assessment_relation,
+      rationale: "The producer supplied an explicit relation to the targeted Assessment claim; raw observation state, producer trust, and coverage remain preserved separately.",
+    };
+  }
+
   if (record.observation.state === "observed") {
     return {
       relation: "supports",
-      rationale: "The runtime producer reported the targeted fact as observed; trust and coverage remain explicit and are not converted into static coverage.",
+      rationale: "The runtime producer reported the targeted boundary fact as observed; trust and coverage remain explicit and are not converted into static coverage.",
     };
   }
 
   if (record.observation.state === "contradicted") {
     return {
       relation: "contradicts",
-      rationale: "The runtime producer explicitly contradicted the targeted fact.",
+      rationale: "The runtime producer explicitly contradicted the targeted boundary fact.",
     };
   }
 
   if (record.observation.coverage === "exhaustive") {
     return {
       relation: "contradicts",
-      rationale: "The targeted fact was not observed under evidence explicitly declared exhaustive for its scope.",
+      rationale: "The targeted boundary fact was not observed under evidence explicitly declared exhaustive for its scope.",
     };
   }
 
   return {
     relation: "inconclusive",
-    rationale: "Non-observation under point, sampled, or bounded-window evidence is not sufficient to contradict a static claim.",
+    rationale: "Non-observation under point, sampled, or bounded-window evidence is not sufficient to contradict a static boundary claim.",
   };
 }
 
@@ -150,6 +158,7 @@ export function corroborateAssessment(
     limitations: [
       "Runtime corroboration is reported separately and does not rewrite the source Assessment Report or its static coverage score.",
       "v0.1 matches stable boundary/finding fingerprints only; trace/session correlation without an explicit target remains unmatched.",
+      "Finding-target evidence requires an explicit assessment_relation because raw observation state alone cannot determine the polarity of an arbitrary finding claim.",
       "Producer trust and observation coverage are preserved as evidence attributes rather than collapsed into one confidence score.",
     ],
   };
