@@ -18,6 +18,7 @@ export * from "./redact.js";
 export * from "./delivery.js";
 export * from "./cloudevents.js";
 export * from "./opentelemetry.js";
+export * from "./opentelemetry-runtime.js";
 export * from "./w3c-prov.js";
 export * from "./inspector.js";
 export { inspectRepository as inspectRepositoryBase } from "./inspect.js";
