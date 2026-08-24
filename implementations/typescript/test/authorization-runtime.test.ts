@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 import { runtimeEvidenceFromAuthorizationDecision } from "../src/authorization-runtime.js";
 import { corroborateAssessment } from "../src/runtime-corroboration.js";
-import { validateRuntimeEvidenceRecord } from "../src/validate.js";
-import assessment from "../../../schema/examples/assessment-report.json" with { type: "json" };
+import { assertAssessmentReport, validateRuntimeEvidenceRecord } from "../src/validate.js";
+
+const assessment = JSON.parse(
+  readFileSync(resolve(process.cwd(), "../../schema/examples/assessment-report.json"), "utf8"),
+) as unknown;
+assertAssessmentReport(assessment);
 
 test("maps an enforcement decision into runtime evidence", () => {
   const record = runtimeEvidenceFromAuthorizationDecision({
