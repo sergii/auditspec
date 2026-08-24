@@ -89,23 +89,42 @@ A path with `audit` evidence may remove an `AS-AUDIT-001` gap for the correspond
 
 The graph does not claim that a path executed at runtime. It is static-source evidence only.
 
+## Topology diff
+
+`schema/assurance-graph-diff.schema.json` defines a separate graph-topology diff artifact. It exists because architecture can change even when findings do not.
+
+The v0.1 topology diff compares stable semantic graph identities rather than line numbers and reports:
+
+- `new_entrypoints` / `removed_entrypoints`;
+- `new_framework_dispatches` / `removed_framework_dispatches`;
+- `new_mutation_paths` / `removed_mutation_paths`;
+- `unchanged_mutation_paths` and summary counts.
+
+A mutation-path fingerprint represents a resolved entrypoint-to-mutation relationship. For example, adding a Rails route to an existing controller/service chain can create a new mutation path even when the mutation source itself is unchanged and no new source-local finding appears.
+
+Topology diff is deliberately separate from Assessment Diff. Assessment Diff answers whether findings, audit coverage, and known boundary reachability changed. Assurance Graph Diff answers whether the resolved architecture itself changed.
+
+Neither artifact proves runtime execution.
+
 ## CLI
 
 ```bash
 auditspec graph .
+auditspec graph-diff ./base-worktree ./head-worktree
 auditspec assurance-path . app/services/approve_invoice.rb 12 5
 ```
 
-Both commands return JSON so their output can be stored, diffed, visualized, or consumed by agents.
+These commands return JSON so their output can be stored, diffed, visualized, or consumed by agents.
 
 ## MCP
 
 The reference MCP server exposes:
 
 - `auditspec.build_assurance_graph`
+- `auditspec.diff_assurance_graphs`
 - `auditspec.find_assurance_path`
 
-This lets an agent inspect a repository, ask for the evidence path behind a finding, propose remediation, re-inspect, and verify whether the relevant path changed.
+This lets an agent inspect a repository, compare architecture before/after a change, ask for the evidence path behind a finding, propose remediation, re-inspect, and verify whether the relevant path changed.
 
 ## Evidence boundary
 
