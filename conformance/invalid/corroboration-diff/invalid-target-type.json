@@ -7,6 +7,16 @@
   "generated_at": "2026-08-24T22:45:00Z",
   "base_generated_at": "2026-08-24T22:40:00Z",
   "head_generated_at": "2026-08-24T22:44:00Z",
+  "comparability": {
+    "status": "unknown",
+    "dimensions": {
+      "environment": "unknown",
+      "window": "unknown",
+      "collection_policy": "unknown",
+      "producers": "unknown"
+    },
+    "reasons": ["Observation scope is intentionally unspecified in this negative vector."]
+  },
   "summary": {
     "base_contradicted_targets": 0,
     "head_contradicted_targets": 1,

@@ -7,6 +7,7 @@ import type {
   RuntimeEvidenceTrust,
   RuntimeProducerType,
 } from "./runtime-corroboration.js";
+import type { RuntimeObservationScope } from "./observation-scope.js";
 
 export interface CorroborationQueryFilters {
   relation?: CorroborationRelation;
@@ -23,6 +24,7 @@ export interface CorroborationQueryResult {
   query_version: "0.1";
   assessment_subject: RuntimeCorroborationReport["assessment_subject"];
   source_generated_at: string;
+  source_observation_scope: RuntimeObservationScope;
   filters: CorroborationQueryFilters;
   count: number;
   matches: RuntimeCorroborationMatch[];
@@ -55,6 +57,7 @@ export function queryCorroboration(
     query_version: "0.1",
     assessment_subject: report.assessment_subject,
     source_generated_at: report.generated_at,
+    source_observation_scope: report.observation_scope,
     filters: { ...filters },
     count: matches.length,
     matches,

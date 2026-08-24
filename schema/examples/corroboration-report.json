@@ -6,6 +6,27 @@
     "revision": "git:abc123"
   },
   "generated_at": "2026-08-24T21:41:00Z",
+  "observation_scope": {
+    "scope_version": "0.1",
+    "basis": "declared",
+    "environment": "staging",
+    "window": {
+      "start": "2026-08-24T20:41:00Z",
+      "end": "2026-08-24T21:41:00Z"
+    },
+    "collection_policy": {
+      "id": "runtime-hourly-v1",
+      "version": "1.0",
+      "mode": "continuous"
+    },
+    "producers": [
+      {
+        "name": "postgres-audit-observer",
+        "type": "database",
+        "version": "0.1"
+      }
+    ]
+  },
   "matches": [
     {
       "evidence_id": "rte_example_001",

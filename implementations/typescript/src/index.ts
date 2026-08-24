@@ -11,6 +11,7 @@ export * from "./control-mapping.js";
 export * from "./evidence-query.js";
 export * from "./framework-registry.js";
 export * from "./runtime-producer-registry.js";
+export * from "./observation-scope.js";
 export * from "./runtime-corroboration.js";
 export * from "./corroboration-diff.js";
 export * from "./corroboration-query.js";

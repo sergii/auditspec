@@ -15,7 +15,7 @@ function run(...args: string[]) {
   });
 }
 
-test("CLI diffs schema-valid Runtime Corroboration Reports", () => {
+test("CLI diffs schema-valid Runtime Corroboration Reports and exposes comparability", () => {
   const result = run(
     "diff-corroboration",
     "schema/examples/corroboration-report.json",
@@ -23,6 +23,7 @@ test("CLI diffs schema-valid Runtime Corroboration Reports", () => {
   );
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /"diff_version": "0.1"/);
+  assert.match(result.stdout, /"status": "comparable"/);
   assert.match(result.stdout, /"newly_reported": 0/);
   assert.match(result.stdout, /"no_longer_reported": 0/);
 });

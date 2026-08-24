@@ -1,4 +1,8 @@
 import type { AssessmentReport } from "./assessment-types.js";
+import {
+  unknownObservationScope,
+  type RuntimeObservationScope,
+} from "./observation-scope.js";
 
 export type RuntimeEvidenceKind =
   | "application_execution"
@@ -69,6 +73,7 @@ export interface RuntimeCorroborationReport {
   report_version: "0.1";
   assessment_subject: AssessmentReport["subject"];
   generated_at: string;
+  observation_scope: RuntimeObservationScope;
   matches: RuntimeCorroborationMatch[];
   unmatched_evidence_ids: string[];
   summary: {
@@ -121,6 +126,7 @@ export function corroborateAssessment(
   assessment: AssessmentReport,
   evidence: RuntimeEvidenceRecord[],
   generatedAt = new Date().toISOString(),
+  observationScope: RuntimeObservationScope = unknownObservationScope(),
 ): RuntimeCorroborationReport {
   const boundaries = new Set(assessment.boundaries.map((boundary) => boundary.fingerprint));
   const findings = new Set(assessment.findings.map((finding) => finding.fingerprint));
@@ -157,6 +163,7 @@ export function corroborateAssessment(
     report_version: "0.1",
     assessment_subject: assessment.subject,
     generated_at: generatedAt,
+    observation_scope: observationScope,
     matches,
     unmatched_evidence_ids: unmatched,
     summary: {
@@ -172,6 +179,7 @@ export function corroborateAssessment(
       "v0.1 matches stable boundary/finding fingerprints only; trace/session correlation without an explicit target remains unmatched.",
       "Finding-target evidence requires an explicit assessment_relation because raw observation state alone cannot determine the polarity of an arbitrary finding claim.",
       "Producer identity, evidence kind, observation time, trust, and observation coverage remain explicit rather than being collapsed into one confidence score.",
+      "Observation scope is never inferred from evidence timestamps alone; callers that do not declare scope receive basis=unknown.",
     ],
   };
 }

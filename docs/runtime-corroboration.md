@@ -31,10 +31,18 @@ Runtime evidence records validate against:
 schema/runtime-evidence-record.schema.json
 ```
 
-Corroboration results validate against:
+Observation scopes validate against:
+
+```text
+schema/observation-scope.schema.json
+```
+
+Corroboration reports, diffs and query results validate against:
 
 ```text
 schema/corroboration-report.schema.json
+schema/corroboration-diff.schema.json
+schema/corroboration-query-result.schema.json
 ```
 
 Runtime producer capability/policy manifests validate against:
@@ -43,7 +51,7 @@ Runtime producer capability/policy manifests validate against:
 schema/runtime-producer-manifest.schema.json
 ```
 
-Canonical examples live in `schema/examples/`, negative vectors live under `conformance/invalid/`, and producer manifests live under `runtime/producers/`.
+Canonical examples live in `schema/examples/` and `runtime/examples/`, negative vectors live under `conformance/invalid/`, and producer manifests live under `runtime/producers/`.
 
 ## Producer trust
 
@@ -76,6 +84,35 @@ not_observed + exhaustive
 ```
 
 A bounded trace window cannot prove that an operation never executes.
+
+## Observation Scope
+
+A Corroboration Report carries a separate `observation_scope`. It describes the protocol under which the evidence was collected rather than the meaning of an individual evidence record.
+
+The v0.1 scope can declare:
+
+- `environment`
+- observation `window`
+- `collection_policy` identity, version and mode
+- the expected runtime `producers`
+- explicit assumptions
+
+Its `basis` is one of:
+
+- `declared` - the collection protocol is explicitly described
+- `partial` - some scope dimensions are known, but the declaration is incomplete
+- `unknown` - AuditSpec does not have enough scope information
+
+AuditSpec does **not** infer a complete observation scope from evidence timestamps, trace timestamps, producer names, or the report generation time. If the caller does not provide a scope, the reference engine records:
+
+```json
+{
+  "scope_version": "0.1",
+  "basis": "unknown"
+}
+```
+
+This fail-closed rule prevents a convenient collection artifact from being silently upgraded into a stronger claim about what was observed.
 
 ## Boundary versus finding semantics
 
@@ -119,6 +156,8 @@ Corroboration produces only three relations:
 
 Evidence whose stable boundary/finding target is unknown to the Assessment Report remains `unmatched` rather than being attached heuristically.
 
+Every matched item preserves evidence provenance including evidence kind, producer identity, observation time, trust and observation coverage.
+
 ## No score escalation
 
 The following is intentionally invalid reasoning:
@@ -137,6 +176,7 @@ Static Assessment Report
         +--------------------+
                              |
 Runtime Evidence Records     |
+Observation Scope            |
         |                    |
         v                    v
       Corroboration Report
@@ -148,12 +188,63 @@ Runtime Evidence Records     |
 
 The original Assessment Report is unchanged.
 
+## Runtime diffs and comparability
+
+`diff-corroboration` compares contradiction targets, not transient evidence IDs. It reports:
+
+- `newly_reported`
+- `persisting`
+- `no_longer_reported`
+
+A no-longer-reported contradiction is deliberately **not** called resolved.
+
+Before interpreting those changes, the diff compares the two Observation Scopes across four dimensions:
+
+- environment
+- observation-window duration
+- collection policy
+- runtime producer set
+
+The resulting status is one of:
+
+- `comparable`
+- `partially_comparable`
+- `not_comparable`
+- `unknown`
+
+`comparable` requires fully declared scopes with matching environment, collection policy, producer set and observation-window duration. The absolute clock times do not have to be identical; two successive one-hour runs can still be comparable if the collection protocol is otherwise the same.
+
+A producer-set, environment, or collection-policy mismatch is `not_comparable`. Missing information stays `unknown`. A duration mismatch with an otherwise matching declared protocol is `partially_comparable`.
+
+Comparability does not itself prove remediation. It only tells downstream policy engines whether the two observation runs are sufficiently alike to interpret a change as a runtime regression signal.
+
+## Runtime queries
+
+Corroboration Reports are queryable without discarding provenance. The query result carries the source report's Observation Scope together with the filtered matches.
+
+Supported filters include:
+
+- relation
+- trust
+- observation coverage
+- evidence kind
+- producer name/type
+- boundary fingerprint
+- finding fingerprint
+
+For example, an agent can ask for only authoritative exhaustive authorization contradictions without first loading unrelated runtime evidence.
+
 ## CLI
 
-The reference CLI accepts an Assessment Report and a JSON array of individually schema-valid Runtime Evidence Records:
+The reference CLI supports:
 
 ```bash
 auditspec corroborate assessment.json runtime-evidence.json
+auditspec diff-corroboration base-corroboration.json head-corroboration.json
+auditspec query-corroboration corroboration.json \
+  --relation contradicts \
+  --trust authoritative \
+  --coverage exhaustive
 ```
 
 ## MCP
@@ -163,9 +254,11 @@ Agents can call:
 ```text
 auditspec.corroborate_runtime
 auditspec.list_runtime_producers
+auditspec.diff_runtime_corroboration
+auditspec.query_runtime_corroboration
 ```
 
-The MCP surface uses the same validators, producer registry and corroboration engine as the CLI/library.
+The MCP surface uses the same validators, producer registry, corroboration engine, diff semantics and query semantics as the CLI/library.
 
 ## Reference runtime producers
 

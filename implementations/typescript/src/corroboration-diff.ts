@@ -1,3 +1,7 @@
+import {
+  compareObservationScopes,
+  type ObservationComparability,
+} from "./observation-scope.js";
 import type {
   RuntimeCorroborationMatch,
   RuntimeCorroborationReport,
@@ -28,6 +32,7 @@ export interface RuntimeCorroborationDiff {
   generated_at: string;
   base_generated_at: string;
   head_generated_at: string;
+  comparability: ObservationComparability;
   summary: {
     base_contradicted_targets: number;
     head_contradicted_targets: number;
@@ -105,6 +110,7 @@ export function diffCorroborationReports(
     throw new TypeError("Corroboration reports must describe the same assessment subject kind and path");
   }
 
+  const comparability = compareObservationScopes(base.observation_scope, head.observation_scope);
   const baseMap = contradictionMap(base);
   const headMap = contradictionMap(head);
   const baseKeys = new Set(baseMap.keys());
@@ -129,6 +135,7 @@ export function diffCorroborationReports(
     generated_at: generatedAt,
     base_generated_at: base.generated_at,
     head_generated_at: head.generated_at,
+    comparability,
     summary: {
       base_contradicted_targets: baseMap.size,
       head_contradicted_targets: headMap.size,
@@ -141,8 +148,8 @@ export function diffCorroborationReports(
     no_longer_reported_contradictions: select(noLongerReportedKeys, baseMap),
     persisting_contradictions: select(persistingKeys, headMap),
     limitations: [
-      "This diff compares what two Corroboration Reports state; it does not prove that their runtime observation windows, sampling strategies, or producer sets are equivalent.",
-      "A contradiction that is no longer reported is not automatically resolved unless the observation scopes are independently known to be comparable.",
+      "This diff compares what two Corroboration Reports state; contradiction changes should be interpreted together with the explicit comparability result.",
+      "A contradiction that is no longer reported is not automatically resolved, even when observation scopes are comparable; remediation still requires independent verification.",
       "Trust and coverage remain explicit evidence attributes and are not collapsed into a single runtime assurance score.",
     ],
   };

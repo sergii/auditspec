@@ -12,6 +12,17 @@ const report: RuntimeCorroborationReport = {
     revision: "git:head",
   },
   generated_at: "2026-08-25T00:30:00Z",
+  observation_scope: {
+    scope_version: "0.1",
+    basis: "declared",
+    environment: "staging",
+    window: { start: "2026-08-24T23:30:00Z", end: "2026-08-25T00:30:00Z" },
+    collection_policy: { id: "runtime-hourly-v1", mode: "continuous" },
+    producers: [
+      { name: "policy-enforcer", type: "application", version: "1.2.3" },
+      { name: "otel-collector", type: "collector" },
+    ],
+  },
   matches: [
     {
       evidence_id: "authz-1",
@@ -63,6 +74,7 @@ test("queries authoritative exhaustive contradictions by evidence and producer i
   assert.equal(result.count, 1);
   assert.equal(result.matches[0]?.evidence_id, "authz-1");
   assert.equal(result.matches[0]?.producer.name, "policy-enforcer");
+  assert.equal(result.source_observation_scope.basis, "declared");
 });
 
 test("returns a schema-valid empty result when filters match nothing", () => {

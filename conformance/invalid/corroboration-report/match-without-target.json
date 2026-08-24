@@ -5,9 +5,19 @@
     "path": "/workspace/example-app"
   },
   "generated_at": "2026-08-24T21:41:00Z",
+  "observation_scope": {
+    "scope_version": "0.1",
+    "basis": "unknown"
+  },
   "matches": [
     {
       "evidence_id": "rte_invalid_match_001",
+      "evidence_kind": "database_observation",
+      "producer": {
+        "name": "postgres-audit-observer",
+        "type": "database"
+      },
+      "observed_at": "2026-08-24T21:40:30Z",
       "relation": "supports",
       "trust": "authoritative",
       "coverage": "point",

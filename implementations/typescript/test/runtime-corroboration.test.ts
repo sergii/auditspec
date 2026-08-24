@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
+import type { RuntimeObservationScope } from "../src/observation-scope.js";
 import {
   corroborateAssessment,
   type RuntimeEvidenceRecord,
@@ -42,7 +43,38 @@ test("observed runtime evidence supports without mutating static assessment", ()
   assert.equal(report.summary.supports, 1);
   assert.equal(report.summary.contradicts, 0);
   assert.equal(report.matches[0]?.relation, "supports");
+  assert.equal(report.observation_scope.basis, "unknown");
   assert.deepEqual(assessment, before);
+});
+
+test("preserves an explicitly declared observation scope", () => {
+  const scope: RuntimeObservationScope = {
+    scope_version: "0.1",
+    basis: "declared",
+    environment: "staging",
+    window: {
+      start: "2026-08-24T20:41:00Z",
+      end: "2026-08-24T21:41:00Z",
+    },
+    collection_policy: {
+      id: "runtime-hourly-v1",
+      version: "1.0",
+      mode: "continuous",
+    },
+    producers: [
+      { name: canonicalEvidence.producer.name, type: canonicalEvidence.producer.type },
+    ],
+  };
+
+  const report = corroborateAssessment(
+    assessment,
+    [canonicalEvidence],
+    "2026-08-24T21:41:00Z",
+    scope,
+  );
+
+  assertCorroborationReport(report);
+  assert.deepEqual(report.observation_scope, scope);
 });
 
 test("non-observation under sampled or window evidence is inconclusive", () => {

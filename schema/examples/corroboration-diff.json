@@ -9,6 +9,18 @@
   "generated_at": "2026-08-24T22:45:00Z",
   "base_generated_at": "2026-08-24T22:40:00Z",
   "head_generated_at": "2026-08-24T22:44:00Z",
+  "comparability": {
+    "status": "comparable",
+    "dimensions": {
+      "environment": "match",
+      "window": "match",
+      "collection_policy": "match",
+      "producers": "match"
+    },
+    "reasons": [
+      "Environment, collection policy, producer set, and observation-window duration match."
+    ]
+  },
   "summary": {
     "base_contradicted_targets": 1,
     "head_contradicted_targets": 2,
@@ -41,6 +53,6 @@
     }
   ],
   "limitations": [
-    "The two reports may use different runtime observation windows, so no-longer-reported contradictions are not automatically resolved."
+    "No-longer-reported contradictions are not automatically resolved; remediation still requires independent verification."
   ]
 }

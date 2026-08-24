@@ -10,6 +10,7 @@
     "generated_at",
     "base_generated_at",
     "head_generated_at",
+    "comparability",
     "summary",
     "newly_reported_contradictions",
     "no_longer_reported_contradictions",
@@ -32,6 +33,7 @@
     "generated_at": { "type": "string", "format": "date-time" },
     "base_generated_at": { "type": "string", "format": "date-time" },
     "head_generated_at": { "type": "string", "format": "date-time" },
+    "comparability": { "$ref": "#/$defs/comparability" },
     "summary": {
       "type": "object",
       "additionalProperties": false,
@@ -71,6 +73,36 @@
     }
   },
   "$defs": {
+    "comparability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "dimensions", "reasons"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["comparable", "partially_comparable", "not_comparable", "unknown"]
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["environment", "window", "collection_policy", "producers"],
+          "properties": {
+            "environment": { "$ref": "#/$defs/dimension_result" },
+            "window": { "$ref": "#/$defs/dimension_result" },
+            "collection_policy": { "$ref": "#/$defs/dimension_result" },
+            "producers": { "$ref": "#/$defs/dimension_result" }
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "dimension_result": {
+      "type": "string",
+      "enum": ["match", "mismatch", "unknown"]
+    },
     "contradiction": {
       "type": "object",
       "additionalProperties": false,
