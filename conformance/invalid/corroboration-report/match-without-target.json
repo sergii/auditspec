@@ -1,0 +1,26 @@
+{
+  "report_version": "0.1",
+  "assessment_subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app"
+  },
+  "generated_at": "2026-08-24T21:41:00Z",
+  "matches": [
+    {
+      "evidence_id": "rte_invalid_match_001",
+      "relation": "supports",
+      "trust": "authoritative",
+      "coverage": "point",
+      "rationale": "This match is invalid because it names no assessment target."
+    }
+  ],
+  "unmatched_evidence_ids": [],
+  "summary": {
+    "evidence_records": 1,
+    "matched": 1,
+    "supports": 1,
+    "contradicts": 0,
+    "inconclusive": 0,
+    "unmatched": 0
+  }
+}
