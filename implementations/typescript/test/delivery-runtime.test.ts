@@ -40,6 +40,35 @@ test("receiver-owned receipt may explicitly assert authoritative trust for the d
   assert.equal(record.trust, "authoritative");
 });
 
+test("finding-target delivery receipt preserves explicit assessment relation", () => {
+  const record = runtimeEvidenceFromDeliveryReceipt({
+    id: "delivery_finding_001",
+    observed_at: "2026-08-24T22:20:00Z",
+    producer_name: "audit-receiver",
+    finding_fingerprint: "fp_example_001",
+    assessment_relation: "contradicts",
+    detail: "Receiver-owned evidence contradicts the targeted finding for this assessment.",
+    trust: "authoritative",
+  });
+
+  assert.equal(validateRuntimeEvidenceRecord(record).valid, true);
+  assert.equal(record.assessment_relation, "contradicts");
+});
+
+test("finding-target delivery receipt fails closed without assessment relation", () => {
+  assert.throws(
+    () =>
+      runtimeEvidenceFromDeliveryReceipt({
+        id: "delivery_finding_missing_relation",
+        observed_at: "2026-08-24T22:20:00Z",
+        producer_name: "audit-receiver",
+        finding_fingerprint: "fp_example_001",
+        detail: "The receipt is linked to a finding but does not state its assessment meaning.",
+      }),
+    /requires explicit assessment_relation/,
+  );
+});
+
 test("requires an explicit static assessment target", () => {
   assert.throws(
     () =>
