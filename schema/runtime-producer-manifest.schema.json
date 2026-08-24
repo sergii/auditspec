@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/runtime-producer-manifest.schema.json",
+  "title": "AuditSpec Runtime Producer Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "id",
+    "name",
+    "producer_type",
+    "supported_kinds",
+    "default_trust",
+    "default_coverage",
+    "explicit_target_required",
+    "authority_scope",
+    "limitations"
+  ],
+  "properties": {
+    "manifest_version": { "const": "0.1" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "implementation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository-relative reference implementation path when provided by AuditSpec."
+    },
+    "producer_type": {
+      "enum": ["application", "database", "collector", "proxy", "kernel", "agent", "external"]
+    },
+    "supported_kinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "application_execution",
+          "authorization_decision",
+          "transaction_commit",
+          "audit_persist",
+          "outbox_persist",
+          "delivery_receipt",
+          "trace_span",
+          "database_observation",
+          "kernel_observation"
+        ]
+      }
+    },
+    "default_trust": {
+      "enum": ["authoritative", "attributed", "self_reported", "derived"]
+    },
+    "default_coverage": {
+      "enum": ["point", "sampled", "window", "exhaustive"]
+    },
+    "explicit_target_required": { "type": "boolean" },
+    "authority_scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "can_override": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trust": { "type": "boolean" },
+        "coverage": { "type": "boolean" },
+        "state": { "type": "boolean" },
+        "kind": { "type": "boolean" }
+      }
+    },
+    "required_explicit_attributes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
