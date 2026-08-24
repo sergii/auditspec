@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes the same validation, Inspector, Assurance Graph, topology diff, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes validation, framework capability discovery, Inspector, Assurance Graph, topology diff, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment diff over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -25,6 +25,7 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 
 - `auditspec.validate_event` - validate a Core event.
 - `auditspec.validate_agent_profile` - validate Agent Profile data.
+- `auditspec.list_framework_adapters` - list schema-valid framework manifests and their implemented/partial/planned proof layers, optionally filtered by framework.
 - `auditspec.inspect` - inspect a local repository and return an Assessment Report.
 - `auditspec.build_assurance_graph` - build a conservative cross-file static Assurance Graph with supported framework dispatch edges.
 - `auditspec.diff_assurance_graphs` - compare two repository graphs and report topology changes such as new entrypoints, framework dispatches, and mutation paths.
@@ -36,12 +37,17 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 - `auditspec.verify_remediation` - verify requested finding fingerprints against a later assessment.
 - `auditspec.map_controls` - map evidence/findings to external controls without pass/fail claims.
 - `auditspec.query_evidence` - query evidence already present in an Assessment Report.
-- `auditspec.export_oscal` - project an Assessment Report into OSCAL 1.2.3 Assessment Results.
+- `auditspec.export_oscal` - project an Assessment Report into OSCAL 1.2.3 Assessment Results using an explicit validated export request.
 
 ## Intended agent loop
 
 ```text
 agent
+  |
+  +--> auditspec.list_framework_adapters
+  |       |
+  |       v
+  |    available adapter layers + proof + limitations
   |
   +--> auditspec.inspect
   |       |
@@ -90,11 +96,27 @@ agent
   |       v
   |    control relevance / evidence bridge
   |
+  +--> assessor/GRC context
+  |
   +--> auditspec.export_oscal
           |
           v
-       OSCAL Assessment Results projection
+       NIST-schema-valid OSCAL Assessment Results
 ```
+
+## Framework capability boundary
+
+`auditspec.list_framework_adapters` reads `frameworks/*/adapter.json`, validated against `schema/framework-adapter-manifest.schema.json`.
+
+The manifests separate five proof layers:
+
+1. language reference implementation;
+2. transaction adapter;
+3. behavioral framework runtime lab;
+4. Inspector adapter;
+5. runtime corroboration.
+
+For example, Rails currently has an executable ActiveRecord behavioral lab, while Frappe deliberately reports its full Bench runtime lab as incomplete. An agent can therefore use available integration primitives without silently upgrading a contract test into runtime proof.
 
 ## Assurance Graph boundary
 
@@ -104,17 +126,24 @@ Supported framework provenance currently includes explicit Rails routes, ActiveJ
 
 `auditspec.diff_assurance_graphs` is deliberately separate from Assessment Diff. It compares architecture topology by stable semantic identities rather than source line numbers. A new route to an existing mutation can therefore appear as a new topology path even when the mutation source and its existing finding fingerprint did not change.
 
-This separation lets an agent ask both why a mutation is considered covered and how application exposure changed across a patch without turning repository-wide coincidence into evidence.
-
-See `docs/assurance-graph.md` for the graph, topology-diff, and confidence contracts.
+See `docs/assurance-graph.md` for graph, topology-diff, and confidence contracts.
 
 ## OSCAL boundary
 
-`auditspec.export_oscal` requires an explicit `assessment_plan_href`. OSCAL Assessment Results imports the governing Assessment Plan, so AuditSpec does not invent that assessment context.
+`auditspec.export_oscal` accepts:
 
-The exporter maps Inspector findings into observations/findings and preserves AuditSpec rule IDs, fingerprints, severity, confidence and evidence. It does not emit a compliance verdict, certification decision, risk acceptance, or POA&M disposition.
+- `assessment` - a valid AuditSpec Assessment Report;
+- `request` - a valid `schema/oscal-export-request.schema.json` object.
 
-The v0.1 exporter is implemented against the NIST OSCAL 1.2.3 JSON reference. Automated validation against the complete official NIST release JSON Schema is still pending and is tracked as a release-hardening task.
+The request supplies assessment context that AuditSpec must not infer:
+
+- governing `assessment_plan_href`;
+- `reviewed_control_ids` actually assessed;
+- `finding_targets` keyed by AuditSpec finding fingerprint, including OSCAL target type/id and caller/assessor `satisfied` or `not-satisfied` status.
+
+AuditSpec maps its technical observations/evidence and preserves rule IDs, fingerprints, severity and confidence, but it does not invent a compliance verdict, certification decision, risk acceptance, reviewed scope, or assessor conclusion.
+
+The generated document is validated in CI against the complete official NIST OSCAL v1.2.3 Assessment Results JSON Schema from a SHA-256-pinned NIST release archive. Structural OSCAL conformance is therefore executable; factual correctness of the external AP/SSP/control context remains the caller/assessor's responsibility.
 
 ## Evidence boundary
 
@@ -122,16 +151,16 @@ The v0.1 exporter is implemented against the NIST OSCAL 1.2.3 JSON reference. Au
 
 ## Write authority
 
-The MCP server deliberately does not modify source code in v0.1. Assessment/evidence and code-writing authority stay separate: AuditSpec can recommend and verify, while a coding agent or developer performs changes.
+The MCP server deliberately does not modify source code in v0.1. Assessment/evidence and code-writing authority stay separate: AuditSpec can recommend and verify, while a coding agent or developer performs changes through separately authorized tools.
 
 ## Next surfaces
 
-- richer Rails `resources`, namespaces, callbacks and generated dispatch
-- richer Frappe dynamic hooks and `enqueue(method=...)` resolution
-- privileged-path and authorization-bypass topology analysis
+- richer Rails resources, namespaces, callbacks and generated dispatch
+- richer Frappe dynamic hooks and background dispatch resolution
+- full pinned Frappe Bench behavioral runtime lab
 - message-bus/RPC edges
-- runtime/OTel evidence ingestion and graph correlation
-- official OSCAL schema validation in conformance
+- runtime/OpenTelemetry evidence ingestion and graph correlation
 - graph visualization and richer graph/evidence queries
+- optional kernel/eBPF corroboration as evidence, never as a replacement for semantic application audit
 
 A future hosted HTTP transport can expose the same server factory. The initial reference uses stdio because it is local, simple, and keeps repository source on the user's machine.
