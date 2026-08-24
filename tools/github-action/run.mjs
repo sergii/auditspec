@@ -15,7 +15,11 @@ const libraryUrl = pathToFileURL(join(actionPath, "implementations/typescript/di
 const {
   assertAssessmentDiff,
   assertAssessmentReport,
+  assertAssuranceGraph,
+  assertAssuranceGraphDiff,
+  buildAssuranceGraph,
   diffAssessments,
+  diffAssuranceGraphs,
   inspectRepository,
 } = await import(libraryUrl);
 
@@ -59,7 +63,42 @@ function entrypointLabel(boundary) {
   return `${entrypoint.kind}: ${entrypoint.qualified_name}`;
 }
 
-function writeSummary(head, diff, baselineNote) {
+function appendTopologySummary(lines, topologyDiff) {
+  if (!topologyDiff) return;
+
+  lines.push(
+    `- New architecture entrypoints: **${topologyDiff.new_entrypoints.length}**`,
+    `- New framework dispatches: **${topologyDiff.new_framework_dispatches.length}**`,
+    `- New entrypoint-to-mutation paths: **${topologyDiff.new_mutation_paths.length}**`,
+    `- Removed entrypoint-to-mutation paths: **${topologyDiff.removed_mutation_paths.length}**`,
+  );
+
+  if (topologyDiff.new_entrypoints.length > 0) {
+    lines.push("", "### New architecture entrypoints", "", "| Framework | Surface | Entrypoint | Location |", "| --- | --- | --- | --- |");
+    for (const entrypoint of topologyDiff.new_entrypoints.slice(0, 20)) {
+      lines.push(
+        `| ${entrypoint.framework ?? "-"} | ${entrypoint.surface_kind ?? "scope"} | \`${entrypoint.qualified_name}\` | \`${entrypoint.location.path}:${entrypoint.location.line ?? 1}\` |`,
+      );
+    }
+    if (topologyDiff.new_entrypoints.length > 20) {
+      lines.push(`|  |  | ...and ${topologyDiff.new_entrypoints.length - 20} more |  |`);
+    }
+  }
+
+  if (topologyDiff.new_mutation_paths.length > 0) {
+    lines.push("", "### New entrypoint-to-mutation paths", "", "| Entrypoint | Mutation scope | Confidence | Path |", "| --- | --- | --- | --- |");
+    for (const path of topologyDiff.new_mutation_paths.slice(0, 20)) {
+      lines.push(
+        `| \`${path.entrypoint}\` | \`${path.mutation}\` | ${path.confidence} | ${path.path.map((part) => `\`${part}\``).join(" → ")} |`,
+      );
+    }
+    if (topologyDiff.new_mutation_paths.length > 20) {
+      lines.push(`|  | ...and ${topologyDiff.new_mutation_paths.length - 20} more |  |  |`);
+    }
+  }
+}
+
+function writeSummary(head, diff, topologyDiff, baselineNote) {
   const summaryPath = process.env.GITHUB_STEP_SUMMARY;
   if (!summaryPath) return;
 
@@ -91,6 +130,8 @@ function writeSummary(head, diff, baselineNote) {
   } else {
     lines.push(`- Findings: **${head.findings.length}**`);
   }
+
+  appendTopologySummary(lines, topologyDiff);
 
   if (baselineNote) lines.push(`- Baseline: ${baselineNote}`);
 
@@ -131,20 +172,25 @@ function writeSummary(head, diff, baselineNote) {
 
   lines.push(
     "",
-    "> AuditSpec assessment is advisory by default. Audit coverage reflects only boundaries detected by active adapters. Static reachability means a source path to a known entrypoint was resolved; it is not runtime proof or a compliance score.",
+    "> AuditSpec assessment is advisory by default. Audit coverage reflects only boundaries detected by active adapters. Static reachability and topology diffs are static-source evidence; they are not runtime proof or a compliance score.",
     "",
   );
 
   appendFileSync(summaryPath, `${lines.join("\n")}\n`);
 }
 
-const head = await inspectRepository(workspace);
+const [head, headGraph] = await Promise.all([
+  inspectRepository(workspace),
+  buildAssuranceGraph(workspace),
+]);
 assertAssessmentReport(head);
+assertAssuranceGraph(headGraph);
 
 const reportPath = join(runnerTemp, "auditspec-report.json");
 writeFileSync(reportPath, `${JSON.stringify(head, null, 2)}\n`);
 
 let diff = null;
+let topologyDiff = null;
 let baselineNote = "not used";
 const baselineMode = process.env.AUDITSPEC_BASELINE ?? "auto";
 const baseRef = process.env.GITHUB_BASE_REF;
@@ -157,10 +203,17 @@ if (baselineMode !== "off" && baseRef) {
     execFileSync("git", ["-C", workspace, "fetch", "--no-tags", "--depth=1", "origin", baseRef], { stdio: "inherit" });
     execFileSync("git", ["-C", workspace, "worktree", "add", "--detach", baseDir, "FETCH_HEAD"], { stdio: "inherit" });
 
-    const base = await inspectRepository(baseDir);
+    const [base, baseGraph] = await Promise.all([
+      inspectRepository(baseDir),
+      buildAssuranceGraph(baseDir),
+    ]);
     assertAssessmentReport(base);
+    assertAssuranceGraph(baseGraph);
+
     diff = diffAssessments(base, head);
     assertAssessmentDiff(diff);
+    topologyDiff = diffAssuranceGraphs(baseGraph, headGraph);
+    assertAssuranceGraphDiff(topologyDiff);
     baselineNote = `compared with ${baseRef}`;
   } catch (error) {
     baselineNote = "unavailable; surfaced current findings instead";
@@ -176,6 +229,8 @@ if (baselineMode !== "off" && baseRef) {
 
 const diffPath = join(runnerTemp, "auditspec-diff.json");
 if (diff) writeFileSync(diffPath, `${JSON.stringify(diff, null, 2)}\n`);
+const topologyDiffPath = join(runnerTemp, "auditspec-topology-diff.json");
+if (topologyDiff) writeFileSync(topologyDiffPath, `${JSON.stringify(topologyDiff, null, 2)}\n`);
 
 const fingerprintsToAnnotate = diff ? new Set(diff.new_findings.map((finding) => finding.fingerprint)) : null;
 const findingsToAnnotate = fingerprintsToAnnotate
@@ -192,7 +247,7 @@ if (diff) {
       .map((finding) => finding.boundary_id),
   );
   const headByBoundaryFingerprint = new Map(
-    head.boundaries.filter((boundary) => boundary.fingerprint).map((boundary) => [boundary.fingerprint, boundary]),
+    head.boundaries.map((boundary) => [boundary.fingerprint, boundary]),
   );
 
   for (const summary of diff.reachability.newly_reachable) {
@@ -204,14 +259,15 @@ if (diff) {
   }
 }
 
-writeSummary(head, diff, baselineNote);
+writeSummary(head, diff, topologyDiff, baselineNote);
 
 const outputPath = process.env.GITHUB_OUTPUT;
 if (outputPath) {
   appendFileSync(outputPath, `report_path=${reportPath}\n`);
   appendFileSync(outputPath, `diff_path=${diff ? diffPath : ""}\n`);
+  appendFileSync(outputPath, `topology_diff_path=${topologyDiff ? topologyDiffPath : ""}\n`);
 }
 
 console.log(
-  `AuditSpec: ${findingsToAnnotate.length} finding(s) surfaced, ${reachabilityWarnings} reachability warning(s), ${head.findings.length} total finding(s).`,
+  `AuditSpec: ${findingsToAnnotate.length} finding(s) surfaced, ${reachabilityWarnings} reachability warning(s), ${topologyDiff?.new_mutation_paths.length ?? 0} new topology mutation path(s), ${head.findings.length} total finding(s).`,
 );
