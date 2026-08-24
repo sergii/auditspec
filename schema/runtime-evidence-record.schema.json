@@ -60,6 +60,11 @@
       },
       "minProperties": 1
     },
+    "assessment_relation": {
+      "type": "string",
+      "enum": ["supports", "contradicts", "inconclusive"],
+      "description": "Explicit relation to an Assessment finding/target when raw observation state alone cannot determine whether the assessment claim is supported or contradicted. Required for finding_fingerprint targets."
+    },
     "correlation": {
       "type": "object",
       "additionalProperties": false,
@@ -110,5 +115,16 @@
   "anyOf": [
     { "required": ["targets"] },
     { "required": ["correlation"] }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "required": ["targets"],
+        "properties": {
+          "targets": { "required": ["finding_fingerprint"] }
+        }
+      },
+      "then": { "required": ["assessment_relation"] }
+    }
   ]
 }
