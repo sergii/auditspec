@@ -60,3 +60,72 @@ jobs:
         uses: ./
         with:
           baseline: off
+
+  real-world-inspector-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout AuditSpec
+        uses: actions/checkout@v4
+        with:
+          path: auditspec
+
+      - name: Checkout pinned Rails reference repository
+        uses: actions/checkout@v4
+        with:
+          repository: lobsters/lobsters
+          ref: 2f385d149e67f5ff78643dcf6d3cab0b24c0117c
+          path: e2e/lobsters
+          persist-credentials: false
+
+      - name: Checkout pinned Frappe reference repository
+        uses: actions/checkout@v4
+        with:
+          repository: frappe/wiki
+          ref: 2e4e4f215368387c08553c3c59723c7a2e1bf306
+          path: e2e/frappe-wiki
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build Inspector
+        working-directory: auditspec/implementations/typescript
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Inspect pinned Rails and Frappe repositories
+        run: |
+          node auditspec/implementations/typescript/dist/cli.js inspect e2e/lobsters --json > rails-assessment.json
+          node auditspec/implementations/typescript/dist/cli.js inspect e2e/frappe-wiki --json > frappe-assessment.json
+
+      - name: Assert real-world assessment contracts
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const cases = [
+            ['rails-assessment.json', 'rails', 'rails-ast-assisted-v0.1'],
+            ['frappe-assessment.json', 'frappe', 'frappe-ast-assisted-v0.1'],
+          ];
+
+          for (const [path, framework, adapter] of cases) {
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            if (!report.frameworks.some((item) => item.name === framework)) {
+              throw new Error(`${path}: expected framework ${framework}`);
+            }
+            if (!report.inspector.adapters.includes(adapter)) {
+              throw new Error(`${path}: expected adapter ${adapter}`);
+            }
+            if (report.coverage.detected_boundaries < 1) {
+              throw new Error(`${path}: expected at least one detected boundary`);
+            }
+            if (!Array.isArray(report.findings)) {
+              throw new Error(`${path}: findings must be an array`);
+            }
+            console.log(`${framework}: ${report.coverage.detected_boundaries} boundaries, ${report.findings.length} findings`);
+          }
+          NODE

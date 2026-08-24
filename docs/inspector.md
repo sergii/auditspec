@@ -35,16 +35,25 @@ Initial boundary kinds are `mutation`, `authorization`, `agent`, `tool`, `export
 
 ## AST-assisted adapters
 
-The v0.1 Rails and Frappe adapters use ast-grep/Tree-sitter to locate actual call AST nodes. This removes a major source of regex-only false positives: mutation-looking text inside comments or string literals is not treated as an executable call.
+The v0.1 Rails and Frappe adapters use ast-grep/Tree-sitter to locate actual call AST nodes. Mutation-looking text inside comments or string literals is therefore not treated as an executable call.
 
-AST evidence raises confidence that a call exists at a source location, but it still does not prove runtime reachability, cross-file authorization, dynamic dispatch, transaction propagation, or that every mutation surface has been discovered. Those require stronger call-graph/runtime evidence.
+AST evidence raises confidence that a call exists at a source location, but it still does not prove runtime reachability, cross-file authorization, dynamic dispatch, transaction propagation, or complete discovery. Those require stronger call-graph/runtime evidence.
 
 Current adapters:
 
 - `rails-ast-assisted-v0.1`
 - `frappe-ast-assisted-v0.1`
 
-If a source file cannot be parsed, the adapter records an `ast_parse_failures` count in assessment metadata rather than silently downgrading the parse failure into certain evidence.
+If a source file cannot be parsed, the adapter records an `ast_parse_failures` count in assessment metadata rather than silently turning a parse failure into certain evidence.
+
+## Real-world regression smoke
+
+CI runs the Inspector against pinned public revisions rather than copying third-party code into this repository:
+
+- `lobsters/lobsters@2f385d149e67f5ff78643dcf6d3cab0b24c0117c` for Rails
+- `frappe/wiki@2e4e4f215368387c08553c3c59723c7a2e1bf306` for Frappe
+
+The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
 ## Findings
 
