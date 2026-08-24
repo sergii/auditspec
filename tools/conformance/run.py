@@ -72,6 +72,19 @@ def expect_valid(validator, paths, label, failures):
             print(f"PASS valid   {label:<14} {relative(path)}")
 
 
+def expect_invalid(validator, paths, label, failures):
+    for path in paths:
+        errors = errors_for(validator, path)
+        if not errors:
+            failures.append(f"EXPECTED INVALID {label}: {relative(path)}")
+        else:
+            print(f"PASS invalid {label:<14} {relative(path)}")
+
+
+def invalid_contract_paths(directory: str):
+    return sorted((INVALID_DIR / directory).glob("*.json"))
+
+
 def main() -> int:
     event_validator = make_validator(EVENT_SCHEMA_PATH)
     assessment_validator = make_validator(ASSESSMENT_SCHEMA_PATH)
@@ -103,18 +116,33 @@ def main() -> int:
     expect_valid(oscal_export_request_validator, OSCAL_EXPORT_REQUEST_EXAMPLES, "oscal-request", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
-    for path in invalid_event_paths:
-        errors = errors_for(event_validator, path)
-        if not errors:
-            failures.append(f"EXPECTED INVALID event: {relative(path)}")
-        else:
-            print(f"PASS invalid event          {relative(path)}")
+    expect_invalid(event_validator, invalid_event_paths, "event", failures)
+
+    invalid_suites = [
+        (assessment_validator, invalid_contract_paths("assessment-report"), "assessment"),
+        (assessment_diff_validator, invalid_contract_paths("assessment-diff"), "diff"),
+        (assurance_graph_validator, invalid_contract_paths("assurance-graph"), "assurance-graph"),
+        (assurance_graph_diff_validator, invalid_contract_paths("assurance-graph-diff"), "graph-diff"),
+        (remediation_plan_validator, invalid_contract_paths("remediation-plan"), "remediation"),
+        (verification_result_validator, invalid_contract_paths("verification-result"), "verification"),
+        (control_mapping_profile_validator, invalid_contract_paths("control-mapping-profile"), "control-profile"),
+        (control_mapping_result_validator, invalid_contract_paths("control-mapping-result"), "control-result"),
+        (evidence_query_result_validator, invalid_contract_paths("evidence-query-result"), "evidence"),
+        (oscal_export_request_validator, invalid_contract_paths("oscal-export-request"), "oscal-request"),
+        (agent_validator, invalid_contract_paths("agent-profile"), "agent"),
+    ]
+
+    for validator, paths, label in invalid_suites:
+        expect_invalid(validator, paths, label, failures)
+
+    invalid_non_core_count = sum(len(paths) for _, paths, _ in invalid_suites)
 
     print()
     print(
         "AuditSpec conformance: "
         f"{len(valid_event_paths)} valid event vectors, "
         f"{len(invalid_event_paths)} invalid event vectors, "
+        f"{invalid_non_core_count} invalid non-Core vector(s), "
         f"{len(ASSESSMENT_EXAMPLES)} assessment example(s), "
         f"{len(ASSESSMENT_DIFF_EXAMPLES)} diff example(s), "
         f"{len(ASSURANCE_GRAPH_EXAMPLES)} assurance graph example(s), "
