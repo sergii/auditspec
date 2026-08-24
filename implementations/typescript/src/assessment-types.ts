@@ -34,6 +34,7 @@ export interface AssessmentBoundary {
 
 export interface AssessmentFinding {
   id: string;
+  fingerprint: string;
   rule_id: string;
   title: string;
   severity: FindingSeverity;
