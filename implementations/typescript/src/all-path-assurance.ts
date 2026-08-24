@@ -16,7 +16,8 @@ function weakestConfidence(paths: AssurancePathEvidence[]): AssessmentFinding["c
 }
 
 function isPrivileged(boundary: AssessmentBoundary): boolean {
-  if (PRIVILEGED_RE.test(`${boundary.location.path} ${boundary.operation}`)) return true;
+  const tokens = `${boundary.location.path} ${boundary.operation}`.replace(/[_/.:!?=-]+/g, " ");
+  if (PRIVILEGED_RE.test(tokens)) return true;
   if (boundary.framework === "frappe") {
     return /^frappe\.db\./.test(boundary.operation)
       || /^db_(?:set|insert|update)$/.test(boundary.operation)
