@@ -25,6 +25,20 @@ function pointerSegment(value: string): string {
   return value.replaceAll("~", "~0").replaceAll("/", "~1");
 }
 
+function uniqueRedactions(values: Redaction[]): Redaction[] {
+  const seen = new Set<string>();
+  const result: Redaction[] = [];
+
+  for (const value of values) {
+    const key = `${value.path}\u0000${value.method}\u0000${value.reason}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(value);
+  }
+
+  return result;
+}
+
 export function redactAuditEvent(event: AuditEvent, policy: RedactionPolicy = {}): AuditEvent {
   const clone = structuredClone(event) as AuditEvent;
   const keys = new Set((policy.keys ?? DEFAULT_SECRET_KEYS).map((key) => key.toLowerCase()));
@@ -64,9 +78,8 @@ export function redactAuditEvent(event: AuditEvent, policy: RedactionPolicy = {}
   delete clone.redactions;
   visit(clone, "");
 
-  if (additions.length > 0 || existingRedactions.length > 0) {
-    clone.redactions = [...existingRedactions, ...additions];
-  }
+  const redactions = uniqueRedactions([...existingRedactions, ...additions]);
+  if (redactions.length > 0) clone.redactions = redactions;
 
   return clone;
 }
