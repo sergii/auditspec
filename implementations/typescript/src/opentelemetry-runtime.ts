@@ -1,5 +1,6 @@
 import type { JsonPrimitive } from "./types.js";
 import type {
+  CorroborationRelation,
   RuntimeEvidenceCoverage,
   RuntimeEvidenceKind,
   RuntimeEvidenceRecord,
@@ -25,6 +26,7 @@ export interface OpenTelemetryRuntimeProducerOptions {
   coverage?: RuntimeEvidenceCoverage;
   state?: RuntimeEvidenceState;
   kind?: RuntimeEvidenceKind;
+  assessment_relation?: CorroborationRelation;
   detail?: string;
 }
 
@@ -51,6 +53,37 @@ function evidenceId(signal: OpenTelemetryRuntimeSignal): string {
   return `otel:${correlation}`;
 }
 
+function explicitAssessmentRelation(
+  signal: OpenTelemetryRuntimeSignal,
+  options: OpenTelemetryRuntimeProducerOptions,
+  findingFingerprint: string | undefined,
+): CorroborationRelation | undefined {
+  const attribute = stringAttribute(signal.attributes, "auditspec.assessment.relation");
+  if (
+    attribute !== undefined &&
+    attribute !== "supports" &&
+    attribute !== "contradicts" &&
+    attribute !== "inconclusive"
+  ) {
+    throw new TypeError(
+      "auditspec.assessment.relation must be supports, contradicts, or inconclusive",
+    );
+  }
+
+  const relation = options.assessment_relation ?? (attribute as CorroborationRelation | undefined);
+  if (findingFingerprint && !relation) {
+    throw new TypeError(
+      "OpenTelemetry evidence targeting a finding requires explicit assessment_relation",
+    );
+  }
+  if (relation && !findingFingerprint) {
+    throw new TypeError(
+      "OpenTelemetry assessment_relation requires auditspec.finding.fingerprint",
+    );
+  }
+  return relation;
+}
+
 export function runtimeEvidenceFromOpenTelemetry(
   signal: OpenTelemetryRuntimeSignal,
   options: OpenTelemetryRuntimeProducerOptions = {},
@@ -70,6 +103,7 @@ export function runtimeEvidenceFromOpenTelemetry(
     );
   }
 
+  const assessmentRelation = explicitAssessmentRelation(signal, options, findingFingerprint);
   const eventSource = stringAttribute(signal.attributes, "auditspec.event.source");
   const eventId = stringAttribute(signal.attributes, "auditspec.event.id");
   const requestId = stringAttribute(signal.attributes, "auditspec.request.id");
@@ -109,6 +143,7 @@ export function runtimeEvidenceFromOpenTelemetry(
       ...(boundaryFingerprint ? { boundary_fingerprint: boundaryFingerprint } : {}),
       ...(findingFingerprint ? { finding_fingerprint: findingFingerprint } : {}),
     },
+    ...(assessmentRelation ? { assessment_relation: assessmentRelation } : {}),
     ...(Object.keys(correlation).length > 0 ? { correlation } : {}),
     observation: {
       state: options.state ?? "observed",
@@ -125,6 +160,7 @@ export function runtimeEvidenceFromOpenTelemetry(
       "OpenTelemetry evidence is attributed telemetry unless a stronger producer trust relationship is established independently.",
       "A single OpenTelemetry signal defaults to point coverage and does not establish exhaustive runtime coverage.",
       "The producer requires an explicit AuditSpec fingerprint attribute and does not infer source boundaries from span names.",
+      "Evidence targeting a finding requires an explicit assessment relation because observation state alone does not determine whether a finding is supported or contradicted.",
     ],
   };
 
