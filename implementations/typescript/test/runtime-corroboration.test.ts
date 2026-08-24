@@ -95,6 +95,52 @@ test("explicit contradiction contradicts regardless of coverage", () => {
   assert.equal(report.matches[0]?.relation, "contradicts");
 });
 
+test("finding-target relation is explicit and can contradict an observed finding", () => {
+  const finding = assessment.findings[0];
+  assert.ok(finding);
+  const evidence: RuntimeEvidenceRecord = {
+    record_version: "0.1",
+    id: "rte_finding_contradiction",
+    kind: "authorization_decision",
+    producer: { name: "policy-engine", type: "application" },
+    trust: "authoritative",
+    observed_at: "2026-08-24T21:42:00Z",
+    targets: { finding_fingerprint: finding.fingerprint },
+    assessment_relation: "contradicts",
+    observation: {
+      state: "observed",
+      coverage: "point",
+      detail: "An authoritative authorization decision was observed for the targeted finding.",
+    },
+  };
+
+  assert.equal(validateRuntimeEvidenceRecord(evidence).valid, true);
+  const report = corroborateAssessment(assessment, [evidence]);
+  assert.equal(report.matches[0]?.relation, "contradicts");
+  assert.equal(report.summary.contradicts, 1);
+});
+
+test("finding-target record without assessment relation is invalid", () => {
+  const finding = assessment.findings[0];
+  assert.ok(finding);
+  const evidence = {
+    record_version: "0.1",
+    id: "rte_finding_missing_relation",
+    kind: "authorization_decision",
+    producer: { name: "policy-engine", type: "application" },
+    trust: "authoritative",
+    observed_at: "2026-08-24T21:42:00Z",
+    targets: { finding_fingerprint: finding.fingerprint },
+    observation: {
+      state: "observed",
+      coverage: "point",
+      detail: "This record deliberately omits the required finding relation.",
+    },
+  };
+
+  assert.equal(validateRuntimeEvidenceRecord(evidence).valid, false);
+});
+
 test("evidence for unknown fingerprints remains unmatched", () => {
   const evidence: RuntimeEvidenceRecord = {
     ...canonicalEvidence,
