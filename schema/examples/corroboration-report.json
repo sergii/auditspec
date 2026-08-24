@@ -9,6 +9,13 @@
   "matches": [
     {
       "evidence_id": "rte_example_001",
+      "evidence_kind": "database_observation",
+      "producer": {
+        "name": "postgres-audit-observer",
+        "type": "database",
+        "version": "0.1"
+      },
+      "observed_at": "2026-08-24T21:40:30Z",
       "boundary_fingerprint": "bfp_refund_update_001",
       "relation": "supports",
       "trust": "authoritative",
