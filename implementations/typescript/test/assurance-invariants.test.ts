@@ -186,3 +186,39 @@ test("path enumeration truncation degrades assurance to unknown and low confiden
     1,
   );
 });
+
+test("depth-limited traversal is explicitly incomplete rather than silently optimistic", () => {
+  const entrypoint = node("entry", "RefundsController#refund", ["entrypoint", "audit", "transaction"]);
+  const first = node("first", "RefundFlow#call", []);
+  const second = node("second", "RefundPolicyFlow#call", []);
+  const mutation = node("mutation", "RefundService#call", ["mutation"]);
+  const value = graph(
+    [entrypoint, first, second, mutation],
+    [edge("entry", "first"), edge("first", "second"), edge("second", "mutation")],
+  );
+
+  const paths = findAssurancePaths(value, mutationLocation, 2, 64);
+  assert.equal(paths.truncated, true);
+  assert.equal(paths.paths.length, 1);
+  assert.equal(paths.paths[0]?.roles.includes("entrypoint"), false);
+});
+
+test("node and edge ordering cannot change the semantic path set", () => {
+  const mutation = node("mutation", "RefundService#call", ["mutation"]);
+  const first = node("first", "RefundsController#refund", ["entrypoint", "audit", "transaction"]);
+  const second = node("second", "AdminRefundsController#refund", ["entrypoint", "authorization"]);
+  const nodes = [first, second, mutation];
+  const edges = [edge("first", "mutation"), edge("second", "mutation")];
+
+  const canonical = findAssurancePaths(graph(nodes, edges), mutationLocation);
+  const reordered = findAssurancePaths(graph([...nodes].reverse(), [...edges].reverse()), mutationLocation);
+
+  const project = (value: ReturnType<typeof findAssurancePaths>) => value.paths.map((path) => ({
+    node_ids: path.node_ids,
+    roles: path.roles,
+    confidence: path.confidence,
+  }));
+
+  assert.equal(canonical.truncated, reordered.truncated);
+  assert.deepEqual(project(canonical), project(reordered));
+});
