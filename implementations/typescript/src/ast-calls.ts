@@ -52,7 +52,7 @@ function definitionName(text: string, language: AstLanguage, fieldName?: string)
 function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined {
   const definitionKinds = language === "ruby" ? RUBY_DEFINITION_KINDS : PYTHON_DEFINITION_KINDS;
   const containerKinds = language === "ruby" ? RUBY_CONTAINER_KINDS : PYTHON_CONTAINER_KINDS;
-  const definition = node.ancestors().find((ancestor) => definitionKinds.has(ancestor.kind()));
+  const definition = node.ancestors().find((ancestor) => definitionKinds.has(String(ancestor.kind())));
   if (!definition) return undefined;
 
   const range = definition.range();
@@ -60,7 +60,7 @@ function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined
   const name = definitionName(definition.text(), language, rawName);
   const containers = definition
     .ancestors()
-    .filter((ancestor) => containerKinds.has(ancestor.kind()))
+    .filter((ancestor) => containerKinds.has(String(ancestor.kind())))
     .map((ancestor) => ancestor.field("name")?.text() ?? ancestor.field("value")?.text())
     .filter((value): value is string => Boolean(value))
     .reverse();
@@ -71,7 +71,7 @@ function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined
       : `${containers.join(".")}.${name}`;
 
   return {
-    id: `${definition.kind()}:${range.start.line + 1}:${range.start.column + 1}`,
+    id: `${String(definition.kind())}:${range.start.line + 1}:${range.start.column + 1}`,
     name,
     qualified_name: qualifiedName,
     kind: language === "python" ? "function" : "method",
