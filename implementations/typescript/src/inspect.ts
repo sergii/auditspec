@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, type Dirent } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import type {
@@ -46,7 +46,7 @@ async function readText(path: string): Promise<string | null> {
 }
 
 async function collectRubyFiles(root: string, directory = root, output: string[] = []): Promise<string[]> {
-  let entries;
+  let entries: Dirent[];
   try {
     entries = await readdir(directory, { withFileTypes: true });
   } catch {
@@ -89,11 +89,13 @@ function finding(
   message: string,
   location: SourceLocation,
   boundaryId: string,
+  sourceIdentity: string,
   evidenceDetail: string,
   remediation: string,
 ): AssessmentFinding {
   return {
     id: stableId("finding", `${ruleId}:${location.path}:${location.line ?? 0}:${boundaryId}`),
+    fingerprint: stableId("fp", `${ruleId}:${sourceIdentity}`),
     rule_id: ruleId,
     title,
     severity: "warning",
@@ -131,6 +133,7 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
 
       const location: SourceLocation = { path, line: index + 1 };
       const boundaryId = stableId("boundary", `${path}:${index + 1}:${operation}`);
+      const sourceIdentity = `${path}:${operation}:${line.trim()}`;
       const auditStatus: AssessmentBoundary["audit_status"] = !hasAudit
         ? "uncovered"
         : hasTransaction
@@ -163,6 +166,7 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
             `Detected Rails mutation .${operation} without a visible AuditSpec emission marker in the same source file.`,
             location,
             boundaryId,
+            sourceIdentity,
             `No AuditSpec.emit!/record! marker found in ${path}`,
             "Emit a semantic AuditSpec event at the service/domain boundary that owns this mutation.",
           ),
@@ -173,9 +177,10 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
             "AS-ATOMIC-001",
             "Mutation and audit are not visibly atomic",
             "low",
-            `This file contains both a Rails mutation and an AuditSpec emission marker, but no visible Active Record transaction boundary.`,
+            "This file contains both a Rails mutation and an AuditSpec emission marker, but no visible Active Record transaction boundary.",
             location,
             boundaryId,
+            sourceIdentity,
             `Audit marker found but no ApplicationRecord/ActiveRecord transaction marker found in ${path}`,
             "Couple the mutation and durable audit write in one transaction, or use a transactional outbox when they cannot share a store.",
           ),
@@ -188,9 +193,10 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
             "AS-AUTH-001",
             "Privileged mutation without visible authorization evidence",
             "low",
-            `This mutation looks privileged, but no common Rails authorization marker is visible in the same source file.`,
+            "This mutation looks privileged, but no common Rails authorization marker is visible in the same source file.",
             location,
             boundaryId,
+            sourceIdentity,
             `Privileged keyword detected near .${operation}; no authorize/policy marker found in ${path}`,
             "Make the authorization boundary explicit and audit the authorization decision when it is relevant to accountability or security.",
           ),
