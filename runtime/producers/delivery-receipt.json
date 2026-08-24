@@ -1,0 +1,25 @@
+{
+  "manifest_version": "0.1",
+  "id": "delivery-receipt",
+  "name": "Delivery acknowledgement producer",
+  "implementation": "implementations/typescript/src/delivery-runtime.ts",
+  "producer_type": "external",
+  "supported_kinds": ["delivery_receipt"],
+  "default_trust": "attributed",
+  "default_coverage": "point",
+  "explicit_target_required": true,
+  "authority_scope": [
+    "A receipt corroborates only the transport, broker, receiver, or durable-acceptance fact explicitly represented by its issuer."
+  ],
+  "can_override": {
+    "trust": true,
+    "coverage": true,
+    "state": true,
+    "kind": false
+  },
+  "limitations": [
+    "A broker acknowledgement does not necessarily prove end-consumer processing.",
+    "Authoritative trust must be explicit and is appropriate only when the producer directly owns the delivery fact being asserted.",
+    "A single receipt is point evidence."
+  ]
+}
