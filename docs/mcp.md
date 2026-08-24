@@ -26,7 +26,7 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 - `auditspec.validate_event` - validate a Core event.
 - `auditspec.validate_agent_profile` - validate Agent Profile data.
 - `auditspec.inspect` - inspect a local repository and return an Assessment Report.
-- `auditspec.build_assurance_graph` - build a conservative cross-file static Assurance Graph.
+- `auditspec.build_assurance_graph` - build a conservative cross-file static Assurance Graph with supported framework dispatch edges.
 - `auditspec.find_assurance_path` - return the best resolved assurance path for a repository-relative source location.
 - `auditspec.get_findings` - return compact findings, optionally filtered by rule.
 - `auditspec.explain_gap` - explain a stable Inspector rule.
@@ -50,7 +50,7 @@ agent
   +--> auditspec.build_assurance_graph
   |       |
   |       v
-  |    resolved edges + unresolved calls
+  |    calls + route/hook/job/queue dispatch + unresolved calls
   |
   +--> auditspec.find_assurance_path
   |       |
@@ -94,6 +94,8 @@ agent
 
 The Assurance Graph is static-source evidence. It deliberately leaves ambiguous dynamic calls unresolved rather than inventing edges. It does not prove runtime execution or complete reachability.
 
+Supported framework provenance currently includes explicit Rails routes, ActiveJob/Sidekiq dispatch, Frappe whitelisted functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets. Framework edges retain their declaration/call locations so agents can explain why a path exists.
+
 This separation lets an agent ask why a mutation is considered covered and inspect the exact resolved path without turning repository-wide coincidence into evidence.
 
 See `docs/assurance-graph.md` for the contract and confidence model.
@@ -116,9 +118,11 @@ The MCP server deliberately does not modify source code in v0.1. Assessment/evid
 
 ## Next surfaces
 
-- framework-aware route, callback, job and message-bus graph edges
-- runtime/OTel evidence ingestion
+- richer Rails `resources`, namespaces, callbacks and generated dispatch
+- richer Frappe dynamic hooks and `enqueue(method=...)` resolution
+- message-bus/RPC edges
+- runtime/OTel evidence ingestion and graph correlation
 - official OSCAL schema validation in conformance
-- graph visualization and richer evidence queries
+- graph visualization and richer graph/evidence queries
 
 A future hosted HTTP transport can expose the same server factory. The initial reference uses stdio because it is local, simple, and keeps repository source on the user's machine.
