@@ -1,0 +1,32 @@
+{
+  "diff_version": "0.1",
+  "subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app"
+  },
+  "generated_at": "2026-08-24T22:45:00Z",
+  "base_generated_at": "2026-08-24T22:40:00Z",
+  "head_generated_at": "2026-08-24T22:44:00Z",
+  "summary": {
+    "base_contradicted_targets": 0,
+    "head_contradicted_targets": 1,
+    "delta": 1,
+    "newly_reported": 1,
+    "no_longer_reported": 0,
+    "persisting": 0
+  },
+  "newly_reported_contradictions": [
+    {
+      "target": {
+        "type": "event",
+        "fingerprint": "invalid-target"
+      },
+      "evidence_ids": ["rte_invalid_001"],
+      "trust_levels": ["authoritative"],
+      "coverage_levels": ["point"]
+    }
+  ],
+  "no_longer_reported_contradictions": [],
+  "persisting_contradictions": [],
+  "limitations": ["This vector is intentionally invalid because target.type is not boundary or finding."]
+}
