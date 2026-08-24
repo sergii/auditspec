@@ -6,6 +6,7 @@ import { diffAssuranceGraphs } from "./assurance-graph-diff.js";
 import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { mapAssessmentToControls, type ControlMappingProfile } from "./control-mapping.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
+import { getFrameworkAdapter, listFrameworkAdapters } from "./framework-registry.js";
 import { inspectRepository } from "./inspector.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
@@ -109,6 +110,24 @@ export function createAuditSpecMcpServer(): McpServer {
       inputSchema: z.object({ profile: z.unknown() }),
     },
     async ({ profile }) => asToolResult(validateAgentProfile(profile) as unknown as Record<string, unknown>),
+  );
+
+  server.registerTool(
+    "auditspec.list_framework_adapters",
+    {
+      description: "List schema-valid AuditSpec framework adapter manifests and their implemented/partial/planned proof layers.",
+      inputSchema: z.object({ framework: z.string().min(1).optional() }),
+    },
+    async ({ framework }) => {
+      if (framework) {
+        const manifest = getFrameworkAdapter(framework);
+        return manifest
+          ? asToolResult({ count: 1, adapters: [manifest] })
+          : asToolResult({ count: 0, adapters: [] });
+      }
+      const adapters = listFrameworkAdapters();
+      return asToolResult({ count: adapters.length, adapters });
+    },
   );
 
   server.registerTool(
