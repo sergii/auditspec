@@ -131,3 +131,16 @@ test("CLI reports Assurance Graph topology changes", () => {
     rmSync(head, { recursive: true, force: true });
   }
 });
+
+test("CLI exports OSCAL from one validated request object", () => {
+  const result = run(
+    "export-oscal",
+    "schema/examples/assessment-report.json",
+    "schema/examples/oscal-export-request.json",
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /"assessment-results"/);
+  assert.match(result.stdout, /"reviewed-controls"/);
+  assert.match(result.stdout, /"target-id": "au-2_smt"/);
+  assert.match(result.stdout, /"state": "not-satisfied"/);
+});
