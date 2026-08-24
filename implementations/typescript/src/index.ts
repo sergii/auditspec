@@ -1,5 +1,6 @@
 export * from "./types.js";
 export * from "./assessment-types.js";
+export * from "./assessment-diff.js";
 export * from "./validate.js";
 export * from "./normalize.js";
 export * from "./redact.js";
