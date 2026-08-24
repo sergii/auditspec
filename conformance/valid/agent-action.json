@@ -1,21 +1,52 @@
 {
   "spec_version": "0.1",
   "id": "aud_agent_001",
+  "source": "urn:example:erp-service",
   "tenant": { "type": "organization", "id": "org_123" },
   "actor": {
     "type": "agent",
     "id": "agent_hanna",
-    "on_behalf_of": { "type": "user", "id": "usr_42" }
+    "display": { "name": "Hanna" }
   },
+  "delegation": [
+    {
+      "relationship": "on_behalf_of",
+      "principal": { "type": "user", "id": "usr_42" }
+    }
+  ],
   "action": "invoice.approve",
-  "target": { "type": "invoice", "id": "INV-0042" },
-  "outcome": "allowed",
+  "action_version": 1,
+  "targets": [
+    { "type": "invoice", "id": "INV-0042", "role": "primary" }
+  ],
+  "authorization": {
+    "decision": "allowed",
+    "scopes": ["invoice:approve"]
+  },
+  "result": { "status": "succeeded" },
+  "origin": {
+    "surface": "mcp",
+    "service": { "name": "erp-service", "version": "2.1.0" }
+  },
   "correlation": {
-    "trace_id": "tr_abc",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba902b7",
     "session_id": "sess_abc",
+    "turn_id": "turn_17",
     "tool_call_id": "call_abc"
   },
-  "evidence": { "producer": "erp-service", "trust": "authoritative" },
+  "evidence": [
+    {
+      "kind": "execution",
+      "producer": { "name": "erp-service", "version": "2.1.0" },
+      "trust": "authoritative"
+    },
+    {
+      "kind": "agent_report",
+      "producer": { "name": "agent-runtime", "version": "0.9.0" },
+      "trust": "self_reported"
+    }
+  ],
   "occurred_at": "2026-08-24T15:01:00Z",
   "recorded_at": "2026-08-24T15:01:00.004Z"
 }
