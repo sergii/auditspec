@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/corroboration-query-result.schema.json",
+  "title": "AuditSpec Runtime Corroboration Query Result v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["query_version", "assessment_subject", "source_generated_at", "filters", "count", "matches"],
+  "properties": {
+    "query_version": { "const": "0.1" },
+    "assessment_subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source_generated_at": { "type": "string", "format": "date-time" },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "relation": { "type": "string", "enum": ["supports", "contradicts", "inconclusive"] },
+        "trust": { "type": "string", "enum": ["authoritative", "attributed", "self_reported", "derived"] },
+        "coverage": { "type": "string", "enum": ["point", "sampled", "window", "exhaustive"] },
+        "evidence_kind": { "$ref": "#/$defs/evidence_kind" },
+        "producer_name": { "type": "string", "minLength": 1 },
+        "producer_type": { "$ref": "#/$defs/producer_type" },
+        "boundary_fingerprint": { "type": "string", "minLength": 1 },
+        "finding_fingerprint": { "type": "string", "minLength": 1 }
+      }
+    },
+    "count": { "type": "integer", "minimum": 0 },
+    "matches": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/match" }
+    }
+  },
+  "$defs": {
+    "evidence_kind": {
+      "type": "string",
+      "enum": [
+        "application_execution",
+        "authorization_decision",
+        "transaction_commit",
+        "audit_persist",
+        "outbox_persist",
+        "delivery_receipt",
+        "trace_span",
+        "database_observation",
+        "kernel_observation"
+      ]
+    },
+    "producer_type": {
+      "type": "string",
+      "enum": ["application", "database", "collector", "proxy", "kernel", "agent", "external"]
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/producer_type" },
+        "version": { "type": "string", "minLength": 1 },
+        "instance": { "type": "string", "minLength": 1 }
+      }
+    },
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "evidence_kind", "producer", "observed_at", "relation", "trust", "coverage", "rationale"],
+      "properties": {
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "evidence_kind": { "$ref": "#/$defs/evidence_kind" },
+        "producer": { "$ref": "#/$defs/producer" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "boundary_fingerprint": { "type": "string", "minLength": 1 },
+        "finding_fingerprint": { "type": "string", "minLength": 1 },
+        "relation": { "type": "string", "enum": ["supports", "contradicts", "inconclusive"] },
+        "trust": { "type": "string", "enum": ["authoritative", "attributed", "self_reported", "derived"] },
+        "coverage": { "type": "string", "enum": ["point", "sampled", "window", "exhaustive"] },
+        "rationale": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [
+        { "required": ["boundary_fingerprint"] },
+        { "required": ["finding_fingerprint"] }
+      ]
+    }
+  }
+}
