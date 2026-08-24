@@ -8,6 +8,7 @@ import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
 import { diffCorroborationReports } from "./corroboration-diff.js";
+import { queryCorroboration, type CorroborationQueryFilters } from "./corroboration-query.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspector.js";
 import { normalizeAuditEvent } from "./normalize.js";
@@ -24,6 +25,7 @@ import {
   assertControlMappingProfile,
   assertControlMappingResult,
   assertCorroborationDiff,
+  assertCorroborationQueryResult,
   assertCorroborationReport,
   assertEvidenceQueryResult,
   assertOscalExportRequest,
@@ -110,6 +112,7 @@ function usage(): never {
     "  auditspec query-evidence <assessment.json> [--kind K] [--rule R] [--path P] [--confidence C] [--source boundary|finding]",
     "  auditspec corroborate <assessment.json> <runtime-evidence-array.json>",
     "  auditspec diff-corroboration <base-corroboration.json> <head-corroboration.json>",
+    "  auditspec query-corroboration <corroboration.json> [--relation R] [--trust T] [--coverage C] [--kind K] [--producer NAME] [--producer-type TYPE] [--boundary FP] [--finding FP]",
     "  auditspec export-oscal <assessment.json> <request.json>",
     "",
   ].join("\n"));
@@ -273,6 +276,27 @@ async function main(): Promise<void> {
     const diff = diffCorroborationReports(base, head);
     assertCorroborationDiff(diff);
     print(diff);
+    return;
+  }
+
+  if (command === "query-corroboration") {
+    const reportPath = args[1];
+    if (!reportPath) usage();
+    const report = readJson(reportPath);
+    assertCorroborationReport(report);
+    const filters: CorroborationQueryFilters = {
+      ...(optionValue(args, "--relation") ? { relation: optionValue(args, "--relation") as CorroborationQueryFilters["relation"] } : {}),
+      ...(optionValue(args, "--trust") ? { trust: optionValue(args, "--trust") as CorroborationQueryFilters["trust"] } : {}),
+      ...(optionValue(args, "--coverage") ? { coverage: optionValue(args, "--coverage") as CorroborationQueryFilters["coverage"] } : {}),
+      ...(optionValue(args, "--kind") ? { evidence_kind: optionValue(args, "--kind") as CorroborationQueryFilters["evidence_kind"] } : {}),
+      ...(optionValue(args, "--producer") ? { producer_name: optionValue(args, "--producer") } : {}),
+      ...(optionValue(args, "--producer-type") ? { producer_type: optionValue(args, "--producer-type") as CorroborationQueryFilters["producer_type"] } : {}),
+      ...(optionValue(args, "--boundary") ? { boundary_fingerprint: optionValue(args, "--boundary") } : {}),
+      ...(optionValue(args, "--finding") ? { finding_fingerprint: optionValue(args, "--finding") } : {}),
+    };
+    const result = queryCorroboration(report, filters);
+    assertCorroborationQueryResult(result);
+    print(result);
     return;
   }
 
