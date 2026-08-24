@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { diffAssessments } from "./assessment-diff.js";
+import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
@@ -14,6 +15,7 @@ import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
   assertAssessmentDiff,
   assertAssessmentReport,
+  assertAssuranceGraph,
   assertAuditEvent,
   assertControlMappingProfile,
   assertControlMappingResult,
@@ -39,6 +41,14 @@ function optionValue(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
   if (index < 0) return undefined;
   return args[index + 1];
+}
+
+function positiveInteger(value: string | undefined, name: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new TypeError(`${name} must be a positive integer`);
+  }
+  return parsed;
 }
 
 function printAssessment(report: AssessmentReport): void {
@@ -70,6 +80,8 @@ function usage(): never {
     "  auditspec redact <event.json>",
     "  auditspec to-cloudevent <event.json>",
     "  auditspec inspect [path] [--json]",
+    "  auditspec graph [path]",
+    "  auditspec assurance-path <repository-path> <source-path> <line> [column]",
     "  auditspec diff-assessments <base.json> <head.json>",
     "  auditspec plan-remediation <assessment.json> [fingerprint ...]",
     "  auditspec verify-remediation <base.json> <head.json> [fingerprint ...]",
@@ -92,6 +104,34 @@ async function main(): Promise<void> {
     assertAssessmentReport(report);
     if (args.includes("--json")) print(report);
     else printAssessment(report);
+    return;
+  }
+
+  if (command === "graph") {
+    const pathArg = args[1] ?? ".";
+    const graph = await buildAssuranceGraph(resolve(pathArg));
+    assertAssuranceGraph(graph);
+    print(graph);
+    return;
+  }
+
+  if (command === "assurance-path") {
+    const repositoryPath = args[1];
+    const sourcePath = args[2];
+    const lineValue = args[3];
+    if (!repositoryPath || !sourcePath || !lineValue) usage();
+    const line = positiveInteger(lineValue, "line");
+    const column = args[4] ? positiveInteger(args[4], "column") : 1;
+    const graph = await buildAssuranceGraph(resolve(repositoryPath));
+    assertAssuranceGraph(graph);
+    const path = findAssurancePath(graph, { path: sourcePath, line, column });
+    print({
+      subject: graph.subject,
+      location: { path: sourcePath, line, column },
+      found: path !== null,
+      path,
+    });
+    process.exitCode = path ? 0 : 1;
     return;
   }
 
