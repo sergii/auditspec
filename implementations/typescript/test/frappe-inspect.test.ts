@@ -44,3 +44,35 @@ def activate(name):
   assert.equal(report.boundaries[0]?.audit_status, "partial");
   assert.ok(!report.findings.some((finding) => finding.rule_id === "AS-AUDIT-001"));
 });
+
+test("Inspector detects Frappe delete, bulk update, db_set and delete_doc surfaces", async () => {
+  const root = await makeFrappeRepo(`
+import frappe
+
+def mutate(doc):
+    frappe.db.delete("ToDo", {"status": "Closed"})
+    frappe.db.bulk_update("Task", {"TASK-1": {"status": "Closed"}})
+    doc.db_set("status", "Closed")
+    frappe.delete_doc("Note", "NOTE-1")
+`);
+
+  const report = await inspectRepository(root);
+  const operations = new Set(report.boundaries.map((boundary) => boundary.operation));
+  assert.ok(operations.has("frappe.db.delete"));
+  assert.ok(operations.has("frappe.db.bulk_update"));
+  assert.ok(operations.has("db_set"));
+  assert.ok(operations.has("frappe.delete_doc"));
+});
+
+test("Inspector flags truncate as an irreversible atomicity boundary", async () => {
+  const root = await makeFrappeRepo(`
+import frappe
+
+def clear_logs():
+    frappe.db.truncate("Error Log")
+`);
+
+  const report = await inspectRepository(root);
+  const atomicity = report.findings.find((finding) => finding.rule_id === "AS-ATOMIC-001");
+  assert.equal(atomicity?.confidence, "certain");
+});

@@ -24,9 +24,8 @@ const SKIP_DIRECTORIES = new Set([
 const AUDIT_RE = /\b(?:AuditSpec|auditspec)\.(?:emit|record)\s*\(|\bemit_audit\s*\(/;
 const AUTHORIZATION_RE = /\bfrappe\.has_permission\s*\(|\bfrappe\.only_for\s*\(|\.check_permission\s*\(|\bfrappe\.get_roles\s*\(|\bPermissionError\b/;
 const FRAPPE_CONTEXT_RE = /\bimport\s+frappe\b|\bfrom\s+frappe\b|\bfrappe\.get_doc\s*\(|\bDocument\b/;
-const DIRECT_DB_RE = /\bfrappe\.db\.(set_value|update)\s*\(|\bfrappe\.delete_doc\s*\(|\.db_(set|insert|update)\s*\(/;
 const DOC_MUTATION_RE = /\.\s*(save|insert|submit|cancel|delete)\s*\(/;
-const BYPASS_RE = /ignore_permissions\s*=\s*True|\.db_(insert|update)\s*\(|\bfrappe\.db\.(set_value|update)\s*\(/;
+const BYPASS_RE = /ignore_permissions\s*=\s*True|\.db_(set|insert|update)\s*\(|\bfrappe\.db\.(set_value|update|bulk_update|delete|truncate)\s*\(/;
 
 function stableId(prefix: string, value: string): string {
   const digest = createHash("sha256").update(value).digest("hex").slice(0, 12);
@@ -68,6 +67,33 @@ async function collectPythonFiles(root: string, directory = root, output: string
   }
 
   return output;
+}
+
+function detectMutation(line: string): { operation: string; direct: boolean; irreversible: boolean } | null {
+  const frappeDb = line.match(/\bfrappe\.db\.(set_value|update|bulk_update|delete|truncate)\s*\(/);
+  if (frappeDb?.[1]) {
+    return {
+      operation: `frappe.db.${frappeDb[1]}`,
+      direct: true,
+      irreversible: frappeDb[1] === "truncate",
+    };
+  }
+
+  if (/\bfrappe\.delete_doc\s*\(/.test(line)) {
+    return { operation: "frappe.delete_doc", direct: true, irreversible: false };
+  }
+
+  const dbMethod = line.match(/\.db_(set|insert|update)\s*\(/);
+  if (dbMethod?.[1]) {
+    return { operation: `db_${dbMethod[1]}`, direct: true, irreversible: false };
+  }
+
+  const docMutation = line.match(DOC_MUTATION_RE);
+  if (docMutation?.[1]) {
+    return { operation: docMutation[1], direct: false, irreversible: false };
+  }
+
+  return null;
 }
 
 function finding(
@@ -134,17 +160,15 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
       const line = lines[index];
       if (line === undefined) continue;
 
-      const directMatch = line.match(DIRECT_DB_RE);
-      const docMatch = line.match(DOC_MUTATION_RE);
-      const operation = directMatch?.[1] ?? docMatch?.[1];
-      if (!operation) continue;
+      const mutation = detectMutation(line);
+      if (!mutation) continue;
 
-      const isDirectDb = directMatch !== null;
+      const { operation, direct, irreversible } = mutation;
       const location: SourceLocation = { path, line: index + 1 };
       const boundaryId = stableId("boundary", `${path}:${index + 1}:frappe:${operation}`);
       const sourceIdentity = `${path}:frappe:${operation}:${line.trim()}`;
       const auditStatus: AssessmentBoundary["audit_status"] = hasAudit ? "partial" : "uncovered";
-      const confidence: AssessmentBoundary["confidence"] = isDirectDb ? "high" : "medium";
+      const confidence: AssessmentBoundary["confidence"] = direct ? "high" : "medium";
 
       boundaries.push({
         id: boundaryId,
@@ -157,8 +181,8 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
         evidence: [
           {
             kind: "source_match",
-            detail: isDirectDb
-              ? `Detected direct Frappe database mutation near ${operation}`
+            detail: direct
+              ? `Detected direct Frappe database mutation ${operation}`
               : `Detected Frappe document mutation .${operation}()`,
             location,
           },
@@ -192,7 +216,23 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
             boundaryId,
             sourceIdentity,
             `Bypass/direct database marker found near ${operation}; no has_permission/only_for/check_permission marker found in ${path}`,
-            "Make the authorization decision explicit and audit it when the operation is privileged. Avoid ignore_permissions or direct DB mutation unless the boundary is intentionally controlled.",
+            "Make the authorization decision explicit and audit it when the operation is privileged. Avoid permission bypass or direct DB mutation unless the boundary is intentionally controlled.",
+          ),
+        );
+      }
+
+      if (irreversible) {
+        findings.push(
+          finding(
+            "AS-ATOMIC-001",
+            "Mutation cannot share normal rollback semantics",
+            "certain",
+            "Frappe database truncate commits before executing the DDL operation and cannot be rolled back, so a normal same-transaction audit guarantee cannot cover this mutation.",
+            location,
+            boundaryId,
+            sourceIdentity,
+            `Detected irreversible ${operation} boundary`,
+            "Treat this as a special audit boundary. Record intent before execution and durable completion/failure evidence after execution; do not claim normal transaction atomicity.",
           ),
         );
       }

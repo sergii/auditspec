@@ -24,15 +24,18 @@ The initial `frappe-heuristic-v0.1` adapter looks for common mutation surfaces i
 - `doc.db_set()`
 - `doc.db_insert()` / `doc.db_update()`
 - `frappe.db.set_value()` / `frappe.db.update()`
+- `frappe.db.bulk_update()`
+- `frappe.db.delete()`
+- `frappe.db.truncate()`
 - `frappe.delete_doc()`
 
-Direct database methods are especially important because Frappe documents that some of them bypass normal ORM triggers. The adapter therefore increases confidence around these mutation boundaries and looks for explicit authorization evidence when permission-bypassing patterns are present.
+Direct database methods are especially important because Frappe documents that `set_value` and `bulk_update` bypass normal document events/validations. `truncate` is an even stronger special case: it commits before the DDL statement and cannot be rolled back, so AuditSpec must not claim normal transaction atomicity around it.
 
 ## Atomicity
 
 Frappe transaction ownership is request/job dependent. A same-file AuditSpec marker is therefore classified as `partial` by the first heuristic adapter rather than being treated as proof of atomic persistence.
 
-A future Frappe adapter should understand transaction lifecycle, background jobs, hooks, DocType controllers, and the actual AuditSpec storage implementation before upgrading that confidence.
+A future Frappe adapter should understand transaction lifecycle, background jobs, hooks, DocType controllers, transaction hooks, and the actual AuditSpec storage implementation before upgrading that confidence.
 
 ## Native history still matters
 
