@@ -10,6 +10,7 @@ export * from "./remediation.js";
 export * from "./control-mapping.js";
 export * from "./evidence-query.js";
 export * from "./framework-registry.js";
+export * from "./runtime-producer-registry.js";
 export * from "./runtime-corroboration.js";
 export * from "./oscal.js";
 export * from "./validate.js";
