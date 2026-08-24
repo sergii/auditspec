@@ -2,28 +2,85 @@
 
 AuditSpec can feed control-oriented assessment workflows without becoming a compliance framework itself.
 
-The first target is the NIST OSCAL Assessment Results model. AuditSpec v0.1 treats OSCAL as an external representation for assessment subjects, observations/evidence, findings, and reviewed controls.
+The v0.1 exporter targets NIST OSCAL `1.2.3` Assessment Results. OSCAL is an external assessment representation; AuditSpec Core remains independent of OSCAL and of any particular compliance framework.
 
-## Version
+## Official conformance
 
-This mapping is designed against OSCAL `1.2.3` Assessment Results semantics.
+Generated Assessment Results are validated in CI against the official NIST OSCAL v1.2.3 Assessment Results JSON Schema. CI downloads the pinned NIST release archive, verifies its SHA-256 digest, extracts the official schema, and validates the generated document with Ajv.
 
-AuditSpec does not vendor the OSCAL schemas. A future `export-oscal` implementation MUST be validated against the official NIST OSCAL schemas before it is described as OSCAL-conformant output.
+This validates structural OSCAL conformance. It does not prove that a referenced Assessment Plan, SSP, control identifier, objective identifier, or assessor conclusion is factually correct.
+
+## Why assessment context is caller-supplied
+
+OSCAL Assessment Results require information that AuditSpec static findings do not and should not invent:
+
+- the controls actually reviewed;
+- a finding target that references a control statement or assessment objective;
+- an assessor conclusion for that target (`satisfied` or `not-satisfied`).
+
+Therefore `schema/oscal-export-request.schema.json` requires:
+
+- `assessment_plan_href`;
+- `reviewed_control_ids`;
+- `finding_targets`, keyed by stable AuditSpec finding fingerprint.
+
+Each finding target contains:
+
+```json
+{
+  "type": "statement-id",
+  "target_id": "au-2_smt",
+  "status": {
+    "state": "not-satisfied",
+    "reason": "other"
+  }
+}
+```
+
+These values are caller/assessor context. AuditSpec validates and projects them but never derives `satisfied` or `not-satisfied` from a source-code heuristic.
+
+The exporter fails closed when an Assessment Report finding does not have a caller-supplied target/status mapping.
+
+## CLI
+
+```bash
+auditspec export-oscal \
+  assessment.json \
+  oscal-export-request.json
+```
+
+The canonical request example is:
+
+```text
+schema/examples/oscal-export-request.json
+```
+
+## MCP
+
+`auditspec.export_oscal` accepts two objects:
+
+- `assessment` - a valid AuditSpec Assessment Report;
+- `request` - a valid AuditSpec OSCAL Export Request.
+
+The MCP tool uses the same request schema as the CLI/library. There is no separate agent-only OSCAL contract.
 
 ## Conceptual mapping
 
 | AuditSpec | OSCAL Assessment Results |
 | --- | --- |
-| Assessment Report `subject` | assessment subject / referenced component |
+| Assessment Report subject/context | imported Assessment Plan / assessment context supplied externally |
 | Inspector identity + adapters | origin / tool identity |
-| Boundary evidence | observation + relevant evidence |
-| Finding | observation/discovery plus finding where appropriate |
-| Finding fingerprint | stable AuditSpec property/reference used for correlation |
-| Control Mapping Result | reviewed-control/control-objective relevance input |
-| Remediation Plan | input to risk/response/POA&M workflows, not automatically an OSCAL risk |
-| Verification Result | later assessment evidence / changed observation status |
+| Finding evidence | observation + relevant evidence |
+| Assessment generated time | observation `collected` |
+| Finding | observation/discovery plus finding |
+| Finding fingerprint | namespaced property and request mapping key |
+| caller-reviewed control IDs | result `reviewed-controls` |
+| caller target/status | finding `target` |
+| Control Mapping Result | evidence/relevance input, not an automatic finding status |
+| Remediation Plan | input to remediation/POA&M workflows, not automatically an OSCAL risk |
+| Verification Result | later technical evidence, not an automatic assessor conclusion |
 
-## Why there is an intermediate control mapping
+## Control mappings remain relevance mappings
 
 AuditSpec Inspector rules are not control IDs.
 
@@ -37,76 +94,32 @@ AS-AUDIT-001
     +--> NIST AU-12 relevance
 ```
 
-The relationship is versioned in a Control Mapping Profile. This prevents framework-specific semantics from leaking into AuditSpec Core or Inspector rules.
+The relationship is versioned in a Control Mapping Profile. This prevents framework-specific or compliance-specific semantics from leaking into AuditSpec Core or Inspector rules.
 
-A profile can map the same AuditSpec evidence to:
+A profile can map the same AuditSpec evidence to NIST SP 800-53, ISO/IEC 27001, SOC 2 criteria, or an organization's internal catalog without changing the Assessment Report.
 
-- NIST SP 800-53
-- ISO/IEC 27001
-- SOC 2 criteria
-- an organization's internal control catalog
-
-without changing the Assessment Report.
-
-## No automatic pass/fail
-
-A mapping relation is one of:
-
-- `potential_gap`
-- `relevant_evidence`
-
-Neither means that an external control has passed or failed.
-
-A real control assessment may require policy documents, interviews, configuration evidence, runtime observations, sampling, human judgment, and evidence outside the inspected repository.
-
-AuditSpec MUST preserve this distinction in user interfaces and machine-readable exports.
-
-## Initial NIST profile
-
-The repository includes:
+The repository includes an initial NIST relevance profile:
 
 ```text
 mappings/controls/nist-sp800-53-r5.2.0.json
 ```
 
-It is a deliberately small initial crosswalk for the first Inspector rules. The profile contains only relevance relationships and rationale. It does not reproduce the control catalog and does not replace NIST's authoritative content.
+Its relations are `potential_gap` or `relevant_evidence`. Neither means pass/fail.
 
-Use it with the CLI:
+## What the exporter does not prove
 
-```bash
-auditspec map-controls \
-  assessment.json \
-  mappings/controls/nist-sp800-53-r5.2.0.json
-```
+A structurally valid OSCAL document is not a completed control assessment. Formal assessment may require policy documents, interviews, configuration evidence, runtime observations, sampling, external systems, assessor judgment, and evidence outside the inspected repository.
 
-or pass the same profile to MCP tool `auditspec.map_controls`.
+AuditSpec therefore does not invent:
 
-## Future OSCAL export
+- Assessment Plan or SSP context;
+- reviewed control scope;
+- control/objective identifiers;
+- `satisfied` / `not-satisfied` conclusions;
+- evidence that was not observed;
+- certification or compliance scores.
 
-A future exporter should accept at minimum:
-
-- an AuditSpec Assessment Report
-- a Control Mapping Result
-- a reference to the governing OSCAL Assessment Plan
-- stable subject/component UUIDs from the OSCAL SSP/AP context
-- the explicit set of reviewed controls
-
-and produce Assessment Results containing:
-
-1. required OSCAL document metadata
-2. `import-ap`
-3. assessment result start/end timestamps
-4. actual assessment subjects
-5. reviewed controls
-6. AuditSpec-derived observations and evidence
-7. findings linked to observations where semantically justified
-8. AuditSpec identifiers/fingerprints as namespaced properties for round-trip correlation
-
-The exporter MUST NOT invent assessment-plan context, control status, subject UUIDs, or evidence that AuditSpec did not observe.
-
-## Continuous assurance
-
-The intended long-term flow is:
+## Continuous assurance direction
 
 ```text
 repository / runtime
@@ -117,16 +130,18 @@ AuditSpec Assessment
         +--> remediation / verification
         |
         v
-Control Mapping Profile
+Control relevance mapping
+        |
+        +--> assessor / GRC context
         |
         v
-Control Evidence Mapping
+Explicit OSCAL Export Request
         |
         v
-OSCAL Assessment Results
+NIST-valid OSCAL Assessment Results
         |
         v
 GRC / continuous monitoring / assessor workflow
 ```
 
-This makes AuditSpec a source of structured technical evidence while leaving formal control interpretation and certification to the appropriate assessment process.
+This lets AuditSpec provide structured technical evidence while preserving the boundary between automated evidence collection and formal control judgment.
