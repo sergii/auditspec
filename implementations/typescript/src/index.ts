@@ -4,6 +4,7 @@ export * from "./assessment-diff.js";
 export * from "./assurance-graph.js";
 export * from "./assurance-graph-diff.js";
 export * from "./assurance-paths.js";
+export * from "./assurance-evaluation.js";
 export * from "./all-path-assurance.js";
 export * from "./remediation.js";
 export * from "./control-mapping.js";
