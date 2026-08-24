@@ -88,6 +88,37 @@ test("links ActiveJob perform_later to the perform entrypoint", async () => {
   );
 });
 
+test("links Sidekiq perform_async to the worker perform entrypoint", async () => {
+  await withRepo(
+    {
+      "app/services/reindex_service.rb": [
+        "class ReindexService",
+        "  def call",
+        "    ReindexWorker.perform_async(42)",
+        "  end",
+        "end",
+      ].join("\n"),
+      "app/workers/reindex_worker.rb": [
+        "class ReindexWorker",
+        "  include Sidekiq::Job",
+        "  def perform(id)",
+        "    record = SearchIndex.find(id)",
+        "    record.update!(status: 'ready')",
+        "    AuditSpec.emit!(action: 'index.complete')",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const perform = graph.nodes.find((node) => node.qualified_name === "ReindexWorker#perform");
+      assert.ok(perform);
+      assert.ok(perform.roles.includes("entrypoint"));
+      assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.framework?.kind === "rails_job_dispatch" && edge.to === perform.id));
+    },
+  );
+});
+
 test("links Frappe hooks.py doc_events to a handler", async () => {
   await withRepo(
     {
@@ -110,6 +141,33 @@ test("links Frappe hooks.py doc_events to a handler", async () => {
       const graph = await buildAssuranceGraph(root);
       const surface = graph.nodes.find((node) => node.kind === "surface" && node.surface?.kind === "frappe_doc_event");
       const handler = graph.nodes.find((node) => node.name === "audit_wiki_update");
+      assert.ok(surface);
+      assert.ok(handler);
+      assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === surface.id && edge.to === handler.id));
+    },
+  );
+});
+
+test("links Frappe scheduler_events to a scheduled handler", async () => {
+  await withRepo(
+    {
+      "wiki/hooks.py": [
+        "app_name = 'wiki'",
+        "scheduler_events = {",
+        "  'hourly': ['wiki.jobs.refresh_index']",
+        "}",
+      ].join("\n"),
+      "wiki/jobs.py": [
+        "import frappe",
+        "def refresh_index():",
+        "    frappe.db.set_value('Wiki Page', 'Home', 'status', 'Fresh')",
+        "    auditspec.emit(action='wiki.refresh_index')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const surface = graph.nodes.find((node) => node.kind === "surface" && node.surface?.kind === "frappe_scheduler");
+      const handler = graph.nodes.find((node) => node.name === "refresh_index");
       assert.ok(surface);
       assert.ok(handler);
       assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === surface.id && edge.to === handler.id));
