@@ -14,6 +14,8 @@ class ConformanceTest < Minitest::Test
     "control-mapping-result" => :control_mapping_result,
     "evidence-query-result" => :evidence_query_result,
     "oscal-export-request" => :oscal_export_request,
+    "runtime-evidence-record" => :runtime_evidence_record,
+    "corroboration-report" => :corroboration_report,
     "agent-profile" => :agent_profile
   }.freeze
 
@@ -30,6 +32,8 @@ class ConformanceTest < Minitest::Test
     "schema/examples/control-mapping-result.json" => :control_mapping_result,
     "schema/examples/evidence-query-result.json" => :evidence_query_result,
     "schema/examples/oscal-export-request.json" => :oscal_export_request,
+    "schema/examples/runtime-evidence-record.json" => :runtime_evidence_record,
+    "schema/examples/corroboration-report.json" => :corroboration_report,
     "profiles/agent/examples/tool-call.json" => :agent_profile,
     "mappings/controls/nist-sp800-53-r5.2.0.json" => :control_mapping_profile
   }.freeze
