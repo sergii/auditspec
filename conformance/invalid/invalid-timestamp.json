@@ -1,0 +1,10 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_invalid_time",
+  "source": "urn:example:project-service",
+  "actor": { "type": "user", "id": "usr_42" },
+  "action": "project.update",
+  "result": { "status": "succeeded" },
+  "occurred_at": "24-08-2026 15:11",
+  "recorded_at": "2026-08-24T15:11:00Z"
+}
