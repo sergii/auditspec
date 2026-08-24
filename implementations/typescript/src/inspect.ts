@@ -176,6 +176,7 @@ async function inspectRails(root: string): Promise<{ boundaries: AssessmentBound
 
       boundaries.push({
         id: boundaryId,
+        fingerprint: stableId("bfp", sourceIdentity),
         kind: "mutation",
         framework: "rails",
         operation,
