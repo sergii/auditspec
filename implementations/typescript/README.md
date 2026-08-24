@@ -4,95 +4,35 @@ This directory contains the executable TypeScript reference for AuditSpec v0.1. 
 
 ## Library API
 
+The package exposes Core validation, normalization, redaction, CloudEvents mapping, repository inspection, assessment diffing, remediation planning/verification, control mapping, evidence queries, OSCAL projection, and MCP server construction.
+
+Important functions include:
+
 ```ts
-import {
-  assertAuditEvent,
-  assertAssessmentReport,
-  validateAuditEvent,
-  validateAssessmentReport,
-  validateAgentProfile,
-  normalizeAuditEvent,
-  redactAuditEvent,
-  toCloudEvent,
-  fromCloudEvent,
-  inspectRepository,
-  diffAssessments,
-  planRemediation,
-  verifyRemediation,
-  mapAssessmentToControls,
-} from "@auditspec/reference-typescript";
+validateAuditEvent(value)
+validateAssessmentReport(value)
+validateAgentProfile(value)
+inspectRepository(path)
+diffAssessments(base, head)
+planRemediation(assessment)
+verifyRemediation(base, head)
+mapAssessmentToControls(assessment, profile)
+queryEvidence(assessment, filters)
+exportOscalAssessmentResults(assessment, request)
+createAuditSpecMcpServer()
 ```
 
-### Validation
+`normalizeAuditEvent(event)` produces deterministic reference output but does **not** claim RFC 8785/JCS canonicalization and MUST NOT be used as a signing format.
 
-`validateAuditEvent(value)` validates against `schema/audit-event.schema.json` with RFC 3339 date-time format checking enabled. `assertAuditEvent(value)` throws on invalid input.
+`redactAuditEvent(event, policy)` returns a clone, applies configured redaction and appends explicit Core `redactions[]` records.
 
-`validateAgentProfile(value)` validates `dev.auditspec.agent` extension data against the Agent Profile schema.
+`toCloudEvent(event)` preserves the full AuditSpec event as CloudEvents `data`; `fromCloudEvent` validates identity consistency.
 
-`validateAssessmentReport(value)` validates the framework-neutral Inspector output contract in `schema/assessment-report.schema.json`.
+## Inspector
 
-Remediation plans, remediation verification results, control mapping profiles, and control mapping results also have canonical JSON Schemas and validators.
-
-### Normalization
-
-`normalizeAuditEvent(event)` recursively sorts JSON object keys to produce deterministic reference output. It does **not** claim RFC 8785/JCS canonicalization and MUST NOT be used as a signing format.
-
-### Redaction
-
-`redactAuditEvent(event, policy)` returns a clone, replaces or omits configured sensitive keys/paths, and appends explicit Core `redactions[]` records. The built-in key list is intentionally conservative and is not a substitute for application-specific data classification.
-
-### CloudEvents
-
-`toCloudEvent(event)` maps the AuditSpec event into a CloudEvents 1.0 envelope while preserving the full AuditSpec event as `data`. `fromCloudEvent(envelope)` validates the payload and rejects identity mismatches between envelope and payload.
-
-### Repository inspection
-
-`inspectRepository(path)` returns an AuditSpec Assessment Report:
-
-```text
-repository
-  -> detected frameworks
-  -> auditable boundaries
-  -> evidence
-  -> findings
-  -> coverage + confidence
-```
-
-Current adapters include heuristic Rails and Frappe/ERPNext analysis. Findings are source-analysis evidence, not proof of complete system behavior. Every finding includes confidence, and the initial inspector recommends non-blocking use.
-
-### Remediation planning
-
-`planRemediation(assessment, fingerprints?)` converts open findings into a machine-readable plan with:
-
-- rule-aware actions
-- rationale
-- acceptance criteria
-- affected file hints
-- explicit verification expectation
-
-The planner does not write code.
-
-`verifyRemediation(base, head, fingerprints?)` compares stable finding fingerprints across assessments and returns `verified`, `partial`, or `not_verified`, plus resolved/still-open/new findings and coverage delta.
-
-Verification is scoped to active Inspector evidence. It does not claim runtime proof or compliance.
-
-### Control mapping
-
-`mapAssessmentToControls(assessment, profile)` maps active AuditSpec findings through a versioned external control profile.
-
-A mapping result contains:
-
-- external control identifiers
-- AuditSpec rule identifiers
-- concrete finding fingerprints
-- `potential_gap` or `relevant_evidence` relationships
-- rationale and an explicit non-certification caveat
-
-The first built-in profile targets NIST SP 800-53 Release 5.2.0. Control mappings express evidence relevance only. They do not turn an AuditSpec assessment into a compliance pass/fail result.
+`inspectRepository(path)` returns the framework-neutral Assessment Report used by CLI, GitHub Action and MCP. Current adapters cover Rails and Frappe/ERPNext with explicit heuristic confidence.
 
 ## CLI
-
-The package builds an `auditspec` executable:
 
 ```bash
 auditspec validate event.json
@@ -104,17 +44,17 @@ auditspec inspect .
 auditspec inspect . --json
 auditspec diff-assessments base.json head.json
 auditspec plan-remediation assessment.json
-auditspec verify-remediation base.json head.json
-auditspec map-controls assessment.json mappings/controls/nist-sp800-53-r5.2.0.json
+auditspec verify-remediation before.json after.json
+auditspec map-controls assessment.json mapping-profile.json
+auditspec query-evidence assessment.json --rule AS-AUDIT-001 --source finding
+auditspec export-oscal assessment.json ./assessment-plan.json
 ```
 
-`validate` and `validate-agent` exit with status `1` for invalid input and `0` for valid input, which makes them directly usable in CI scripts.
+Inspector findings are advisory in v0.1. The CLI does not treat findings as command failure by default.
 
-`inspect` is advisory in v0.1 and exits successfully when findings exist. CI/GitHub integrations should decide separately whether any configured class of **new** finding should become blocking.
+## OSCAL
 
-## MCP
-
-The same engine is exposed over MCP. See `docs/mcp.md`. MCP assessment/remediation/control-mapping tools do not duplicate business logic and do not write source code in v0.1.
+The OSCAL exporter targets Assessment Results `1.2.3` and requires an explicit Assessment Plan href. It is an interoperability projection, not a compliance verdict. Complete official NIST JSON Schema validation is a release-hardening item and is not yet automated.
 
 ## Run
 
@@ -123,8 +63,8 @@ npm install
 npm run check
 ```
 
-The tests consume the repository-wide conformance corpus so the TypeScript implementation cannot silently diverge from the normative schema.
+Tests consume repository-wide conformance artifacts so the TypeScript implementation cannot silently define a separate AuditSpec contract.
 
 ## Packaging status
 
-This is a repository-local reference implementation during the v0.1 draft. Publishing to npm, generated types, browser/runtime portability, and a stable storage-neutral emitter interface come after the semantic and conformance surface stabilizes.
+This remains a repository-local reference implementation during the v0.1 draft. npm publication and stronger multi-runtime packaging come after the semantic/conformance surface stabilizes.

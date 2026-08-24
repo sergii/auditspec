@@ -29,7 +29,6 @@ function propsForFinding(finding: AssessmentFinding): Array<Record<string, strin
 }
 
 function observationForFinding(finding: AssessmentFinding, inspectorPartyUuid: string): Record<string, unknown> {
-  const observationUuid = uuidFrom(`observation:${finding.fingerprint}`);
   const relevantEvidence = finding.evidence.map((item) => ({
     description: item.location
       ? `${item.detail} (${item.location.path}:${item.location.line ?? 1})`
@@ -37,7 +36,7 @@ function observationForFinding(finding: AssessmentFinding, inspectorPartyUuid: s
   }));
 
   return {
-    uuid: observationUuid,
+    uuid: uuidFrom(`observation:${finding.fingerprint}`),
     title: `AuditSpec ${finding.rule_id}`,
     description: finding.message,
     methods: ["EXAMINE"],
@@ -94,6 +93,34 @@ export function exportOscalAssessmentResults(
   const end = request.end ?? now;
   const inspectorPartyUuid = uuidFrom("auditspec-reference-inspector-party");
   const documentIdentity = `${assessment.subject.path}:${assessment.subject.revision ?? "working-tree"}:${request.assessment_plan_href}`;
+  const findings = assessment.findings;
+
+  const result: Record<string, unknown> = {
+    uuid: uuidFrom(`assessment-result:${documentIdentity}`),
+    title: request.title ?? "AuditSpec static assessment",
+    description:
+      request.description ??
+      "AuditSpec Inspector observations and findings exported as OSCAL Assessment Results. This export does not assert compliance or certification.",
+    start,
+    end,
+    props: [
+      {
+        name: "auditspec-assessment-kind",
+        ns: "https://auditspec.dev/ns",
+        value: String(assessment.metadata?.assessment_kind ?? "unknown"),
+      },
+      {
+        name: "auditspec-coverage",
+        ns: "https://auditspec.dev/ns",
+        value: String(assessment.coverage.audit_coverage),
+      },
+    ],
+  };
+
+  if (findings.length > 0) {
+    result.observations = findings.map((finding) => observationForFinding(finding, inspectorPartyUuid));
+    result.findings = findings.map((finding) => findingForFinding(finding, inspectorPartyUuid));
+  }
 
   return {
     "assessment-results": {
@@ -114,31 +141,7 @@ export function exportOscalAssessmentResults(
       "import-ap": {
         href: request.assessment_plan_href,
       },
-      results: [
-        {
-          uuid: uuidFrom(`assessment-result:${documentIdentity}`),
-          title: request.title ?? "AuditSpec static assessment",
-          description:
-            request.description ??
-            "AuditSpec Inspector observations and findings exported as OSCAL Assessment Results. This export does not assert compliance or certification.",
-          start,
-          end,
-          props: [
-            {
-              name: "auditspec-assessment-kind",
-              ns: "https://auditspec.dev/ns",
-              value: String(assessment.metadata?.assessment_kind ?? "unknown"),
-            },
-            {
-              name: "auditspec-coverage",
-              ns: "https://auditspec.dev/ns",
-              value: String(assessment.coverage.audit_coverage),
-            },
-          ],
-          observations: assessment.findings.map((finding) => observationForFinding(finding, inspectorPartyUuid)),
-          findings: assessment.findings.map((finding) => findingForFinding(finding, inspectorPartyUuid)),
-        },
-      ],
+      results: [result],
     },
   };
 }

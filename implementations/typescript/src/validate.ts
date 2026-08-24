@@ -7,6 +7,8 @@ import type { ErrorObject } from "ajv";
 import type { AssessmentDiff } from "./assessment-diff.js";
 import type { AssessmentReport } from "./assessment-types.js";
 import type { ControlMappingProfile, ControlMappingResult } from "./control-mapping.js";
+import type { EvidenceQueryResult } from "./evidence-query.js";
+import type { OscalExportRequest } from "./oscal.js";
 import type { RemediationPlan, RemediationVerificationResult } from "./remediation.js";
 import type { AuditEvent } from "./types.js";
 
@@ -45,7 +47,10 @@ const remediationPlanSchema = loadSchema("../../../schema/remediation-plan.schem
 const verificationResultSchema = loadSchema("../../../schema/verification-result.schema.json");
 const controlMappingProfileSchema = loadSchema("../../../schema/control-mapping-profile.schema.json");
 const controlMappingResultSchema = loadSchema("../../../schema/control-mapping-result.schema.json");
+const evidenceQueryResultSchema = loadSchema("../../../schema/evidence-query-result.schema.json");
+const oscalExportRequestSchema = loadSchema("../../../schema/oscal-export-request.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
+
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
 const validateAssessment = ajv.compile<AssessmentReport>(assessmentReportSchema);
 const validateDiff = ajv.compile<AssessmentDiff>(assessmentDiffSchema);
@@ -53,6 +58,8 @@ const validatePlan = ajv.compile<RemediationPlan>(remediationPlanSchema);
 const validateVerification = ajv.compile<RemediationVerificationResult>(verificationResultSchema);
 const validateControlProfile = ajv.compile<ControlMappingProfile>(controlMappingProfileSchema);
 const validateControlResult = ajv.compile<ControlMappingResult>(controlMappingResultSchema);
+const validateEvidenceResult = ajv.compile<EvidenceQueryResult>(evidenceQueryResultSchema);
+const validateOscalRequest = ajv.compile<OscalExportRequest>(oscalExportRequestSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
@@ -133,6 +140,26 @@ export function validateControlMappingResult(input: unknown): ValidationResult {
 export function assertControlMappingResult(input: unknown): asserts input is ControlMappingResult {
   const result = validateControlMappingResult(input);
   if (!result.valid) throw new TypeError(`Invalid AuditSpec control mapping result: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateEvidenceQueryResult(input: unknown): ValidationResult {
+  if (validateEvidenceResult(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateEvidenceResult.errors) };
+}
+
+export function assertEvidenceQueryResult(input: unknown): asserts input is EvidenceQueryResult {
+  const result = validateEvidenceQueryResult(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec evidence query result: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateOscalExportRequest(input: unknown): ValidationResult {
+  if (validateOscalRequest(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateOscalRequest.errors) };
+}
+
+export function assertOscalExportRequest(input: unknown): asserts input is OscalExportRequest {
+  const result = validateOscalExportRequest(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec OSCAL export request: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateAgentProfile(input: unknown): ValidationResult {

@@ -15,6 +15,8 @@ REMEDIATION_PLAN_SCHEMA_PATH = ROOT / "schema" / "remediation-plan.schema.json"
 VERIFICATION_RESULT_SCHEMA_PATH = ROOT / "schema" / "verification-result.schema.json"
 CONTROL_MAPPING_PROFILE_SCHEMA_PATH = ROOT / "schema" / "control-mapping-profile.schema.json"
 CONTROL_MAPPING_RESULT_SCHEMA_PATH = ROOT / "schema" / "control-mapping-result.schema.json"
+EVIDENCE_QUERY_RESULT_SCHEMA_PATH = ROOT / "schema" / "evidence-query-result.schema.json"
+OSCAL_EXPORT_REQUEST_SCHEMA_PATH = ROOT / "schema" / "oscal-export-request.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
@@ -29,6 +31,8 @@ REMEDIATION_PLAN_EXAMPLES = [ROOT / "schema" / "examples" / "remediation-plan.js
 VERIFICATION_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "verification-result.json"]
 CONTROL_MAPPING_PROFILE_EXAMPLES = [ROOT / "mappings" / "controls" / "nist-sp800-53-r5.2.0.json"]
 CONTROL_MAPPING_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "control-mapping-result.json"]
+EVIDENCE_QUERY_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "evidence-query-result.json"]
+OSCAL_EXPORT_REQUEST_EXAMPLES = [ROOT / "schema" / "examples" / "oscal-export-request.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 
 
@@ -72,6 +76,8 @@ def main() -> int:
     verification_result_validator = make_validator(VERIFICATION_RESULT_SCHEMA_PATH)
     control_mapping_profile_validator = make_validator(CONTROL_MAPPING_PROFILE_SCHEMA_PATH)
     control_mapping_result_validator = make_validator(CONTROL_MAPPING_RESULT_SCHEMA_PATH)
+    evidence_query_result_validator = make_validator(EVIDENCE_QUERY_RESULT_SCHEMA_PATH)
+    oscal_export_request_validator = make_validator(OSCAL_EXPORT_REQUEST_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
 
     failures = []
@@ -85,6 +91,8 @@ def main() -> int:
     expect_valid(verification_result_validator, VERIFICATION_RESULT_EXAMPLES, "verification", failures)
     expect_valid(control_mapping_profile_validator, CONTROL_MAPPING_PROFILE_EXAMPLES, "control-profile", failures)
     expect_valid(control_mapping_result_validator, CONTROL_MAPPING_RESULT_EXAMPLES, "control-result", failures)
+    expect_valid(evidence_query_result_validator, EVIDENCE_QUERY_RESULT_EXAMPLES, "evidence", failures)
+    expect_valid(oscal_export_request_validator, OSCAL_EXPORT_REQUEST_EXAMPLES, "oscal-request", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
     for path in invalid_event_paths:
@@ -105,6 +113,8 @@ def main() -> int:
         f"{len(VERIFICATION_RESULT_EXAMPLES)} verification example(s), "
         f"{len(CONTROL_MAPPING_PROFILE_EXAMPLES)} control profile example(s), "
         f"{len(CONTROL_MAPPING_RESULT_EXAMPLES)} control result example(s), "
+        f"{len(EVIDENCE_QUERY_RESULT_EXAMPLES)} evidence example(s), "
+        f"{len(OSCAL_EXPORT_REQUEST_EXAMPLES)} OSCAL request example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s)"
     )
 

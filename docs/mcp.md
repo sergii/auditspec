@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes the same validation, Inspector, findings, remediation, verification, control mapping, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes the same validation, Inspector, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -23,53 +23,17 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 
 ## Tools
 
-### `auditspec.validate_event`
-
-Validate one AuditSpec Core event against the canonical v0.1 schema.
-
-### `auditspec.validate_agent_profile`
-
-Validate `dev.auditspec.agent` profile data.
-
-### `auditspec.inspect`
-
-Inspect a local repository visible to the MCP server process and return a canonical Assessment Report. Current adapters are heuristic Rails and Frappe analyzers.
-
-### `auditspec.get_findings`
-
-Inspect a repository and return a compact findings list, optionally filtered by `rule_id`.
-
-### `auditspec.explain_gap`
-
-Return a stable explanation and remediation guidance for an Inspector rule.
-
-### `auditspec.diff_assessments`
-
-Compare two already-produced Assessment Reports using stable finding fingerprints. This is the same ratchet model used by the GitHub Action.
-
-### `auditspec.plan_remediation`
-
-Turn open findings in an Assessment Report into a machine-readable Remediation Plan. A plan contains rule-aware actions, rationale, acceptance criteria, affected files, and an explicit verification expectation.
-
-The tool does **not** write source code. It is designed to hand a structured plan to a coding agent or developer that has separate write authority.
-
-### `auditspec.verify_remediation`
-
-Compare before/after Assessment Reports and verify whether requested finding fingerprints disappeared. The result distinguishes:
-
-- `resolved_fingerprints`
-- `still_open_fingerprints`
-- `new_findings`
-- coverage delta
-- `verified`, `partial`, or `not_verified`
-
-Verification is explicitly scoped to the active Inspector adapters. It does not claim that absence of a static finding proves runtime behavior or compliance.
-
-### `auditspec.map_controls`
-
-Map Assessment findings through a versioned Control Mapping Profile. The output connects concrete finding fingerprints to external control IDs using `potential_gap` or `relevant_evidence` relationships.
-
-The tool never returns control pass/fail or certification status. The first repository profile targets NIST SP 800-53 Release 5.2.0.
+- `auditspec.validate_event` - validate a Core event.
+- `auditspec.validate_agent_profile` - validate Agent Profile data.
+- `auditspec.inspect` - inspect a local repository and return an Assessment Report.
+- `auditspec.get_findings` - return compact findings, optionally filtered by rule.
+- `auditspec.explain_gap` - explain a stable Inspector rule.
+- `auditspec.diff_assessments` - compare base/head reports using finding fingerprints.
+- `auditspec.plan_remediation` - create a structured remediation plan without modifying source.
+- `auditspec.verify_remediation` - verify requested finding fingerprints against a later assessment.
+- `auditspec.map_controls` - map evidence/findings to external controls without pass/fail claims.
+- `auditspec.query_evidence` - query evidence already present in an Assessment Report.
+- `auditspec.export_oscal` - project an Assessment Report into OSCAL 1.2.3 Assessment Results.
 
 ## Intended agent loop
 
@@ -80,6 +44,11 @@ agent
   |       |
   |       v
   |    findings + evidence + confidence
+  |
+  +--> auditspec.query_evidence
+  |       |
+  |       v
+  |    focused evidence projection
   |
   +--> auditspec.plan_remediation
   |       |
@@ -99,28 +68,37 @@ agent
   |    resolved / still open / new gaps
   |
   +--> auditspec.map_controls
+  |       |
+  |       v
+  |    control relevance / evidence bridge
+  |
+  +--> auditspec.export_oscal
           |
           v
-       control relevance / evidence bridge
+       OSCAL Assessment Results projection
 ```
 
-This separation is intentional:
+## OSCAL boundary
 
-1. AuditSpec discovers and explains evidence-backed gaps.
-2. A coding agent or developer decides whether and how to change code.
-3. AuditSpec re-assesses the result.
-4. Verification states only what the active evidence can support.
-5. Control mapping translates evidence relevance without pretending to perform certification.
+`auditspec.export_oscal` requires an explicit `assessment_plan_href`. OSCAL Assessment Results imports the governing Assessment Plan, so AuditSpec does not invent that assessment context.
 
-The MCP server deliberately does not modify source code in v0.1. This keeps assessment and evidence separate from code-writing authority.
+The exporter maps Inspector findings into observations/findings and preserves AuditSpec rule IDs, fingerprints, severity, confidence and evidence. It does not emit a compliance verdict, certification decision, risk acceptance, or POA&M disposition.
+
+The v0.1 exporter is implemented against the NIST OSCAL 1.2.3 JSON reference. Automated validation against the complete official NIST release JSON Schema is still pending and is tracked as a release-hardening task.
+
+## Evidence boundary
+
+`auditspec.query_evidence` queries evidence already present in an Assessment Report. It does not rescan source or silently strengthen confidence. This makes it suitable for agent reasoning and future Assurance Graph queries while preserving provenance.
+
+## Write authority
+
+The MCP server deliberately does not modify source code in v0.1. Assessment/evidence and code-writing authority stay separate: AuditSpec can recommend and verify, while a coding agent or developer performs changes.
 
 ## Next surfaces
 
-Planned after the current loop:
-
-- `auditspec.export_oscal`
-- `auditspec.query_evidence`
-
-OSCAL export should represent AuditSpec observations, evidence, findings, and assessment subjects without turning Inspector heuristics into certification claims. It must require real Assessment Plan/SSP context rather than inventing it.
+- stronger AST/call-graph Inspector adapters
+- runtime/OTel evidence ingestion
+- official OSCAL schema validation in conformance
+- richer evidence graph queries
 
 A future hosted HTTP transport can expose the same server factory. The initial reference uses stdio because it is local, simple, and keeps repository source on the user's machine.

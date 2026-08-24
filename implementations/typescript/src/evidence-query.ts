@@ -56,7 +56,7 @@ export function queryEvidence(
 ): EvidenceQueryResult {
   const items: EvidenceQueryItem[] = [];
 
-  if (!filters.source || filters.source === "boundary") {
+  if ((!filters.source || filters.source === "boundary") && !filters.rule_id) {
     for (const boundary of assessment.boundaries) {
       if (filters.confidence && boundary.confidence !== filters.confidence) continue;
       for (let index = 0; index < (boundary.evidence ?? []).length; index += 1) {

@@ -5,8 +5,10 @@ import { resolve } from "node:path";
 import { diffAssessments } from "./assessment-diff.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
+import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspect.js";
 import { normalizeAuditEvent } from "./normalize.js";
+import { exportOscalAssessmentResults, type OscalExportRequest } from "./oscal.js";
 import { redactAuditEvent } from "./redact.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
@@ -15,12 +17,14 @@ import {
   assertAuditEvent,
   assertControlMappingProfile,
   assertControlMappingResult,
+  assertEvidenceQueryResult,
+  assertOscalExportRequest,
   assertRemediationPlan,
   assertVerificationResult,
   validateAgentProfile,
   validateAuditEvent,
 } from "./validate.js";
-import type { AssessmentReport } from "./assessment-types.js";
+import type { AssessmentConfidence, AssessmentReport } from "./assessment-types.js";
 import type { AuditEvent } from "./types.js";
 
 function readJson(path: string): unknown {
@@ -29,6 +33,12 @@ function readJson(path: string): unknown {
 
 function print(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function optionValue(args: string[], name: string): string | undefined {
+  const index = args.indexOf(name);
+  if (index < 0) return undefined;
+  return args[index + 1];
 }
 
 function printAssessment(report: AssessmentReport): void {
@@ -64,6 +74,8 @@ function usage(): never {
     "  auditspec plan-remediation <assessment.json> [fingerprint ...]",
     "  auditspec verify-remediation <base.json> <head.json> [fingerprint ...]",
     "  auditspec map-controls <assessment.json> <mapping-profile.json>",
+    "  auditspec query-evidence <assessment.json> [--kind K] [--rule R] [--path P] [--confidence C] [--source boundary|finding]",
+    "  auditspec export-oscal <assessment.json> <assessment-plan-href> [--title T] [--version V]",
     "",
   ].join("\n"));
   process.exit(2);
@@ -135,6 +147,42 @@ async function main(): Promise<void> {
     const result = mapAssessmentToControls(assessment, profile);
     assertControlMappingResult(result);
     print(result);
+    return;
+  }
+
+  if (command === "query-evidence") {
+    const assessmentPath = args[1];
+    if (!assessmentPath) usage();
+    const assessment = readJson(assessmentPath);
+    assertAssessmentReport(assessment);
+    const confidence = optionValue(args, "--confidence") as AssessmentConfidence | undefined;
+    const source = optionValue(args, "--source") as EvidenceQueryFilters["source"];
+    const filters: EvidenceQueryFilters = {
+      ...(optionValue(args, "--kind") ? { kind: optionValue(args, "--kind") } : {}),
+      ...(optionValue(args, "--rule") ? { rule_id: optionValue(args, "--rule") } : {}),
+      ...(optionValue(args, "--path") ? { path: optionValue(args, "--path") } : {}),
+      ...(confidence ? { confidence } : {}),
+      ...(source ? { source } : {}),
+    };
+    const result = queryEvidence(assessment, filters);
+    assertEvidenceQueryResult(result);
+    print(result);
+    return;
+  }
+
+  if (command === "export-oscal") {
+    const assessmentPath = args[1];
+    const assessmentPlanHref = args[2];
+    if (!assessmentPath || !assessmentPlanHref) usage();
+    const assessment = readJson(assessmentPath);
+    assertAssessmentReport(assessment);
+    const request: OscalExportRequest = {
+      assessment_plan_href: assessmentPlanHref,
+      ...(optionValue(args, "--title") ? { title: optionValue(args, "--title") } : {}),
+      ...(optionValue(args, "--version") ? { version: optionValue(args, "--version") } : {}),
+    };
+    assertOscalExportRequest(request);
+    print(exportOscalAssessmentResults(assessment, request));
     return;
   }
 
