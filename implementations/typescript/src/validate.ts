@@ -12,6 +12,7 @@ import type { ControlMappingProfile, ControlMappingResult } from "./control-mapp
 import type { EvidenceQueryResult } from "./evidence-query.js";
 import type { OscalExportRequest } from "./oscal.js";
 import type { RemediationPlan, RemediationVerificationResult } from "./remediation.js";
+import type { RuntimeCorroborationReport, RuntimeEvidenceRecord } from "./runtime-corroboration.js";
 import type { AuditEvent } from "./types.js";
 
 export interface ValidationIssue {
@@ -53,6 +54,8 @@ const controlMappingProfileSchema = loadSchema("../../../schema/control-mapping-
 const controlMappingResultSchema = loadSchema("../../../schema/control-mapping-result.schema.json");
 const evidenceQueryResultSchema = loadSchema("../../../schema/evidence-query-result.schema.json");
 const oscalExportRequestSchema = loadSchema("../../../schema/oscal-export-request.schema.json");
+const runtimeEvidenceRecordSchema = loadSchema("../../../schema/runtime-evidence-record.schema.json");
+const corroborationReportSchema = loadSchema("../../../schema/corroboration-report.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
 
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
@@ -66,6 +69,8 @@ const validateControlProfile = ajv.compile<ControlMappingProfile>(controlMapping
 const validateControlResult = ajv.compile<ControlMappingResult>(controlMappingResultSchema);
 const validateEvidenceResult = ajv.compile<EvidenceQueryResult>(evidenceQueryResultSchema);
 const validateOscalRequest = ajv.compile<OscalExportRequest>(oscalExportRequestSchema);
+const validateRuntimeEvidence = ajv.compile<RuntimeEvidenceRecord>(runtimeEvidenceRecordSchema);
+const validateCorroboration = ajv.compile<RuntimeCorroborationReport>(corroborationReportSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
@@ -186,6 +191,26 @@ export function validateOscalExportRequest(input: unknown): ValidationResult {
 export function assertOscalExportRequest(input: unknown): asserts input is OscalExportRequest {
   const result = validateOscalExportRequest(input);
   if (!result.valid) throw new TypeError(`Invalid AuditSpec OSCAL export request: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateRuntimeEvidenceRecord(input: unknown): ValidationResult {
+  if (validateRuntimeEvidence(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateRuntimeEvidence.errors) };
+}
+
+export function assertRuntimeEvidenceRecord(input: unknown): asserts input is RuntimeEvidenceRecord {
+  const result = validateRuntimeEvidenceRecord(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec runtime evidence record: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateCorroborationReport(input: unknown): ValidationResult {
+  if (validateCorroboration(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateCorroboration.errors) };
+}
+
+export function assertCorroborationReport(input: unknown): asserts input is RuntimeCorroborationReport {
+  const result = validateCorroborationReport(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec corroboration report: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateAgentProfile(input: unknown): ValidationResult {
