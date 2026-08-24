@@ -22,6 +22,7 @@ export * from "./opentelemetry.js";
 export * from "./opentelemetry-runtime.js";
 export * from "./database-runtime.js";
 export * from "./delivery-runtime.js";
+export * from "./authorization-runtime.js";
 export * from "./w3c-prov.js";
 export * from "./inspector.js";
 export { inspectRepository as inspectRepositoryBase } from "./inspect.js";
