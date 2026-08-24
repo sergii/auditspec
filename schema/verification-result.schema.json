@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/verification-result.schema.json",
+  "title": "AuditSpec Remediation Verification Result v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verification_version",
+    "generated_at",
+    "status",
+    "base",
+    "head",
+    "requested_fingerprints",
+    "resolved_fingerprints",
+    "still_open_fingerprints",
+    "new_findings",
+    "coverage",
+    "evidence_scope"
+  ],
+  "properties": {
+    "verification_version": { "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["verified", "partial", "not_verified"] },
+    "base": { "$ref": "#/$defs/assessmentRef" },
+    "head": { "$ref": "#/$defs/assessmentRef" },
+    "requested_fingerprints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "resolved_fingerprints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "still_open_fingerprints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "new_findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/findingSummary" }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "head", "delta"],
+      "properties": {
+        "base": { "type": "number", "minimum": 0, "maximum": 1 },
+        "head": { "type": "number", "minimum": 0, "maximum": 1 },
+        "delta": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    },
+    "evidence_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "statement"],
+      "properties": {
+        "kind": { "const": "assessment_diff" },
+        "statement": { "type": "string", "minLength": 1 }
+      }
+    },
+    "metadata": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+    "assessmentRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject_path", "generated_at"],
+      "properties": {
+        "subject_path": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "generated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "findingSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "rule_id", "title", "severity", "confidence", "location"],
+      "properties": {
+        "fingerprint": { "type": "string", "minLength": 1 },
+        "rule_id": { "type": "string", "pattern": "^AS-[A-Z]+-[0-9]{3}$" },
+        "title": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "confidence": { "enum": ["certain", "high", "medium", "low"] },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    }
+  }
+}
