@@ -2,7 +2,7 @@
 
 This directory contains the executable TypeScript reference for AuditSpec v0.1. The normative source of truth remains the repository JSON Schemas and `SPEC.md`.
 
-## API
+## Library API
 
 ```ts
 import {
@@ -33,6 +33,20 @@ import {
 ### CloudEvents
 
 `toCloudEvent(event)` maps the AuditSpec event into a CloudEvents 1.0 envelope while preserving the full AuditSpec event as `data`. `fromCloudEvent(envelope)` validates the payload and rejects identity mismatches between envelope and payload.
+
+## CLI
+
+The package also builds a small `auditspec` executable:
+
+```bash
+auditspec validate event.json
+auditspec validate-agent agent-profile.json
+auditspec normalize event.json
+auditspec redact event.json
+auditspec to-cloudevent event.json
+```
+
+`validate` and `validate-agent` exit with status `1` for invalid input and `0` for valid input, which makes them directly usable in CI scripts.
 
 ## Run
 
