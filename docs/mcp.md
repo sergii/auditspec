@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes the same validation, Inspector, findings, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes the same validation, Inspector, findings, remediation, verification, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -21,7 +21,7 @@ auditspec-mcp
 
 Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 
-## Initial tools
+## Tools
 
 ### `auditspec.validate_event`
 
@@ -47,6 +47,24 @@ Return a stable explanation and remediation guidance for an Inspector rule.
 
 Compare two already-produced Assessment Reports using stable finding fingerprints. This is the same ratchet model used by the GitHub Action.
 
+### `auditspec.plan_remediation`
+
+Turn open findings in an Assessment Report into a machine-readable Remediation Plan. A plan contains rule-aware actions, rationale, acceptance criteria, affected files, and an explicit verification expectation.
+
+The tool does **not** write source code. It is designed to hand a structured plan to a coding agent or developer that has separate write authority.
+
+### `auditspec.verify_remediation`
+
+Compare before/after Assessment Reports and verify whether requested finding fingerprints disappeared. The result distinguishes:
+
+- `resolved_fingerprints`
+- `still_open_fingerprints`
+- `new_findings`
+- coverage delta
+- `verified`, `partial`, or `not_verified`
+
+Verification is explicitly scoped to the active Inspector adapters. It does not claim that absence of a static finding proves runtime behavior or compliance.
+
 ## Intended agent loop
 
 ```text
@@ -57,29 +75,41 @@ agent
   |       v
   |    findings + evidence + confidence
   |
-  +--> auditspec.explain_gap
+  +--> auditspec.plan_remediation
   |       |
   |       v
-  |    remediation guidance
+  |    actions + acceptance criteria
   |
   +--> coding tools / patch
   |
   +--> auditspec.inspect
+  |       |
+  |       v
+  |    new assessment
+  |
+  +--> auditspec.verify_remediation
           |
           v
-       verify remediation
+       resolved / still open / new gaps
 ```
 
-The MCP server deliberately does not modify source code in v0.1. Remediation remains an explicit coding-agent or developer action. This keeps assessment and evidence separate from code-writing authority.
+This separation is intentional:
 
-## Future tools
+1. AuditSpec discovers and explains evidence-backed gaps.
+2. A coding agent or developer decides whether and how to change code.
+3. AuditSpec re-assesses the result.
+4. Verification states only what the active evidence can support.
 
-Planned after the core Inspector becomes stronger:
+The MCP server deliberately does not modify source code in v0.1. This keeps assessment and evidence separate from code-writing authority.
 
-- `auditspec.plan_remediation`
-- `auditspec.verify_remediation`
+## Next surfaces
+
+Planned after the remediation loop:
+
 - `auditspec.map_controls`
 - `auditspec.export_oscal`
 - `auditspec.query_evidence`
+
+OSCAL export should represent AuditSpec observations, evidence, findings, and assessment subjects without turning Inspector heuristics into certification claims.
 
 A future hosted HTTP transport can expose the same server factory. The initial reference uses stdio because it is local, simple, and keeps repository source on the user's machine.
