@@ -2,6 +2,7 @@ export type AssessmentConfidence = "certain" | "high" | "medium" | "low";
 export type FindingSeverity = "info" | "warning" | "error";
 export type FindingStatus = "open" | "accepted" | "resolved" | "suppressed";
 export type AuditCoverageStatus = "covered" | "partial" | "uncovered" | "unknown";
+export type ReachabilityStatus = "reachable" | "unknown";
 
 export interface SourceLocation {
   path: string;
@@ -21,6 +22,20 @@ export interface DetectedFramework {
   evidence?: string[];
 }
 
+export interface AssessmentEntrypoint {
+  kind: string;
+  qualified_name: string;
+  framework?: string;
+  location: SourceLocation;
+}
+
+export interface AssessmentReachability {
+  status: ReachabilityStatus;
+  confidence: AssessmentConfidence;
+  entrypoint?: AssessmentEntrypoint;
+  path?: string[];
+}
+
 export interface AssessmentBoundary {
   id: string;
   kind: "mutation" | "authorization" | "agent" | "tool" | "export" | "access";
@@ -29,6 +44,7 @@ export interface AssessmentBoundary {
   location: SourceLocation;
   audit_status: AuditCoverageStatus;
   confidence: AssessmentConfidence;
+  reachability?: AssessmentReachability;
   evidence?: AssessmentEvidence[];
 }
 
@@ -59,6 +75,11 @@ export interface AssessmentCoverage {
   audit_coverage: number;
 }
 
+export interface AssessmentReachabilitySummary {
+  reachable_boundaries: number;
+  unknown_boundaries: number;
+}
+
 export interface AssessmentReport {
   report_version: "0.1";
   generated_at: string;
@@ -76,5 +97,6 @@ export interface AssessmentReport {
   boundaries: AssessmentBoundary[];
   findings: AssessmentFinding[];
   coverage: AssessmentCoverage;
+  reachability?: AssessmentReachabilitySummary;
   metadata?: Record<string, unknown>;
 }
