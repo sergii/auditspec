@@ -61,14 +61,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install dependencies
+      - name: Install TypeScript dependencies
         run: |
-          pip install -r tools/conformance/requirements.txt
           npm --prefix implementations/typescript install --no-audit --no-fund
           npm --prefix implementations/typescript run build
 
@@ -92,7 +86,7 @@ jobs:
 
       - name: Validate generated OSCAL against NIST schema
         run: |
-          python tools/conformance/validate_oscal.py \
+          node implementations/typescript/tools/validate-oscal-official.mjs \
             /tmp/oscal_assessment-results_schema.json \
             /tmp/auditspec-oscal.json
 
