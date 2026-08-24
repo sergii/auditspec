@@ -2,12 +2,15 @@ import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { diffAssessments } from "./assessment-diff.js";
 import type { AssessmentFinding, AssessmentReport } from "./assessment-types.js";
+import { mapAssessmentToControls } from "./control-mapping.js";
 import { inspectRepository } from "./inspect.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
   validateAgentProfile,
   validateAssessmentReport,
   validateAuditEvent,
+  validateControlMappingProfile,
+  validateControlMappingResult,
   validateRemediationPlan,
   validateVerificationResult,
 } from "./validate.js";
@@ -57,13 +60,6 @@ function findingSummary(finding: AssessmentFinding): Record<string, unknown> {
   };
 }
 
-function invalidAssessmentResult(label: string, validation: ReturnType<typeof validateAssessmentReport>) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify({ [label]: validation }, null, 2) }],
-    isError: true,
-  };
-}
-
 export function createAuditSpecMcpServer(): McpServer {
   const server = new McpServer({ name: "auditspec", version: "0.1.0-draft" });
 
@@ -110,10 +106,7 @@ export function createAuditSpecMcpServer(): McpServer {
     "auditspec.get_findings",
     {
       description: "Inspect a local repository and return AuditSpec findings, optionally filtered by rule id.",
-      inputSchema: z.object({
-        path: z.string().default("."),
-        rule_id: z.string().optional(),
-      }),
+      inputSchema: z.object({ path: z.string().default("."), rule_id: z.string().optional() }),
     },
     async ({ path, rule_id }) => {
       const report = await inspectRepository(path);
@@ -151,51 +144,36 @@ export function createAuditSpecMcpServer(): McpServer {
     "auditspec.diff_assessments",
     {
       description: "Compare two Assessment Reports and return new, resolved, and unchanged finding fingerprints plus coverage delta.",
-      inputSchema: z.object({
-        base: z.unknown(),
-        head: z.unknown(),
-      }),
+      inputSchema: z.object({ base: z.unknown(), head: z.unknown() }),
     },
     async ({ base, head }) => {
       const baseValidation = validateAssessmentReport(base);
       const headValidation = validateAssessmentReport(head);
       if (!baseValidation.valid || !headValidation.valid) {
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ base: baseValidation, head: headValidation }, null, 2),
-            },
-          ],
+          content: [{ type: "text" as const, text: JSON.stringify({ base: baseValidation, head: headValidation }, null, 2) }],
           isError: true,
         };
       }
-      return asToolResult(
-        diffAssessments(base as AssessmentReport, head as AssessmentReport) as unknown as Record<string, unknown>,
-      );
+      return asToolResult(diffAssessments(base as AssessmentReport, head as AssessmentReport) as unknown as Record<string, unknown>);
     },
   );
 
   server.registerTool(
     "auditspec.plan_remediation",
     {
-      description:
-        "Generate a structured remediation plan for open findings in an Assessment Report. This tool proposes actions but does not modify source code.",
-      inputSchema: z.object({
-        assessment: z.unknown(),
-        fingerprints: z.array(z.string()).optional(),
-      }),
+      description: "Generate a structured remediation plan for open findings. This tool proposes actions but does not modify source code.",
+      inputSchema: z.object({ assessment: z.unknown(), fingerprints: z.array(z.string()).optional() }),
     },
     async ({ assessment, fingerprints }) => {
       const validation = validateAssessmentReport(assessment);
-      if (!validation.valid) return invalidAssessmentResult("assessment", validation);
+      if (!validation.valid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(validation, null, 2) }], isError: true };
+      }
       const plan = planRemediation(assessment as AssessmentReport, fingerprints);
       const planValidation = validateRemediationPlan(plan);
       if (!planValidation.valid) {
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(planValidation, null, 2) }],
-          isError: true,
-        };
+        return { content: [{ type: "text" as const, text: JSON.stringify(planValidation, null, 2) }], isError: true };
       }
       return asToolResult(plan as unknown as Record<string, unknown>);
     },
@@ -204,41 +182,48 @@ export function createAuditSpecMcpServer(): McpServer {
   server.registerTool(
     "auditspec.verify_remediation",
     {
-      description:
-        "Verify requested remediation fingerprints by comparing before and after Assessment Reports. Verification is scoped to the active Inspector adapters.",
-      inputSchema: z.object({
-        base: z.unknown(),
-        head: z.unknown(),
-        fingerprints: z.array(z.string()).optional(),
-      }),
+      description: "Verify requested remediation fingerprints by comparing before and after Assessment Reports. Verification is scoped to active Inspector adapters.",
+      inputSchema: z.object({ base: z.unknown(), head: z.unknown(), fingerprints: z.array(z.string()).optional() }),
     },
     async ({ base, head, fingerprints }) => {
       const baseValidation = validateAssessmentReport(base);
       const headValidation = validateAssessmentReport(head);
       if (!baseValidation.valid || !headValidation.valid) {
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ base: baseValidation, head: headValidation }, null, 2),
-            },
-          ],
+          content: [{ type: "text" as const, text: JSON.stringify({ base: baseValidation, head: headValidation }, null, 2) }],
           isError: true,
         };
       }
-      const verification = verifyRemediation(
-        base as AssessmentReport,
-        head as AssessmentReport,
-        fingerprints,
-      );
+      const verification = verifyRemediation(base as AssessmentReport, head as AssessmentReport, fingerprints);
       const verificationValidation = validateVerificationResult(verification);
       if (!verificationValidation.valid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(verificationValidation, null, 2) }], isError: true };
+      }
+      return asToolResult(verification as unknown as Record<string, unknown>);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.map_controls",
+    {
+      description: "Map AuditSpec findings/evidence to controls through a versioned mapping profile. Results express relevance only, never compliance pass/fail.",
+      inputSchema: z.object({ assessment: z.unknown(), profile: z.unknown() }),
+    },
+    async ({ assessment, profile }) => {
+      const assessmentValidation = validateAssessmentReport(assessment);
+      const profileValidation = validateControlMappingProfile(profile);
+      if (!assessmentValidation.valid || !profileValidation.valid) {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify(verificationValidation, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify({ assessment: assessmentValidation, profile: profileValidation }, null, 2) }],
           isError: true,
         };
       }
-      return asToolResult(verification as unknown as Record<string, unknown>);
+      const result = mapAssessmentToControls(assessment as AssessmentReport, profile);
+      const resultValidation = validateControlMappingResult(result);
+      if (!resultValidation.valid) {
+        return { content: [{ type: "text" as const, text: JSON.stringify(resultValidation, null, 2) }], isError: true };
+      }
+      return asToolResult(result as unknown as Record<string, unknown>);
     },
   );
 
