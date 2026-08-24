@@ -1,0 +1,44 @@
+{
+  "plan_version": "0.1",
+  "generated_at": "2026-08-24T17:20:00Z",
+  "subject": {
+    "path": "/workspace/example-app",
+    "revision": "git:abc123"
+  },
+  "source_assessment": {
+    "generated_at": "2026-08-24T17:19:00Z",
+    "inspector": "auditspec-reference-inspector@0.1.0-draft"
+  },
+  "items": [
+    {
+      "finding_fingerprint": "fp_example_001",
+      "rule_id": "AS-AUDIT-001",
+      "title": "Unaudited mutation boundary",
+      "confidence": "medium",
+      "location": {
+        "path": "app/services/refund_service.rb",
+        "line": 12
+      },
+      "actions": [
+        {
+          "id": "action_example_001",
+          "kind": "code_change",
+          "summary": "Emit a semantic AuditSpec event at the owning domain or service boundary.",
+          "rationale": "The discovered mutation currently lacks visible semantic audit evidence.",
+          "acceptance_criteria": [
+            "The immediate actor is preserved.",
+            "The mutation path produces durable AuditSpec evidence."
+          ],
+          "files": ["app/services/refund_service.rb"]
+        }
+      ],
+      "verification": {
+        "expected_fingerprint_absent": true,
+        "notes": "Re-run the same Inspector adapters after remediation."
+      }
+    }
+  ],
+  "metadata": {
+    "automatic_code_write": false
+  }
+}
