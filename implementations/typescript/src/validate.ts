@@ -6,6 +6,7 @@ import addFormats from "ajv-formats";
 import type { ErrorObject } from "ajv";
 import type { AssessmentDiff } from "./assessment-diff.js";
 import type { AssessmentReport } from "./assessment-types.js";
+import type { AssuranceGraph } from "./assurance-graph.js";
 import type { ControlMappingProfile, ControlMappingResult } from "./control-mapping.js";
 import type { EvidenceQueryResult } from "./evidence-query.js";
 import type { OscalExportRequest } from "./oscal.js";
@@ -43,6 +44,7 @@ const ajv = createAjv();
 const auditEventSchema = loadSchema("../../../schema/audit-event.schema.json");
 const assessmentReportSchema = loadSchema("../../../schema/assessment-report.schema.json");
 const assessmentDiffSchema = loadSchema("../../../schema/assessment-diff.schema.json");
+const assuranceGraphSchema = loadSchema("../../../schema/assurance-graph.schema.json");
 const remediationPlanSchema = loadSchema("../../../schema/remediation-plan.schema.json");
 const verificationResultSchema = loadSchema("../../../schema/verification-result.schema.json");
 const controlMappingProfileSchema = loadSchema("../../../schema/control-mapping-profile.schema.json");
@@ -54,6 +56,7 @@ const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.sch
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
 const validateAssessment = ajv.compile<AssessmentReport>(assessmentReportSchema);
 const validateDiff = ajv.compile<AssessmentDiff>(assessmentDiffSchema);
+const validateGraph = ajv.compile<AssuranceGraph>(assuranceGraphSchema);
 const validatePlan = ajv.compile<RemediationPlan>(remediationPlanSchema);
 const validateVerification = ajv.compile<RemediationVerificationResult>(verificationResultSchema);
 const validateControlProfile = ajv.compile<ControlMappingProfile>(controlMappingProfileSchema);
@@ -100,6 +103,16 @@ export function validateAssessmentDiff(input: unknown): ValidationResult {
 export function assertAssessmentDiff(input: unknown): asserts input is AssessmentDiff {
   const result = validateAssessmentDiff(input);
   if (!result.valid) throw new TypeError(`Invalid AuditSpec assessment diff: ${JSON.stringify(result.errors)}`);
+}
+
+export function validateAssuranceGraph(input: unknown): ValidationResult {
+  if (validateGraph(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateGraph.errors) };
+}
+
+export function assertAssuranceGraph(input: unknown): asserts input is AssuranceGraph {
+  const result = validateAssuranceGraph(input);
+  if (!result.valid) throw new TypeError(`Invalid AuditSpec assurance graph: ${JSON.stringify(result.errors)}`);
 }
 
 export function validateRemediationPlan(input: unknown): ValidationResult {
