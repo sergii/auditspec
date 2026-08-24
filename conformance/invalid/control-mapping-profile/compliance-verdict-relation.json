@@ -1,0 +1,16 @@
+{
+  "mapping_version": "0.1",
+  "framework": { "id": "nist-sp800-53", "version": "5.2.0" },
+  "rules": [
+    {
+      "rule_id": "AS-AUDIT-001",
+      "controls": [
+        {
+          "id": "AU-2",
+          "relation": "compliant",
+          "rationale": "A mapping must express relevance, not a compliance verdict."
+        }
+      ]
+    }
+  ]
+}
