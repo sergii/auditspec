@@ -4,6 +4,7 @@ require "active_record"
 require "json"
 require "minitest/autorun"
 require_relative "../../implementations/ruby/lib/auditspec"
+require_relative "../../frameworks/rails/auditspec_rails"
 
 ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
 
@@ -92,6 +93,28 @@ class RailsAtomicityTest < Minitest::Test
     value
   end
 
+  def reference_adapter(wake: nil)
+    AuditSpec::Rails::Adapter.new(
+      insert_event: lambda do |value|
+        AuditRecord.create!(
+          event_id: value.fetch("id"),
+          action: value.fetch("action"),
+          target_id: value.fetch("targets").first.fetch("id"),
+          payload: JSON.generate(value)
+        )
+      end,
+      insert_outbox: lambda do |identity, value|
+        AuditOutboxRecord.create!(
+          event_id: value.fetch("id"),
+          payload: JSON.generate(value)
+        )
+        identity
+      end,
+      after_commit: AuditSpec::Rails.active_record_after_commit(ActiveRecord),
+      wake_publisher: wake
+    )
+  end
+
   def test_business_mutation_and_audit_record_commit_together
     invoice = Invoice.create!(status: "draft")
     value = event(id: "aud_rails_success", invoice: invoice)
@@ -146,5 +169,69 @@ class RailsAtomicityTest < Minitest::Test
 
     assert_equal "draft", invoice.reload.status
     assert_equal 0, AuditRecord.count
+  end
+
+  def test_reference_adapter_same_store_write_joins_active_record_transaction
+    invoice = Invoice.create!(status: "draft")
+    value = event(id: "aud_rails_adapter_same_store", invoice: invoice)
+    adapter = reference_adapter
+
+    Invoice.transaction do
+      invoice.update!(status: "approved")
+      adapter.emit_same_store(value)
+    end
+
+    assert_equal "approved", invoice.reload.status
+    assert AuditRecord.exists?(event_id: value.fetch("id"))
+  end
+
+  def test_reference_adapter_wakes_publisher_only_after_outer_commit
+    invoice = Invoice.create!(status: "draft")
+    value = event(id: "aud_rails_after_commit", invoice: invoice)
+    woken = []
+    adapter = reference_adapter(wake: ->(identity) { woken << identity })
+
+    Invoice.transaction do
+      invoice.update!(status: "approved")
+      adapter.stage_outbox(value)
+      assert_empty woken
+      assert AuditOutboxRecord.exists?(event_id: value.fetch("id"))
+    end
+
+    assert_equal [AuditSpec.event_identity(value)], woken
+    assert_equal "approved", invoice.reload.status
+  end
+
+  def test_reference_adapter_rollback_drops_outbox_and_after_commit_wakeup
+    invoice = Invoice.create!(status: "draft")
+    value = event(id: "aud_rails_after_rollback", invoice: invoice)
+    woken = []
+    adapter = reference_adapter(wake: ->(identity) { woken << identity })
+
+    Invoice.transaction do
+      invoice.update!(status: "approved")
+      adapter.stage_outbox(value)
+      raise ActiveRecord::Rollback
+    end
+
+    assert_equal "draft", invoice.reload.status
+    refute AuditOutboxRecord.exists?(event_id: value.fetch("id"))
+    assert_empty woken
+  end
+
+  def test_publisher_wakeup_failure_after_commit_cannot_rollback_durable_outbox
+    invoice = Invoice.create!(status: "draft")
+    value = event(id: "aud_rails_wakeup_failure", invoice: invoice)
+    adapter = reference_adapter(wake: ->(_identity) { raise "publisher unavailable" })
+
+    assert_raises(RuntimeError) do
+      Invoice.transaction do
+        invoice.update!(status: "approved")
+        adapter.stage_outbox(value)
+      end
+    end
+
+    assert_equal "approved", invoice.reload.status
+    assert AuditOutboxRecord.exists?(event_id: value.fetch("id"))
   end
 end
