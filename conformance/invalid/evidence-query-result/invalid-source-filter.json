@@ -1,0 +1,8 @@
+{
+  "query_version": "0.1",
+  "generated_at": "2026-08-24T20:00:00Z",
+  "subject": { "kind": "repository", "path": "/repo" },
+  "filters": { "source": "runtime" },
+  "count": 0,
+  "items": []
+}
