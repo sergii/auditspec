@@ -12,7 +12,8 @@
     "frameworks",
     "boundaries",
     "findings",
-    "coverage"
+    "coverage",
+    "reachability"
   ],
   "properties": {
     "report_version": { "const": "0.1" },
@@ -114,7 +115,7 @@
     "boundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "operation", "location", "audit_status", "confidence"],
+      "required": ["id", "fingerprint", "kind", "operation", "location", "audit_status", "confidence", "reachability"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "fingerprint": { "type": "string", "minLength": 1 },
