@@ -1,11 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { diffCorroborationReports } from "./corroboration-diff.js";
+import { queryCorroboration, type CorroborationQueryFilters } from "./corroboration-query.js";
 import { createAuditSpecMcpServer } from "./mcp.js";
 import { getRuntimeProducer, listRuntimeProducers } from "./runtime-producer-registry.js";
 import type { RuntimeCorroborationReport } from "./runtime-corroboration.js";
 import {
   validateCorroborationDiff,
+  validateCorroborationQueryResult,
   validateCorroborationReport,
 } from "./validate.js";
 
@@ -22,6 +24,27 @@ function validationError(value: unknown) {
     isError: true,
   };
 }
+
+const corroborationFiltersSchema = z.object({
+  relation: z.enum(["supports", "contradicts", "inconclusive"]).optional(),
+  trust: z.enum(["authoritative", "attributed", "self_reported", "derived"]).optional(),
+  coverage: z.enum(["point", "sampled", "window", "exhaustive"]).optional(),
+  evidence_kind: z.enum([
+    "application_execution",
+    "authorization_decision",
+    "transaction_commit",
+    "audit_persist",
+    "outbox_persist",
+    "delivery_receipt",
+    "trace_span",
+    "database_observation",
+    "kernel_observation",
+  ]).optional(),
+  producer_name: z.string().min(1).optional(),
+  producer_type: z.enum(["application", "database", "collector", "proxy", "kernel", "agent", "external"]).optional(),
+  boundary_fingerprint: z.string().min(1).optional(),
+  finding_fingerprint: z.string().min(1).optional(),
+});
 
 export function registerRuntimeProducerRegistryTools(server: McpServer): McpServer {
   server.registerTool(
@@ -62,6 +85,30 @@ export function registerRuntimeProducerRegistryTools(server: McpServer): McpServ
       const validation = validateCorroborationDiff(diff);
       return validation.valid
         ? asToolResult(diff as unknown as Record<string, unknown>)
+        : validationError(validation);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.query_runtime_corroboration",
+    {
+      description: "Query a Runtime Corroboration Report by relation, trust, observation coverage, evidence kind, producer identity/type, or stable boundary/finding fingerprint.",
+      inputSchema: z.object({
+        report: z.unknown(),
+        filters: corroborationFiltersSchema.optional(),
+      }),
+    },
+    async ({ report, filters }) => {
+      const reportValidation = validateCorroborationReport(report);
+      if (!reportValidation.valid) return validationError(reportValidation);
+
+      const result = queryCorroboration(
+        report as RuntimeCorroborationReport,
+        (filters ?? {}) as CorroborationQueryFilters,
+      );
+      const validation = validateCorroborationQueryResult(result);
+      return validation.valid
+        ? asToolResult(result as unknown as Record<string, unknown>)
         : validationError(validation);
     },
   );
