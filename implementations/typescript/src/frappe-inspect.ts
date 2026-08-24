@@ -184,6 +184,7 @@ export async function inspectFrappeRepository(root: string): Promise<FrappeInspe
 
       boundaries.push({
         id: boundaryId,
+        fingerprint: stableId("bfp", sourceIdentity),
         kind: "mutation",
         framework: "frappe",
         operation,
