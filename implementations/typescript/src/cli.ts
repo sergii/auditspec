@@ -13,6 +13,7 @@ import { normalizeAuditEvent } from "./normalize.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { redactAuditEvent } from "./redact.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
+import { corroborateAssessment, type RuntimeEvidenceRecord } from "./runtime-corroboration.js";
 import {
   assertAssessmentDiff,
   assertAssessmentReport,
@@ -21,9 +22,11 @@ import {
   assertAuditEvent,
   assertControlMappingProfile,
   assertControlMappingResult,
+  assertCorroborationReport,
   assertEvidenceQueryResult,
   assertOscalExportRequest,
   assertRemediationPlan,
+  assertRuntimeEvidenceRecord,
   assertVerificationResult,
   validateAgentProfile,
   validateAuditEvent,
@@ -51,6 +54,14 @@ function positiveInteger(value: string | undefined, name: string): number {
     throw new TypeError(`${name} must be a positive integer`);
   }
   return parsed;
+}
+
+function runtimeEvidenceArray(input: unknown): RuntimeEvidenceRecord[] {
+  if (!Array.isArray(input)) {
+    throw new TypeError("runtime evidence input must be a JSON array of Runtime Evidence Records");
+  }
+  for (const record of input) assertRuntimeEvidenceRecord(record);
+  return input as RuntimeEvidenceRecord[];
 }
 
 function printAssessment(report: AssessmentReport): void {
@@ -95,6 +106,7 @@ function usage(): never {
     "  auditspec verify-remediation <base.json> <head.json> [fingerprint ...]",
     "  auditspec map-controls <assessment.json> <mapping-profile.json>",
     "  auditspec query-evidence <assessment.json> [--kind K] [--rule R] [--path P] [--confidence C] [--source boundary|finding]",
+    "  auditspec corroborate <assessment.json> <runtime-evidence-array.json>",
     "  auditspec export-oscal <assessment.json> <request.json>",
     "",
   ].join("\n"));
@@ -231,6 +243,19 @@ async function main(): Promise<void> {
     const result = queryEvidence(assessment, filters);
     assertEvidenceQueryResult(result);
     print(result);
+    return;
+  }
+
+  if (command === "corroborate") {
+    const assessmentPath = args[1];
+    const evidencePath = args[2];
+    if (!assessmentPath || !evidencePath) usage();
+    const assessment = readJson(assessmentPath);
+    assertAssessmentReport(assessment);
+    const evidence = runtimeEvidenceArray(readJson(evidencePath));
+    const report = corroborateAssessment(assessment, evidence);
+    assertCorroborationReport(report);
+    print(report);
     return;
   }
 
