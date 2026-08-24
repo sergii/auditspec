@@ -3,6 +3,7 @@ import * as z from "zod/v4";
 import { diffAssessments } from "./assessment-diff.js";
 import type { AssessmentFinding, AssessmentReport } from "./assessment-types.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
+import type { ControlMappingProfile } from "./control-mapping.js";
 import { inspectRepository } from "./inspect.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
@@ -218,7 +219,10 @@ export function createAuditSpecMcpServer(): McpServer {
           isError: true,
         };
       }
-      const result = mapAssessmentToControls(assessment as AssessmentReport, profile);
+      const result = mapAssessmentToControls(
+        assessment as AssessmentReport,
+        profile as ControlMappingProfile,
+      );
       const resultValidation = validateControlMappingResult(result);
       if (!resultValidation.valid) {
         return { content: [{ type: "text" as const, text: JSON.stringify(resultValidation, null, 2) }], isError: true };
