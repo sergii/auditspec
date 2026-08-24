@@ -45,12 +45,16 @@ export function mapAssessmentToControls(
   profile: ControlMappingProfile,
 ): ControlMappingResult {
   const controlMap = new Map<string, ControlMappingResult["controls"][number]>();
+  let mappedRules = 0;
 
   for (const ruleMapping of profile.rules) {
     const fingerprints = assessment.findings
       .filter((finding) => finding.status === "open" && finding.rule_id === ruleMapping.rule_id)
       .map((finding) => finding.fingerprint)
       .sort();
+
+    if (fingerprints.length === 0) continue;
+    mappedRules += 1;
 
     for (const control of ruleMapping.controls) {
       const existing = controlMap.get(control.id) ?? { control_id: control.id, relations: [] };
@@ -78,7 +82,7 @@ export function mapAssessmentToControls(
       profile.caveat ??
       "Control mappings express relevance between AuditSpec evidence/findings and external controls. They are not control assessment determinations or compliance claims.",
     metadata: {
-      mapped_rules: profile.rules.length,
+      mapped_rules: mappedRules,
       open_findings: assessment.findings.filter((finding) => finding.status === "open").length,
     },
   };
