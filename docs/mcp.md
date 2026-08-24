@@ -1,6 +1,6 @@
 # AuditSpec MCP Server
 
-AuditSpec exposes the same validation, Inspector, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
+AuditSpec exposes the same validation, Inspector, Assurance Graph, findings, remediation, verification, evidence query, control mapping, OSCAL projection, and assessment-diff engine over Model Context Protocol. MCP is an adapter surface, not a second implementation of AuditSpec semantics.
 
 The reference server targets MCP specification `2026-07-28` through the stable `@modelcontextprotocol/server` v2 SDK.
 
@@ -26,6 +26,8 @@ Stdout is reserved for MCP protocol messages. Diagnostics go to stderr.
 - `auditspec.validate_event` - validate a Core event.
 - `auditspec.validate_agent_profile` - validate Agent Profile data.
 - `auditspec.inspect` - inspect a local repository and return an Assessment Report.
+- `auditspec.build_assurance_graph` - build a conservative cross-file static Assurance Graph.
+- `auditspec.find_assurance_path` - return the best resolved assurance path for a repository-relative source location.
 - `auditspec.get_findings` - return compact findings, optionally filtered by rule.
 - `auditspec.explain_gap` - explain a stable Inspector rule.
 - `auditspec.diff_assessments` - compare base/head reports using finding fingerprints.
@@ -44,6 +46,16 @@ agent
   |       |
   |       v
   |    findings + evidence + confidence
+  |
+  +--> auditspec.build_assurance_graph
+  |       |
+  |       v
+  |    resolved edges + unresolved calls
+  |
+  +--> auditspec.find_assurance_path
+  |       |
+  |       v
+  |    entrypoint/auth/transaction/mutation/audit path
   |
   +--> auditspec.query_evidence
   |       |
@@ -78,6 +90,14 @@ agent
        OSCAL Assessment Results projection
 ```
 
+## Assurance Graph boundary
+
+The Assurance Graph is static-source evidence. It deliberately leaves ambiguous dynamic calls unresolved rather than inventing edges. It does not prove runtime execution or complete reachability.
+
+This separation lets an agent ask why a mutation is considered covered and inspect the exact resolved path without turning repository-wide coincidence into evidence.
+
+See `docs/assurance-graph.md` for the contract and confidence model.
+
 ## OSCAL boundary
 
 `auditspec.export_oscal` requires an explicit `assessment_plan_href`. OSCAL Assessment Results imports the governing Assessment Plan, so AuditSpec does not invent that assessment context.
@@ -88,7 +108,7 @@ The v0.1 exporter is implemented against the NIST OSCAL 1.2.3 JSON reference. Au
 
 ## Evidence boundary
 
-`auditspec.query_evidence` queries evidence already present in an Assessment Report. It does not rescan source or silently strengthen confidence. This makes it suitable for agent reasoning and future Assurance Graph queries while preserving provenance.
+`auditspec.query_evidence` queries evidence already present in an Assessment Report. It does not rescan source or silently strengthen confidence. This makes it suitable for agent reasoning while preserving provenance.
 
 ## Write authority
 
@@ -96,9 +116,9 @@ The MCP server deliberately does not modify source code in v0.1. Assessment/evid
 
 ## Next surfaces
 
-- stronger AST/call-graph Inspector adapters
+- framework-aware route, callback, job and message-bus graph edges
 - runtime/OTel evidence ingestion
 - official OSCAL schema validation in conformance
-- richer evidence graph queries
+- graph visualization and richer evidence queries
 
 A future hosted HTTP transport can expose the same server factory. The initial reference uses stdio because it is local, simple, and keeps repository source on the user's machine.
