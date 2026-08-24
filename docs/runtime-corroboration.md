@@ -36,7 +36,13 @@ Corroboration results validate against:
 schema/corroboration-report.schema.json
 ```
 
-Canonical examples live in `schema/examples/` and negative vectors live under `conformance/invalid/`.
+Runtime producer capability/policy manifests validate against:
+
+```text
+schema/runtime-producer-manifest.schema.json
+```
+
+Canonical examples live in `schema/examples/`, negative vectors live under `conformance/invalid/`, and producer manifests live under `runtime/producers/`.
 
 ## Producer trust
 
@@ -138,19 +144,84 @@ with:
 
 The MCP surface uses the same validator and corroboration engine as the CLI/library.
 
-## Producer adapters
+## Reference runtime producers
 
-The v0.1 contract is deliberately producer-neutral. Candidate adapters include:
+AuditSpec v0.1 includes three reference producers. Their defaults and authority scopes are machine-readable in `runtime/producers/*.json` and independently schema-validated in CI.
 
-- OpenTelemetry spans and logs
+### OpenTelemetry
+
+Implementation:
+
+```text
+implementations/typescript/src/opentelemetry-runtime.ts
+```
+
+Default semantics:
+
+```text
+trust    = attributed
+coverage = point
+```
+
+The producer requires an explicit `auditspec.boundary.fingerprint` or `auditspec.finding.fingerprint` attribute. It never infers an AuditSpec target from a span or log name. Trace/span IDs and selected AuditSpec correlation attributes are preserved.
+
+### Database receipts
+
+Implementation:
+
+```text
+implementations/typescript/src/database-runtime.ts
+```
+
+Supported facts:
+
+- `transaction_commit`
+- `audit_persist`
+- `outbox_persist`
+
+A genuinely database-owned observer defaults to `authoritative` trust for those database-visible facts. That authority does not extend to user intent, authorization policy, actor accountability, or semantic correctness of an audit event.
+
+### Delivery receipts
+
+Implementation:
+
+```text
+implementations/typescript/src/delivery-runtime.ts
+```
+
+Delivery receipts default to `attributed` trust because a broker acknowledgement does not necessarily prove end-consumer processing. A receiver-owned durable acceptance receipt may explicitly declare `authoritative` trust for the narrow delivery fact it owns.
+
+## Producer manifest registry
+
+The TypeScript reference exposes a validated runtime producer registry from:
+
+```text
+implementations/typescript/src/runtime-producer-registry.ts
+```
+
+A manifest states:
+
+- producer type
+- supported evidence kinds
+- default trust
+- default observation coverage
+- whether an explicit AuditSpec target is required
+- authority scope
+- allowed overrides
+- limitations
+
+This lets agents and future hosted services reason about evidence capability before ingestion instead of reverse-engineering defaults from implementation code.
+
+## Future producers
+
+The v0.1 evidence contract remains producer-neutral. Additional candidates include:
+
 - application authorization decision records
-- database commit/audit/outbox receipts
-- delivery acknowledgements
 - reverse-proxy observations
 - operating-system audit sources
 - eBPF/kernel observations
 
-Adapters must state what they actually observe, their trust relationship, and their coverage. An eBPF observation is not automatically `exhaustive`, and kernel proximity does not by itself prove business semantics such as user intent or authorization policy.
+Each adapter must state what it actually observes, its trust relationship, and its coverage. Kernel proximity does not automatically imply exhaustive coverage or business-semantic authority.
 
 ## eBPF boundary
 
