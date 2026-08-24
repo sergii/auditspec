@@ -78,13 +78,13 @@ jobs:
           path: e2e/lobsters
           persist-credentials: false
 
-      - name: Checkout pinned Frappe reference repository
-        uses: actions/checkout@v4
-        with:
-          repository: frappe/wiki
-          ref: 2e4e4f215368387c08553c3c59723c7a2e1bf306
-          path: e2e/frappe-wiki
-          persist-credentials: false
+      - name: Fetch pinned Frappe reference repository
+        run: |
+          mkdir -p e2e/frappe-wiki
+          git -C e2e/frappe-wiki init
+          git -C e2e/frappe-wiki remote add origin https://github.com/frappe/wiki.git
+          git -C e2e/frappe-wiki fetch --depth=1 origin 2e4e4f215368387c08553c3c59723c7a2e1bf306
+          git -C e2e/frappe-wiki checkout --detach FETCH_HEAD
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
