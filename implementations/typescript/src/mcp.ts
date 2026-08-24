@@ -3,10 +3,13 @@ import * as z from "zod/v4";
 import { diffAssessments } from "./assessment-diff.js";
 import type { AssessmentFinding, AssessmentReport } from "./assessment-types.js";
 import { inspectRepository } from "./inspect.js";
+import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
   validateAgentProfile,
   validateAssessmentReport,
   validateAuditEvent,
+  validateRemediationPlan,
+  validateVerificationResult,
 } from "./validate.js";
 
 const RULES: Record<string, { title: string; explanation: string; remediation: string }> = {
@@ -51,6 +54,13 @@ function findingSummary(finding: AssessmentFinding): Record<string, unknown> {
     location: finding.location,
     message: finding.message,
     remediation: finding.remediation,
+  };
+}
+
+function invalidAssessmentResult(label: string, validation: ReturnType<typeof validateAssessmentReport>) {
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify({ [label]: validation }, null, 2) }],
+    isError: true,
   };
 }
 
@@ -163,6 +173,72 @@ export function createAuditSpecMcpServer(): McpServer {
       return asToolResult(
         diffAssessments(base as AssessmentReport, head as AssessmentReport) as unknown as Record<string, unknown>,
       );
+    },
+  );
+
+  server.registerTool(
+    "auditspec.plan_remediation",
+    {
+      description:
+        "Generate a structured remediation plan for open findings in an Assessment Report. This tool proposes actions but does not modify source code.",
+      inputSchema: z.object({
+        assessment: z.unknown(),
+        fingerprints: z.array(z.string()).optional(),
+      }),
+    },
+    async ({ assessment, fingerprints }) => {
+      const validation = validateAssessmentReport(assessment);
+      if (!validation.valid) return invalidAssessmentResult("assessment", validation);
+      const plan = planRemediation(assessment as AssessmentReport, fingerprints);
+      const planValidation = validateRemediationPlan(plan);
+      if (!planValidation.valid) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(planValidation, null, 2) }],
+          isError: true,
+        };
+      }
+      return asToolResult(plan as unknown as Record<string, unknown>);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.verify_remediation",
+    {
+      description:
+        "Verify requested remediation fingerprints by comparing before and after Assessment Reports. Verification is scoped to the active Inspector adapters.",
+      inputSchema: z.object({
+        base: z.unknown(),
+        head: z.unknown(),
+        fingerprints: z.array(z.string()).optional(),
+      }),
+    },
+    async ({ base, head, fingerprints }) => {
+      const baseValidation = validateAssessmentReport(base);
+      const headValidation = validateAssessmentReport(head);
+      if (!baseValidation.valid || !headValidation.valid) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ base: baseValidation, head: headValidation }, null, 2),
+            },
+          ],
+          isError: true,
+        };
+      }
+      const verification = verifyRemediation(
+        base as AssessmentReport,
+        head as AssessmentReport,
+        fingerprints,
+      );
+      const verificationValidation = validateVerificationResult(verification);
+      if (!verificationValidation.valid) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(verificationValidation, null, 2) }],
+          isError: true,
+        };
+      }
+      return asToolResult(verification as unknown as Record<string, unknown>);
     },
   );
 
