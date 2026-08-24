@@ -1,0 +1,16 @@
+{
+  "verification_version": "0.1",
+  "generated_at": "2026-08-24T20:00:00Z",
+  "status": "partial",
+  "base": { "subject_path": "/repo", "generated_at": "2026-08-24T19:00:00Z" },
+  "head": { "subject_path": "/repo", "generated_at": "2026-08-24T20:00:00Z" },
+  "requested_fingerprints": ["fp_1", "fp_1"],
+  "resolved_fingerprints": [],
+  "still_open_fingerprints": ["fp_1"],
+  "new_findings": [],
+  "coverage": { "base": 0, "head": 0, "delta": 0 },
+  "evidence_scope": {
+    "kind": "assessment_diff",
+    "statement": "Verification is scoped to assessment diff evidence."
+  }
+}
