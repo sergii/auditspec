@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./assessment-types.js";
 export * from "./assessment-diff.js";
 export * from "./assurance-graph.js";
+export * from "./assurance-graph-diff.js";
 export * from "./remediation.js";
 export * from "./control-mapping.js";
 export * from "./evidence-query.js";
