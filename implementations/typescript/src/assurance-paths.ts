@@ -81,7 +81,13 @@ export function findAssurancePaths(
     const node = byId.get(current);
     if (!node) return;
 
-    if (node.roles.includes("entrypoint") || reversedIds.length >= maxDepth) {
+    if (node.roles.includes("entrypoint")) {
+      candidates.push({ ids: [...reversedIds].reverse(), edgeConfidences: [...confidences].reverse() });
+      return;
+    }
+
+    if (reversedIds.length >= maxDepth) {
+      truncated = true;
       candidates.push({ ids: [...reversedIds].reverse(), edgeConfidences: [...confidences].reverse() });
       return;
     }
