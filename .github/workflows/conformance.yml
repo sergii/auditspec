@@ -49,6 +49,53 @@ jobs:
         working-directory: implementations/typescript
         run: npm run check
 
+  oscal-official:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install -r tools/conformance/requirements.txt
+          npm --prefix implementations/typescript install --no-audit --no-fund
+          npm --prefix implementations/typescript run build
+
+      - name: Generate AuditSpec OSCAL Assessment Results
+        run: |
+          node implementations/typescript/dist/cli.js export-oscal \
+            schema/examples/assessment-report.json \
+            ./assessment-plan.json \
+            --title "AuditSpec official OSCAL conformance" \
+            > /tmp/auditspec-oscal.json
+
+      - name: Fetch verified OSCAL v1.2.3 schema
+        run: |
+          curl -fsSL \
+            -o /tmp/oscal-1.2.3.zip \
+            https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal-1.2.3.zip
+          echo "eefb4ec5b1383d3b15fca27e0b63bc84b8661d6ee17e4f92acb437606e9ee982  /tmp/oscal-1.2.3.zip" | sha256sum -c -
+          SCHEMA_ENTRY="$(unzip -Z1 /tmp/oscal-1.2.3.zip | grep -E '(^|/)oscal_assessment-results_schema\.json$' | head -n 1)"
+          test -n "$SCHEMA_ENTRY"
+          unzip -p /tmp/oscal-1.2.3.zip "$SCHEMA_ENTRY" > /tmp/oscal_assessment-results_schema.json
+
+      - name: Validate generated OSCAL against NIST schema
+        run: |
+          python tools/conformance/validate_oscal.py \
+            /tmp/oscal_assessment-results_schema.json \
+            /tmp/auditspec-oscal.json
+
   action-smoke:
     runs-on: ubuntu-latest
 
