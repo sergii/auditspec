@@ -9,7 +9,7 @@
   "inspector": {
     "name": "auditspec-reference-inspector",
     "version": "0.1.0-draft",
-    "adapters": ["rails-heuristic-v0.1"]
+    "adapters": ["rails-ast-assisted-v0.1", "assurance-call-graph-v0.1"]
   },
   "frameworks": [
     {
@@ -21,22 +21,39 @@
   "boundaries": [
     {
       "id": "boundary_example_001",
+      "fingerprint": "bfp_refund_update_001",
       "kind": "mutation",
       "framework": "rails",
       "operation": "update!",
       "location": {
         "path": "app/services/refund_service.rb",
-        "line": 12
+        "line": 12,
+        "column": 5
       },
       "audit_status": "uncovered",
-      "confidence": "medium",
+      "confidence": "high",
+      "reachability": {
+        "status": "unknown",
+        "confidence": "low",
+        "path": ["RefundService#call"]
+      },
       "evidence": [
         {
-          "kind": "source_match",
-          "detail": "Detected Rails mutation method .update!",
+          "kind": "ast_call",
+          "detail": "Tree-sitter AST detected Rails mutation call .update!",
           "location": {
             "path": "app/services/refund_service.rb",
-            "line": 12
+            "line": 12,
+            "column": 5
+          }
+        },
+        {
+          "kind": "assurance_path",
+          "detail": "Resolved assurance path: RefundService#call [roles: mutation; confidence: high]",
+          "location": {
+            "path": "app/services/refund_service.rb",
+            "line": 12,
+            "column": 5
           }
         }
       ]
@@ -51,19 +68,21 @@
       "severity": "warning",
       "confidence": "medium",
       "status": "open",
-      "message": "Detected Rails mutation without a visible AuditSpec emission marker in the same source file.",
+      "message": "Detected Rails mutation without a visible AuditSpec emission call in the owning method/function scope.",
       "location": {
         "path": "app/services/refund_service.rb",
-        "line": 12
+        "line": 12,
+        "column": 5
       },
       "boundary_id": "boundary_example_001",
       "evidence": [
         {
-          "kind": "source_match",
-          "detail": "No AuditSpec.emit!/record! marker found in app/services/refund_service.rb",
+          "kind": "ast_analysis",
+          "detail": "AST confirms .update! call; no AuditSpec.emit!/record! call found in the same scope in app/services/refund_service.rb",
           "location": {
             "path": "app/services/refund_service.rb",
-            "line": 12
+            "line": 12,
+            "column": 5
           }
         }
       ],
@@ -80,8 +99,13 @@
     "unknown_boundaries": 0,
     "audit_coverage": 0
   },
+  "reachability": {
+    "reachable_boundaries": 0,
+    "unknown_boundaries": 1
+  },
   "metadata": {
-    "assessment_kind": "static_source_heuristic",
-    "non_blocking_recommended": true
+    "assessment_kind": "static_source_ast_assisted_with_assurance_graph",
+    "non_blocking_recommended": true,
+    "ast_parse_failures": 0
   }
 }
