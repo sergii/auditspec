@@ -60,10 +60,14 @@ AuditSpec MCP must not duplicate Inspector semantics and should keep source-writ
 
 Runtime evidence is corroboration, not business-semantic truth. eBPF can prove process/syscall/network/file observations but cannot independently prove that a SQL write means `invoice.approve`. Future adapters can ingest Tetragon/Falco/OTel/osquery/Linux Audit/ETW evidence and correlate it with semantic events.
 
+## Implemented Inspector hardening
+
+Rails and Frappe mutation discovery now uses ast-grep/Tree-sitter call nodes instead of raw line regex. This removes comment/string false positives and upgrades mutation existence evidence to structured AST evidence. The current analysis remains file-local for audit/authorization/transaction relationships.
+
 ## Release hardening backlog
 
 - Validate generated OSCAL 1.2.3 documents against the complete official NIST JSON Schema offline in conformance. Do not vendor a release schema until the source and checksum are verified.
-- Upgrade Rails/Frappe heuristic scanners to AST/Tree-sitter/call-graph evidence.
+- Extend AST-assisted Rails/Frappe analysis with cross-file call graphs and framework-aware data flow.
 - Run end-to-end Inspector tests against representative real public Rails and Frappe repositories.
 - Expand invalid conformance corpus across every non-Core contract.
 - Add actual Apache-2.0 LICENSE before tag.

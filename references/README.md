@@ -1,6 +1,6 @@
 # References and prior art
 
-AuditSpec is independently implemented and informed by established work in audit logging, provenance, event standards, observability, security, agent accountability, and machine-readable compliance.
+AuditSpec is independently implemented and informed by established work in audit logging, provenance, event standards, observability, security, agent accountability, static analysis, and machine-readable compliance.
 
 ## Product audit logging
 
@@ -27,6 +27,11 @@ AuditSpec is independently implemented and informed by established work in audit
 - JSON-LD - potential representation layer for future provenance mappings.
 - OpenLineage - prior art for a small core plus versioned, schema-addressed facets/extensions.
 
+## Static analysis
+
+- Tree-sitter - incremental concrete syntax tree parsers used to distinguish executable syntax from raw text.
+- ast-grep - structural search API built on Tree-sitter. The TypeScript reference Inspector uses ast-grep only as an implementation dependency; AuditSpec does not require a particular parser or analysis engine.
+
 ## Security ecosystems and compliance
 
 - OCSF - vendor-neutral security event schema framework; candidate future mapping for SIEM/security ecosystems.
@@ -47,4 +52,4 @@ AuditSpec is independently implemented and informed by established work in audit
 
 AuditSpec must remain independently implemented. Do not copy source code, prose, fixtures, or UI from prior-art projects unless their licenses and attribution obligations are explicitly satisfied.
 
-In particular, concepts may be studied from copyleft projects while AuditSpec reference implementations should be independently authored unless deliberate license compatibility is chosen and documented.
+Tree-sitter and ast-grep are implementation dependencies under permissive licenses; language packages should retain their own dependency notices when the reference package is distributed.
