@@ -4,11 +4,13 @@ import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  validateAgentProfile,
   validateAssessmentDiff,
   validateAssessmentReport,
   validateAssuranceGraph,
   validateAssuranceGraphDiff,
   validateAuditEvent,
+  validateControlMappingProfile,
   validateControlMappingResult,
   validateEvidenceQueryResult,
   validateOscalExportRequest,
@@ -46,6 +48,20 @@ const canonicalValidators: Record<string, Validator> = {
   "oscal-export-request.json": validateOscalExportRequest,
 };
 
+const invalidContractValidators: Record<string, Validator> = {
+  "assessment-report": validateAssessmentReport,
+  "assessment-diff": validateAssessmentDiff,
+  "assurance-graph": validateAssuranceGraph,
+  "assurance-graph-diff": validateAssuranceGraphDiff,
+  "remediation-plan": validateRemediationPlan,
+  "verification-result": validateVerificationResult,
+  "control-mapping-profile": validateControlMappingProfile,
+  "control-mapping-result": validateControlMappingResult,
+  "evidence-query-result": validateEvidenceQueryResult,
+  "oscal-export-request": validateOscalExportRequest,
+  "agent-profile": validateAgentProfile,
+};
+
 for (const name of fixtures("conformance/valid")) {
   test(`accepts valid fixture ${name}`, () => {
     const result = validateAuditEvent(json(`conformance/valid/${name}`));
@@ -60,6 +76,15 @@ for (const name of fixtures("conformance/invalid")) {
   });
 }
 
+for (const [directory, validator] of Object.entries(invalidContractValidators)) {
+  for (const name of fixtures(`conformance/invalid/${directory}`)) {
+    test(`rejects invalid ${directory} fixture ${name}`, () => {
+      const result = validator(json(`conformance/invalid/${directory}/${name}`));
+      assert.equal(result.valid, false, `${directory}/${name} unexpectedly validated`);
+    });
+  }
+}
+
 for (const name of fixtures("schema/examples")) {
   test(`accepts canonical example ${name}`, () => {
     const validator = canonicalValidators[name];
@@ -68,3 +93,13 @@ for (const name of fixtures("schema/examples")) {
     assert.equal(result.valid, true, JSON.stringify(result.errors));
   });
 }
+
+test("accepts the canonical Agent Profile example", () => {
+  const result = validateAgentProfile(json("profiles/agent/examples/tool-call.json"));
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test("accepts the canonical NIST control mapping profile", () => {
+  const result = validateControlMappingProfile(json("mappings/controls/nist-sp800-53-r5.2.0.json"));
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
