@@ -45,6 +45,7 @@
   "findings": [
     {
       "id": "finding_example_001",
+      "fingerprint": "fp_example_001",
       "rule_id": "AS-AUDIT-001",
       "title": "Unaudited mutation boundary",
       "severity": "warning",
