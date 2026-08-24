@@ -2,11 +2,13 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { diffAssessments } from "./assessment-diff.js";
 import { toCloudEvent } from "./cloudevents.js";
 import { inspectRepository } from "./inspect.js";
 import { normalizeAuditEvent } from "./normalize.js";
 import { redactAuditEvent } from "./redact.js";
 import {
+  assertAssessmentDiff,
   assertAssessmentReport,
   assertAuditEvent,
   validateAgentProfile,
@@ -27,40 +29,34 @@ function printAssessment(report: AssessmentReport): void {
   const percent = report.coverage.detected_boundaries === 0
     ? "n/a"
     : `${Math.round(report.coverage.audit_coverage * 100)}%`;
-
-  process.stdout.write(
-    [
-      "AuditSpec assessment",
-      `Subject: ${report.subject.path}`,
-      `Frameworks: ${report.frameworks.map((framework) => framework.name).join(", ") || "none detected"}`,
-      `Boundaries: ${report.coverage.detected_boundaries}`,
-      `Covered: ${report.coverage.covered_boundaries}`,
-      `Partial: ${report.coverage.partial_boundaries}`,
-      `Uncovered: ${report.coverage.uncovered_boundaries}`,
-      `Audit coverage: ${percent}`,
-      `Findings: ${report.findings.length}`,
-      "",
-      ...report.findings.map((finding) =>
-        `[${finding.severity}] ${finding.rule_id} ${finding.location.path}:${finding.location.line ?? 1} - ${finding.title} (${finding.confidence})`,
-      ),
-      "",
-    ].join("\n"),
-  );
+  process.stdout.write([
+    "AuditSpec assessment",
+    `Subject: ${report.subject.path}`,
+    `Frameworks: ${report.frameworks.map((framework) => framework.name).join(", ") || "none detected"}`,
+    `Boundaries: ${report.coverage.detected_boundaries}`,
+    `Covered: ${report.coverage.covered_boundaries}`,
+    `Partial: ${report.coverage.partial_boundaries}`,
+    `Uncovered: ${report.coverage.uncovered_boundaries}`,
+    `Audit coverage: ${percent}`,
+    `Findings: ${report.findings.length}`,
+    "",
+    ...report.findings.map((finding) => `[${finding.severity}] ${finding.rule_id} ${finding.location.path}:${finding.location.line ?? 1} - ${finding.title} (${finding.confidence})`),
+    "",
+  ].join("\n"));
 }
 
 function usage(): never {
-  process.stderr.write(
-    [
-      "Usage:",
-      "  auditspec validate <event.json>",
-      "  auditspec validate-agent <profile.json>",
-      "  auditspec normalize <event.json>",
-      "  auditspec redact <event.json>",
-      "  auditspec to-cloudevent <event.json>",
-      "  auditspec inspect [path] [--json]",
-      "",
-    ].join("\n"),
-  );
+  process.stderr.write([
+    "Usage:",
+    "  auditspec validate <event.json>",
+    "  auditspec validate-agent <profile.json>",
+    "  auditspec normalize <event.json>",
+    "  auditspec redact <event.json>",
+    "  auditspec to-cloudevent <event.json>",
+    "  auditspec inspect [path] [--json]",
+    "  auditspec diff-assessments <base.json> <head.json>",
+    "",
+  ].join("\n"));
   process.exit(2);
 }
 
@@ -73,9 +69,22 @@ async function main(): Promise<void> {
     const pathArg = args.find((arg, index) => index > 0 && !arg.startsWith("--")) ?? ".";
     const report = await inspectRepository(resolve(pathArg));
     assertAssessmentReport(report);
-
     if (args.includes("--json")) print(report);
     else printAssessment(report);
+    return;
+  }
+
+  if (command === "diff-assessments") {
+    const basePath = args[1];
+    const headPath = args[2];
+    if (!basePath || !headPath) usage();
+    const base = readJson(basePath);
+    const head = readJson(headPath);
+    assertAssessmentReport(base);
+    assertAssessmentReport(head);
+    const diff = diffAssessments(base, head);
+    assertAssessmentDiff(diff);
+    print(diff);
     return;
   }
 
