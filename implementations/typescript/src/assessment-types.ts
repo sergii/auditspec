@@ -38,14 +38,14 @@ export interface AssessmentReachability {
 
 export interface AssessmentBoundary {
   id: string;
-  fingerprint?: string;
+  fingerprint: string;
   kind: "mutation" | "authorization" | "agent" | "tool" | "export" | "access";
   framework?: string;
   operation: string;
   location: SourceLocation;
   audit_status: AuditCoverageStatus;
   confidence: AssessmentConfidence;
-  reachability?: AssessmentReachability;
+  reachability: AssessmentReachability;
   evidence?: AssessmentEvidence[];
 }
 
@@ -98,6 +98,6 @@ export interface AssessmentReport {
   boundaries: AssessmentBoundary[];
   findings: AssessmentFinding[];
   coverage: AssessmentCoverage;
-  reachability?: AssessmentReachabilitySummary;
+  reachability: AssessmentReachabilitySummary;
   metadata?: Record<string, unknown>;
 }
