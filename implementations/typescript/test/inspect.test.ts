@@ -80,6 +80,66 @@ test("inspector marks a visibly transactional audited mutation as covered", asyn
   );
 });
 
+test("audit evidence in another method does not cover a mutation", async () => {
+  await withRailsRepo(
+    {
+      "app/services/invoice_service.rb": [
+        "class InvoiceService",
+        "  def mutate(invoice)",
+        '    invoice.update!(status: "approved")',
+        "  end",
+        "",
+        "  def audit_other(invoice)",
+        '    AuditSpec.emit!(action: "invoice.view", target: invoice)',
+        "  end",
+        "end",
+        "",
+      ].join("\n"),
+    },
+    async (root) => {
+      const report = await inspectRepository(root);
+      assert.equal(report.coverage.detected_boundaries, 1);
+      assert.equal(report.coverage.uncovered_boundaries, 1);
+      assert.ok(report.findings.some((finding) => finding.rule_id === "AS-AUDIT-001"));
+    },
+  );
+});
+
+test("cross-file assurance path covers a service mutation", async () => {
+  await withRailsRepo(
+    {
+      "app/controllers/invoices_controller.rb": [
+        "class InvoicesController < ApplicationController",
+        "  def approve",
+        "    authorize(invoice)",
+        "    ApproveInvoice.call(invoice)",
+        "  end",
+        "end",
+        "",
+      ].join("\n"),
+      "app/services/approve_invoice.rb": [
+        "class ApproveInvoice",
+        "  def self.call(invoice)",
+        "    ApplicationRecord.transaction do",
+        '      invoice.update!(status: "approved")',
+        '      AuditSpec.emit!(action: "invoice.approve", target: invoice)',
+        "    end",
+        "  end",
+        "end",
+        "",
+      ].join("\n"),
+    },
+    async (root) => {
+      const report = await inspectRepository(root);
+      assert.equal(report.coverage.detected_boundaries, 1);
+      assert.equal(report.coverage.covered_boundaries, 1);
+      assert.ok(report.inspector.adapters.includes("assurance-call-graph-v0.1"));
+      assert.ok(report.boundaries[0]?.evidence?.some((evidence) => evidence.kind === "assurance_path"));
+      assert.ok(!report.findings.some((finding) => finding.boundary_id === report.boundaries[0]?.id));
+    },
+  );
+});
+
 test("inspector ignores mutation-looking Ruby comments and strings", async () => {
   await withRailsRepo(
     {
