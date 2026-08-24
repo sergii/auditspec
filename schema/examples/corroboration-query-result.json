@@ -1,0 +1,32 @@
+{
+  "query_version": "0.1",
+  "assessment_subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app",
+    "revision": "git:abc123"
+  },
+  "source_generated_at": "2026-08-24T21:41:00Z",
+  "filters": {
+    "relation": "supports",
+    "trust": "authoritative",
+    "producer_type": "database"
+  },
+  "count": 1,
+  "matches": [
+    {
+      "evidence_id": "rte_example_001",
+      "evidence_kind": "database_observation",
+      "producer": {
+        "name": "postgres-audit-observer",
+        "type": "database",
+        "version": "0.1"
+      },
+      "observed_at": "2026-08-24T21:40:30Z",
+      "boundary_fingerprint": "bfp_refund_update_001",
+      "relation": "supports",
+      "trust": "authoritative",
+      "coverage": "point",
+      "rationale": "The runtime producer reported the targeted fact as observed; trust and coverage remain explicit and are not converted into static coverage."
+    }
+  ]
+}
