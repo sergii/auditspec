@@ -1,10 +1,10 @@
 # Frappe / ERPNext integration
 
-Frappe's native Version and Access Log features remain the low-level document and access history mechanisms. AuditSpec complements them with semantic business, authorization, security, and agent actions.
+Frappe's native Version, Track Changes, and Access Log remain the low-level document/access history mechanisms. AuditSpec complements them with semantic business, authorization, security, delegation, agent, correlation, and evidence semantics.
 
 ## Semantic boundary
 
-Prefer emitting AuditSpec at the controller/service boundary that knows business intent rather than treating every database write as a product audit event.
+Prefer emitting AuditSpec at a controller/service boundary that knows business intent rather than treating every database write as a product audit event.
 
 Examples:
 
@@ -13,9 +13,11 @@ Examples:
 - `agent.project_update`
 - `export.denied`
 
-## Mutations the Inspector recognizes
+## Inspector surface
 
-The initial `frappe-heuristic-v0.1` adapter looks for common mutation surfaces including:
+The current Inspector adapter is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, and the Assurance Graph.
+
+Common mutation surfaces include:
 
 - `doc.save()`
 - `doc.insert()`
@@ -29,14 +31,61 @@ The initial `frappe-heuristic-v0.1` adapter looks for common mutation surfaces i
 - `frappe.db.truncate()`
 - `frappe.delete_doc()`
 
-Direct database methods are especially important because Frappe documents that `set_value` and `bulk_update` bypass normal document events/validations. `truncate` is an even stronger special case: it commits before the DDL statement and cannot be rolled back, so AuditSpec must not claim normal transaction atomicity around it.
+Static evidence remains conservative. A resolved call path is not runtime proof.
 
-## Atomicity
+## Transaction model
 
-Frappe transaction ownership is request/job dependent. A same-file AuditSpec marker is therefore classified as `partial` by the first heuristic adapter rather than being treated as proof of atomic persistence.
+Frappe owns the normal request/job transaction lifecycle:
 
-A future Frappe adapter should understand transaction lifecycle, background jobs, hooks, DocType controllers, transaction hooks, and the actual AuditSpec storage implementation before upgrading that confidence.
+- successful state-changing web requests commit at the end of the request;
+- uncaught request exceptions roll back;
+- successful background/scheduled jobs commit after completion;
+- uncaught job exceptions roll back;
+- explicit `frappe.db.commit()` creates a transaction boundary;
+- caught exceptions require application code to make the correct rollback decision.
+
+`frappe.db.truncate()` is a special case: Frappe commits before the DDL statement and the truncate cannot be rolled back. AuditSpec must never claim normal same-transaction atomicity across that operation.
+
+`frappe.db.set_value()` / `frappe.db.update()` and `frappe.db.bulk_update()` are direct DB mutation surfaces that bypass normal Document events/validations. They remain auditable mutation boundaries even when no DocType lifecycle hook fires.
+
+## Reference adapter contract
+
+`frameworks/frappe/auditspec_frappe.py` provides transaction-neutral primitives on top of the Python AuditSpec reference implementation.
+
+### Same-store audit
+
+`FrappeAuditAdapter.emit_same_store(event)` validates and persists the event using the injected storage function. It intentionally does not call `frappe.db.commit()` or `frappe.db.rollback()`, so the audit write joins the transaction already owned by the current Frappe request/job/patch/application boundary.
+
+### Durable outbox
+
+`FrappeAuditAdapter.stage_outbox(event)` writes a durable outbox intent in the current transaction. An optional publisher wake-up is registered through `frappe.db.after_commit.add(...)` only after the outbox insert succeeds.
+
+The after-commit callback is only a wake-up optimization. The durable outbox row is the source of truth for retry/recovery. A callback failure after commit must not erase delivery intent.
+
+### Operation semantics
+
+`operation_semantics(...)` explicitly marks known special cases:
+
+- `frappe.db.commit` -> transaction boundary
+- `frappe.db.truncate` -> non-rollbackable
+- `frappe.db.set_value` / `frappe.db.update` -> current transaction, document hooks bypassed
+- `frappe.db.bulk_update` -> current transaction, document hooks bypassed
+
+Unknown operations remain conservative rather than being upgraded to stronger assurance.
+
+## Executable contract tests
+
+Run the adapter tests with the Python reference implementation available:
+
+```bash
+pip install -r implementations/python/requirements.txt
+python -m unittest frameworks/frappe/test_auditspec_frappe.py
+```
+
+CI runs this contract on Python 3.11 and 3.14.
+
+These tests prove the AuditSpec adapter contract and transaction neutrality. They are not yet a full Frappe Bench runtime proof. A future heavier integration lab should run against a pinned Frappe site and verify actual request/job rollback/commit behavior end to end.
 
 ## Native history still matters
 
-Do not disable Frappe `Track Changes`, Version, or Access Log merely because AuditSpec is present. Native history answers low-level document/access questions; AuditSpec answers semantic accountability questions and can correlate them with agent, authorization, trace, and external evidence.
+Do not disable Frappe Track Changes, Version, or Access Log merely because AuditSpec is present. Native history answers low-level document/access questions; AuditSpec answers semantic accountability questions and can correlate them with agents, authorization, traces, external evidence, control mappings, and runtime evidence.
