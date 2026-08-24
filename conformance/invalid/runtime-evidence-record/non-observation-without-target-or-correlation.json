@@ -1,0 +1,16 @@
+{
+  "record_version": "0.1",
+  "id": "rte_invalid_001",
+  "kind": "database_observation",
+  "producer": {
+    "name": "db-observer",
+    "type": "database"
+  },
+  "trust": "authoritative",
+  "observed_at": "2026-08-24T21:40:00Z",
+  "observation": {
+    "state": "not_observed",
+    "coverage": "exhaustive",
+    "detail": "No matching transaction was observed."
+  }
+}
