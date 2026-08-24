@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/corroboration-report.schema.json",
+  "title": "AuditSpec Runtime Corroboration Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_version", "assessment_subject", "generated_at", "matches", "unmatched_evidence_ids", "summary"],
+  "properties": {
+    "report_version": { "const": "0.1" },
+    "assessment_subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "matches": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/match" }
+    },
+    "unmatched_evidence_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_records", "matched", "supports", "contradicts", "inconclusive", "unmatched"],
+      "properties": {
+        "evidence_records": { "type": "integer", "minimum": 0 },
+        "matched": { "type": "integer", "minimum": 0 },
+        "supports": { "type": "integer", "minimum": 0 },
+        "contradicts": { "type": "integer", "minimum": 0 },
+        "inconclusive": { "type": "integer", "minimum": 0 },
+        "unmatched": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "relation", "trust", "coverage", "rationale"],
+      "properties": {
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "boundary_fingerprint": { "type": "string", "minLength": 1 },
+        "finding_fingerprint": { "type": "string", "minLength": 1 },
+        "relation": {
+          "type": "string",
+          "enum": ["supports", "contradicts", "inconclusive"]
+        },
+        "trust": {
+          "type": "string",
+          "enum": ["authoritative", "attributed", "self_reported", "derived"]
+        },
+        "coverage": {
+          "type": "string",
+          "enum": ["point", "sampled", "window", "exhaustive"]
+        },
+        "rationale": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [
+        { "required": ["boundary_fingerprint"] },
+        { "required": ["finding_fingerprint"] }
+      ]
+    }
+  }
+}
