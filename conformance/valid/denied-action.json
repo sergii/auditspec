@@ -1,0 +1,13 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_denied_001",
+  "tenant": { "type": "organization", "id": "org_123" },
+  "actor": { "type": "agent", "id": "agent_hanna" },
+  "action": "invoice.delete",
+  "target": { "type": "invoice", "id": "INV-0042" },
+  "outcome": "denied",
+  "denial_reason": "missing_scope",
+  "evidence": { "producer": "authorization-service", "trust": "authoritative" },
+  "occurred_at": "2026-08-24T15:02:00Z",
+  "recorded_at": "2026-08-24T15:02:00.002Z"
+}

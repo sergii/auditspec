@@ -1,0 +1,17 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_user_001",
+  "tenant": { "type": "organization", "id": "org_123" },
+  "actor": { "type": "user", "id": "usr_42" },
+  "action": "project.update",
+  "target": { "type": "project", "id": "PRJ-0042" },
+  "outcome": "allowed",
+  "changes": {
+    "fields": ["status"],
+    "before": { "status": "planned" },
+    "after": { "status": "active" }
+  },
+  "evidence": { "producer": "project-service", "trust": "authoritative" },
+  "occurred_at": "2026-08-24T15:00:00Z",
+  "recorded_at": "2026-08-24T15:00:00.005Z"
+}

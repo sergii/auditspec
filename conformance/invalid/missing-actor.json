@@ -1,0 +1,9 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_invalid_001",
+  "action": "project.update",
+  "target": { "type": "project", "id": "PRJ-0042" },
+  "outcome": "allowed",
+  "occurred_at": "2026-08-24T15:00:00Z",
+  "recorded_at": "2026-08-24T15:00:00.001Z"
+}

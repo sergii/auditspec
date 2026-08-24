@@ -1,0 +1,21 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_agent_001",
+  "tenant": { "type": "organization", "id": "org_123" },
+  "actor": {
+    "type": "agent",
+    "id": "agent_hanna",
+    "on_behalf_of": { "type": "user", "id": "usr_42" }
+  },
+  "action": "invoice.approve",
+  "target": { "type": "invoice", "id": "INV-0042" },
+  "outcome": "allowed",
+  "correlation": {
+    "trace_id": "tr_abc",
+    "session_id": "sess_abc",
+    "tool_call_id": "call_abc"
+  },
+  "evidence": { "producer": "erp-service", "trust": "authoritative" },
+  "occurred_at": "2026-08-24T15:01:00Z",
+  "recorded_at": "2026-08-24T15:01:00.004Z"
+}

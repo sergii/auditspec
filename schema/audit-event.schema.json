@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/audit-event.schema.json",
+  "title": "AuditSpec Event v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec_version", "id", "actor", "action", "target", "outcome", "occurred_at", "recorded_at"],
+  "properties": {
+    "spec_version": { "const": "0.1" },
+    "id": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "tenant": { "$ref": "#/$defs/ref" },
+    "actor": { "$ref": "#/$defs/actor" },
+    "action": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)+$" },
+    "target": { "$ref": "#/$defs/ref" },
+    "affected_user": { "$ref": "#/$defs/ref" },
+    "outcome": { "enum": ["allowed", "denied"] },
+    "denial_reason": { "type": "string", "minLength": 1 },
+    "changes": { "$ref": "#/$defs/changes" },
+    "origin": { "type": "object", "additionalProperties": true },
+    "correlation": { "$ref": "#/$defs/correlation" },
+    "evidence": { "$ref": "#/$defs/evidence" },
+    "metadata": { "type": "object", "additionalProperties": true },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "outcome": { "const": "denied" } } },
+      "then": {},
+      "else": { "not": { "required": ["denial_reason"] } }
+    }
+  ],
+  "$defs": {
+    "ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "enum": ["user", "agent", "service", "api_key", "system", "automation"] },
+        "id": { "type": "string", "minLength": 1 },
+        "on_behalf_of": { "$ref": "#/$defs/ref" }
+      }
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "before": { "type": "object", "additionalProperties": true },
+        "after": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": { "type": "string", "minLength": 1 },
+        "trace_id": { "type": "string", "minLength": 1 },
+        "session_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "trust"],
+      "properties": {
+        "producer": { "type": "string", "minLength": 1 },
+        "trust": { "enum": ["authoritative", "attributed", "self_reported", "derived"] }
+      }
+    }
+  }
+}
