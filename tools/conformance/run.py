@@ -10,6 +10,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[2]
 EVENT_SCHEMA_PATH = ROOT / "schema" / "audit-event.schema.json"
 ASSESSMENT_SCHEMA_PATH = ROOT / "schema" / "assessment-report.schema.json"
+ASSESSMENT_DIFF_SCHEMA_PATH = ROOT / "schema" / "assessment-diff.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
@@ -19,6 +20,7 @@ EVENT_EXAMPLES = [
     ROOT / "schema" / "examples" / "denied-action.json",
 ]
 ASSESSMENT_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-report.json"]
+ASSESSMENT_DIFF_EXAMPLES = [ROOT / "schema" / "examples" / "assessment-diff.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 
 
@@ -57,6 +59,7 @@ def expect_valid(validator, paths, label, failures):
 def main() -> int:
     event_validator = make_validator(EVENT_SCHEMA_PATH)
     assessment_validator = make_validator(ASSESSMENT_SCHEMA_PATH)
+    assessment_diff_validator = make_validator(ASSESSMENT_DIFF_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
 
     failures = []
@@ -65,6 +68,7 @@ def main() -> int:
 
     expect_valid(event_validator, valid_event_paths, "event", failures)
     expect_valid(assessment_validator, ASSESSMENT_EXAMPLES, "assessment", failures)
+    expect_valid(assessment_diff_validator, ASSESSMENT_DIFF_EXAMPLES, "diff", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
 
     for path in invalid_event_paths:
@@ -80,6 +84,7 @@ def main() -> int:
         f"{len(valid_event_paths)} valid event vectors, "
         f"{len(invalid_event_paths)} invalid event vectors, "
         f"{len(ASSESSMENT_EXAMPLES)} assessment example(s), "
+        f"{len(ASSESSMENT_DIFF_EXAMPLES)} diff example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s)"
     )
 
