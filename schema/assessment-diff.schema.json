@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/assessment-diff.schema.json",
+  "title": "AuditSpec Assessment Diff v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["diff_version", "generated_at", "base", "head", "new_findings", "resolved_findings", "unchanged_findings", "coverage"],
+  "properties": {
+    "diff_version": { "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "base": { "$ref": "#/$defs/endpoint" },
+    "head": { "$ref": "#/$defs/endpoint" },
+    "new_findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "resolved_findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "unchanged_findings": { "type": "integer", "minimum": 0 },
+    "coverage": { "$ref": "#/$defs/coverage" }
+  },
+  "$defs": {
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject_path", "generated_at"],
+      "properties": {
+        "subject_path": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "generated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "rule_id", "title", "severity", "confidence", "location"],
+      "properties": {
+        "fingerprint": { "type": "string", "minLength": 1 },
+        "rule_id": { "type": "string", "pattern": "^AS-[A-Z]+-[0-9]{3}$" },
+        "title": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "confidence": { "enum": ["certain", "high", "medium", "low"] },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "head", "delta"],
+      "properties": {
+        "base": { "type": "number", "minimum": 0, "maximum": 1 },
+        "head": { "type": "number", "minimum": 0, "maximum": 1 },
+        "delta": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    }
+  }
+}
