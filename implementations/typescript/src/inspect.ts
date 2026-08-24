@@ -246,6 +246,46 @@ function assuranceDetail(path: AssurancePathEvidence): string {
   return `Resolved assurance path: ${path.qualified_names.join(" -> ")} [roles: ${path.roles.join(", ")}; confidence: ${path.confidence}]`;
 }
 
+function reachabilityForPath(boundary: AssessmentBoundary, path: AssurancePathEvidence): NonNullable<AssessmentBoundary["reachability"]> {
+  if (!path.roles.includes("entrypoint") || path.qualified_names.length === 0) {
+    return { status: "unknown", confidence: path.confidence, path: path.qualified_names };
+  }
+
+  const qualifiedName = path.qualified_names[0]!;
+  let kind = "resolved_scope";
+  let framework = boundary.framework;
+
+  if (qualifiedName.startsWith("rails.rails_route:")) {
+    kind = "rails_route";
+    framework = "rails";
+  } else if (qualifiedName.startsWith("frappe.frappe_doc_event:")) {
+    kind = "frappe_doc_event";
+    framework = "frappe";
+  } else if (qualifiedName.startsWith("frappe.frappe_scheduler:")) {
+    kind = "frappe_scheduler";
+    framework = "frappe";
+  } else if (/Controller#/.test(qualifiedName)) {
+    kind = "rails_controller";
+    framework = "rails";
+  } else if (/#perform$/.test(qualifiedName)) {
+    kind = "rails_job";
+    framework = "rails";
+  } else if (boundary.framework === "frappe") {
+    kind = "frappe_entrypoint";
+  }
+
+  return {
+    status: "reachable",
+    confidence: path.confidence,
+    entrypoint: {
+      kind,
+      qualified_name: qualifiedName,
+      ...(framework ? { framework } : {}),
+    },
+    path: path.qualified_names,
+  };
+}
+
 function reconcileWithAssuranceGraph(
   boundaries: AssessmentBoundary[],
   findings: AssessmentFinding[],
@@ -254,8 +294,12 @@ function reconcileWithAssuranceGraph(
   const paths = new Map<string, AssurancePathEvidence>();
   for (const boundary of boundaries) {
     const path = findAssurancePath(graph, boundary.location);
-    if (!path) continue;
+    if (!path) {
+      boundary.reachability = { status: "unknown", confidence: "low" };
+      continue;
+    }
     paths.set(boundary.id, path);
+    boundary.reachability = reachabilityForPath(boundary, path);
     const hasAudit = path.roles.includes("audit");
     const hasTransaction = path.roles.includes("transaction");
 
@@ -338,12 +382,16 @@ export async function inspectRepository(inputPath: string): Promise<AssessmentRe
   if (assuranceGraph.nodes.length > 0) {
     adapters.push("assurance-call-graph-v0.1");
     findings = reconcileWithAssuranceGraph(boundaries, findings, assuranceGraph);
+  } else {
+    for (const boundary of boundaries) boundary.reachability = { status: "unknown", confidence: "low" };
   }
 
   const covered = boundaries.filter((boundary) => boundary.audit_status === "covered").length;
   const partial = boundaries.filter((boundary) => boundary.audit_status === "partial").length;
   const uncovered = boundaries.filter((boundary) => boundary.audit_status === "uncovered").length;
   const unknown = boundaries.filter((boundary) => boundary.audit_status === "unknown").length;
+  const reachableBoundaries = boundaries.filter((boundary) => boundary.reachability?.status === "reachable").length;
+  const unknownReachability = boundaries.length - reachableBoundaries;
 
   return {
     report_version: "0.1",
@@ -364,6 +412,10 @@ export async function inspectRepository(inputPath: string): Promise<AssessmentRe
       uncovered_boundaries: uncovered,
       unknown_boundaries: unknown,
       audit_coverage: boundaries.length === 0 ? 0 : covered / boundaries.length,
+    },
+    reachability: {
+      reachable_boundaries: reachableBoundaries,
+      unknown_boundaries: unknownReachability,
     },
     metadata: {
       assessment_kind: "static_source_ast_assisted_with_assurance_graph",
