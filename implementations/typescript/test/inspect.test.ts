@@ -45,6 +45,9 @@ test("inspector reports unaudited privileged Rails mutations", async () => {
       assert.equal(report.coverage.detected_boundaries, 1);
       assert.equal(report.coverage.uncovered_boundaries, 1);
       assert.equal(report.boundaries[0]?.confidence, "high");
+      assert.equal(report.boundaries[0]?.reachability?.status, "unknown");
+      assert.equal(report.reachability?.reachable_boundaries, 0);
+      assert.equal(report.reachability?.unknown_boundaries, 1);
       assert.equal(report.boundaries[0]?.evidence?.[0]?.kind, "ast_call");
       assert.ok(report.findings.some((finding) => finding.rule_id === "AS-AUDIT-001"));
       assert.ok(report.findings.some((finding) => finding.rule_id === "AS-AUTH-001"));
@@ -75,6 +78,7 @@ test("inspector marks a visibly transactional audited mutation as covered", asyn
       assert.equal(report.coverage.detected_boundaries, 1);
       assert.equal(report.coverage.covered_boundaries, 1);
       assert.equal(report.coverage.audit_coverage, 1);
+      assert.equal(report.boundaries[0]?.reachability?.status, "unknown");
       assert.equal(report.findings.length, 0);
     },
   );
@@ -108,6 +112,7 @@ test("audit evidence in another method does not cover a mutation", async () => {
 test("cross-file assurance path covers a service mutation", async () => {
   await withRailsRepo(
     {
+      "config/routes.rb": "post '/invoices/:id/approve', to: 'invoices#approve'\n",
       "app/controllers/invoices_controller.rb": [
         "class InvoicesController < ApplicationController",
         "  def approve",
@@ -134,6 +139,12 @@ test("cross-file assurance path covers a service mutation", async () => {
       assert.equal(report.coverage.detected_boundaries, 1);
       assert.equal(report.coverage.covered_boundaries, 1);
       assert.ok(report.inspector.adapters.includes("assurance-call-graph-v0.1"));
+      assert.equal(report.boundaries[0]?.reachability?.status, "reachable");
+      assert.equal(report.boundaries[0]?.reachability?.entrypoint?.kind, "rails_route");
+      assert.equal(report.boundaries[0]?.reachability?.entrypoint?.framework, "rails");
+      assert.match(report.boundaries[0]?.reachability?.entrypoint?.qualified_name ?? "", /^rails\.rails_route:/);
+      assert.equal(report.reachability?.reachable_boundaries, 1);
+      assert.equal(report.reachability?.unknown_boundaries, 0);
       assert.ok(report.boundaries[0]?.evidence?.some((evidence) => evidence.kind === "assurance_path"));
       assert.ok(!report.findings.some((finding) => finding.boundary_id === report.boundaries[0]?.id));
     },
@@ -155,6 +166,8 @@ test("inspector ignores mutation-looking Ruby comments and strings", async () =>
     async (root) => {
       const report = await inspectRepository(root);
       assert.equal(report.coverage.detected_boundaries, 0);
+      assert.equal(report.reachability?.reachable_boundaries, 0);
+      assert.equal(report.reachability?.unknown_boundaries, 0);
     },
   );
 });
