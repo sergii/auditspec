@@ -7,10 +7,13 @@ import { toCloudEvent } from "./cloudevents.js";
 import { inspectRepository } from "./inspect.js";
 import { normalizeAuditEvent } from "./normalize.js";
 import { redactAuditEvent } from "./redact.js";
+import { planRemediation, verifyRemediation } from "./remediation.js";
 import {
   assertAssessmentDiff,
   assertAssessmentReport,
   assertAuditEvent,
+  assertRemediationPlan,
+  assertVerificationResult,
   validateAgentProfile,
   validateAuditEvent,
 } from "./validate.js";
@@ -55,6 +58,8 @@ function usage(): never {
     "  auditspec to-cloudevent <event.json>",
     "  auditspec inspect [path] [--json]",
     "  auditspec diff-assessments <base.json> <head.json>",
+    "  auditspec plan-remediation <assessment.json> [fingerprint ...]",
+    "  auditspec verify-remediation <base.json> <head.json> [fingerprint ...]",
     "",
   ].join("\n"));
   process.exit(2);
@@ -85,6 +90,33 @@ async function main(): Promise<void> {
     const diff = diffAssessments(base, head);
     assertAssessmentDiff(diff);
     print(diff);
+    return;
+  }
+
+  if (command === "plan-remediation") {
+    const assessmentPath = args[1];
+    if (!assessmentPath) usage();
+    const assessment = readJson(assessmentPath);
+    assertAssessmentReport(assessment);
+    const fingerprints = args.slice(2);
+    const plan = planRemediation(assessment, fingerprints.length > 0 ? fingerprints : undefined);
+    assertRemediationPlan(plan);
+    print(plan);
+    return;
+  }
+
+  if (command === "verify-remediation") {
+    const basePath = args[1];
+    const headPath = args[2];
+    if (!basePath || !headPath) usage();
+    const base = readJson(basePath);
+    const head = readJson(headPath);
+    assertAssessmentReport(base);
+    assertAssessmentReport(head);
+    const fingerprints = args.slice(3);
+    const result = verifyRemediation(base, head, fingerprints.length > 0 ? fingerprints : undefined);
+    assertVerificationResult(result);
+    print(result);
     return;
   }
 
