@@ -18,6 +18,8 @@ module AuditSpec
     control_mapping_result: "schema/control-mapping-result.schema.json",
     evidence_query_result: "schema/evidence-query-result.schema.json",
     oscal_export_request: "schema/oscal-export-request.schema.json",
+    runtime_evidence_record: "schema/runtime-evidence-record.schema.json",
+    corroboration_report: "schema/corroboration-report.schema.json",
     agent_profile: "profiles/agent/agent-profile.schema.json"
   }.freeze
 
