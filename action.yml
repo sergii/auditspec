@@ -17,6 +17,9 @@ outputs:
   diff-path:
     description: Path to the generated Assessment Diff JSON when a baseline was available
     value: ${{ steps.assess.outputs.diff_path }}
+  topology-diff-path:
+    description: Path to the generated Assurance Graph topology diff JSON when a baseline was available
+    value: ${{ steps.assess.outputs.topology_diff_path }}
 
 runs:
   using: composite
