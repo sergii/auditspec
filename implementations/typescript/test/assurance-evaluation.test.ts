@@ -22,12 +22,15 @@ test("returns null when no statically reachable entrypoint is resolved and searc
   assert.equal(result, null);
 });
 
-test("truncated search with no resolved entrypoint is unknown and low confidence", () => {
+test("truncated search with no resolved entrypoint is unknown, low-confidence, and has no all-role claims", () => {
   const result = evaluateAssurancePathSet(pathSet([path("partial", ["mutation"])], true), "rails");
   assert.ok(result);
   assert.equal(result.reachable_paths, 0);
   assert.equal(result.audit_status, "unknown");
   assert.equal(result.confidence, "low");
+  assert.deepEqual(result.counts, { audit: 0, transaction: 0, authorization: 0 });
+  assert.deepEqual(result.all, { audit: false, transaction: false, authorization: false });
+  assert.deepEqual(result.mixed, { audit: false, transaction: false, authorization: false });
 });
 
 test("Rails requires audit and transaction on every reachable path for covered status", () => {
@@ -68,6 +71,53 @@ test("mixed audit evidence is partial and explicitly marked mixed", () => {
   assert.equal(result.audit_status, "partial");
   assert.equal(result.mixed.audit, true);
   assert.equal(result.all.audit, false);
+});
+
+test("confidence is the weakest confidence among reachable paths", () => {
+  const allHigh = evaluateAssurancePathSet(
+    pathSet([
+      path("a", ["entrypoint"], "high"),
+      path("b", ["entrypoint"], "high"),
+    ]),
+    "rails",
+  );
+  assert.ok(allHigh);
+  assert.equal(allHigh.confidence, "high");
+
+  const includesMedium = evaluateAssurancePathSet(
+    pathSet([
+      path("a", ["entrypoint"], "high"),
+      path("b", ["entrypoint"], "medium"),
+    ]),
+    "rails",
+  );
+  assert.ok(includesMedium);
+  assert.equal(includesMedium.confidence, "medium");
+
+  const includesLow = evaluateAssurancePathSet(
+    pathSet([
+      path("a", ["entrypoint"], "high"),
+      path("b", ["entrypoint"], "medium"),
+      path("c", ["entrypoint"], "low"),
+    ]),
+    "rails",
+  );
+  assert.ok(includesLow);
+  assert.equal(includesLow.confidence, "low");
+});
+
+test("unreachable low-confidence paths do not weaken resolved-path confidence", () => {
+  const result = evaluateAssurancePathSet(
+    pathSet([
+      path("reachable", ["entrypoint", "audit", "transaction"], "high"),
+      path("unresolved-fragment", ["mutation"], "low"),
+    ]),
+    "rails",
+  );
+  assert.ok(result);
+  assert.equal(result.reachable_paths, 1);
+  assert.equal(result.confidence, "high");
+  assert.equal(result.audit_status, "covered");
 });
 
 test("Frappe remains partial when audit evidence exists because v0.1 does not prove transaction atomicity", () => {
