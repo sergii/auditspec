@@ -26,7 +26,7 @@ export interface AssessmentEntrypoint {
   kind: string;
   qualified_name: string;
   framework?: string;
-  location: SourceLocation;
+  location?: SourceLocation;
 }
 
 export interface AssessmentReachability {
