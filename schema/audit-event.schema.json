@@ -4,41 +4,127 @@
   "title": "AuditSpec Event v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["spec_version", "id", "actor", "action", "target", "outcome", "occurred_at", "recorded_at"],
+  "required": [
+    "spec_version",
+    "id",
+    "source",
+    "actor",
+    "action",
+    "result",
+    "occurred_at",
+    "recorded_at"
+  ],
   "properties": {
     "spec_version": { "const": "0.1" },
     "id": { "type": "string", "minLength": 1 },
-    "sequence": { "type": "integer", "minimum": 0 },
-    "tenant": { "$ref": "#/$defs/ref" },
+    "source": { "type": "string", "minLength": 1 },
+    "idempotency_key": { "type": "string", "minLength": 1 },
+    "tenant": { "$ref": "#/$defs/entityRef" },
     "actor": { "$ref": "#/$defs/actor" },
-    "action": { "type": "string", "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)+$" },
-    "target": { "$ref": "#/$defs/ref" },
-    "affected_user": { "$ref": "#/$defs/ref" },
-    "outcome": { "enum": ["allowed", "denied"] },
-    "denial_reason": { "type": "string", "minLength": 1 },
+    "delegation": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/delegation" }
+    },
+    "action": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(?:\\.[a-z0-9_]+)+$"
+    },
+    "action_version": { "type": "integer", "minimum": 1 },
+    "action_schema": { "type": "string", "minLength": 1 },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/relatedEntity" }
+    },
+    "subjects": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/relatedEntity" }
+    },
+    "authorization": { "$ref": "#/$defs/authorization" },
+    "result": { "$ref": "#/$defs/result" },
     "changes": { "$ref": "#/$defs/changes" },
-    "origin": { "type": "object", "additionalProperties": true },
+    "redactions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/redaction" }
+    },
+    "producer": { "$ref": "#/$defs/producer" },
+    "origin": { "$ref": "#/$defs/origin" },
     "correlation": { "$ref": "#/$defs/correlation" },
-    "evidence": { "$ref": "#/$defs/evidence" },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "ordering": { "$ref": "#/$defs/ordering" },
+    "extensions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/extension" }
+    },
     "metadata": { "type": "object", "additionalProperties": true },
     "occurred_at": { "type": "string", "format": "date-time" },
     "recorded_at": { "type": "string", "format": "date-time" }
   },
   "allOf": [
     {
-      "if": { "properties": { "outcome": { "const": "denied" } } },
-      "then": {},
-      "else": { "not": { "required": ["denial_reason"] } }
+      "if": {
+        "required": ["authorization"],
+        "properties": {
+          "authorization": {
+            "required": ["decision"],
+            "properties": {
+              "decision": { "const": "denied" }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "required": ["status"],
+            "properties": {
+              "status": { "const": "not_executed" }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
-    "ref": {
+    "displaySnapshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id"],
+      "properties": {
+        "name": { "type": "string" },
+        "label": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "minProperties": 1
+    },
+    "entityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
       "properties": {
         "type": { "type": "string", "minLength": 1 },
-        "id": { "type": "string", "minLength": 1 }
+        "id": { "type": "string", "minLength": 1 },
+        "display": { "$ref": "#/$defs/displaySnapshot" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "relatedEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 },
+        "display": { "$ref": "#/$defs/displaySnapshot" },
+        "metadata": { "type": "object", "additionalProperties": true }
       }
     },
     "actor": {
@@ -46,19 +132,131 @@
       "additionalProperties": false,
       "required": ["type", "id"],
       "properties": {
-        "type": { "enum": ["user", "agent", "service", "api_key", "system", "automation"] },
+        "type": {
+          "enum": ["user", "agent", "service", "api_key", "system", "automation"]
+        },
         "id": { "type": "string", "minLength": 1 },
-        "on_behalf_of": { "$ref": "#/$defs/ref" }
+        "display": { "$ref": "#/$defs/displaySnapshot" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "delegation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationship", "principal"],
+      "properties": {
+        "relationship": {
+          "enum": ["on_behalf_of", "delegated_by", "impersonation", "assumed_role"]
+        },
+        "principal": { "$ref": "#/$defs/entityRef" },
+        "reason": { "type": "string", "minLength": 1 },
+        "reference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision"],
+      "properties": {
+        "decision": {
+          "enum": ["allowed", "denied", "not_applicable", "unknown"]
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "scopes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "version": { "type": ["string", "integer"] }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": ["succeeded", "failed", "partial", "unknown", "not_executed"]
+        },
+        "code": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
       }
     },
     "changes": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "fields": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "fields": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "before": { "type": "object", "additionalProperties": true },
         "after": { "type": "object", "additionalProperties": true }
+      },
+      "minProperties": 1
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "method", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "method": {
+          "enum": ["omitted", "redacted", "hashed", "tokenized", "encrypted"]
+        },
+        "reason": { "type": "string", "minLength": 1 }
       }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "build": { "type": "string", "minLength": 1 },
+        "instance": { "type": "string", "minLength": 1 }
+      }
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ip": { "type": "string", "minLength": 1 },
+        "user_agent": { "type": "string" },
+        "sdk": { "type": "string" }
+      },
+      "minProperties": 1
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "region": { "type": "string", "minLength": 1 },
+        "zone": { "type": "string", "minLength": 1 },
+        "host": { "type": "string", "minLength": 1 }
+      },
+      "minProperties": 1
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "surface": { "type": "string", "minLength": 1 },
+        "service": { "$ref": "#/$defs/producer" },
+        "client": { "$ref": "#/$defs/client" },
+        "location": { "$ref": "#/$defs/location" }
+      },
+      "minProperties": 1
     },
     "correlation": {
       "type": "object",
@@ -66,17 +264,57 @@
       "properties": {
         "request_id": { "type": "string", "minLength": 1 },
         "trace_id": { "type": "string", "minLength": 1 },
+        "span_id": { "type": "string", "minLength": 1 },
+        "interaction_id": { "type": "string", "minLength": 1 },
         "session_id": { "type": "string", "minLength": 1 },
-        "tool_call_id": { "type": "string", "minLength": 1 }
+        "turn_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "causation_id": { "type": "string", "minLength": 1 },
+        "parent_event_id": { "type": "string", "minLength": 1 }
+      },
+      "minProperties": 1
+    },
+    "digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 }
       }
     },
     "evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["producer", "trust"],
+      "required": ["kind", "producer", "trust"],
       "properties": {
-        "producer": { "type": "string", "minLength": 1 },
-        "trust": { "enum": ["authoritative", "attributed", "self_reported", "derived"] }
+        "kind": { "type": "string", "minLength": 1 },
+        "producer": { "$ref": "#/$defs/producer" },
+        "trust": {
+          "enum": ["authoritative", "attributed", "self_reported", "derived"]
+        },
+        "ref": { "type": "string", "minLength": 1 },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "ordering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stream_id", "sequence"],
+      "properties": {
+        "stream_id": { "type": "string", "minLength": 1 },
+        "sequence": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "data"],
+      "properties": {
+        "schema": { "type": "string", "minLength": 1 },
+        "data": {}
       }
     }
   }
