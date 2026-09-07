@@ -47,7 +47,7 @@ A reachable boundary records confidence, the resolved entrypoint, framework attr
 
 Current entrypoint evidence can include explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nesting, controller fallbacks, ActiveJob/Sidekiq workers, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
 
-Reachability is static evidence. It does not prove that a path executed in production. Future runtime evidence may corroborate or contradict it.
+Reachability is static evidence. It does not prove that a path executed in production. Runtime Corroboration can independently support, contradict, or remain inconclusive about static observations without rewriting the static Assessment Report.
 
 ### Rails route DSL boundary
 
@@ -115,7 +115,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover route exposure, topology change, and an authorized-path-plus-bypass-path scenario.
+Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, topology change, and an authorized-path-plus-bypass-path scenario.
 
 ## Findings
 
