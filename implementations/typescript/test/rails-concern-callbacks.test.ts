@@ -35,6 +35,11 @@ const authorizationConcern = [
   "end",
 ].join("\n");
 
+const adminAuthorizationConcern = authorizationConcern.replace(
+  "module AuthorizationConcern",
+  "module Admin::AuthorizationConcern",
+);
+
 test("resolves literal before_action declarations from a canonical ActiveSupport::Concern included block", () => {
   assert.deepEqual(
     concernBeforeActionCallbacks(authorizationConcern, "AuthorizationConcern", "update").map((callback) => callback.method),
@@ -158,22 +163,60 @@ test("does not claim concern authorization when the subclass skips callbacks", a
   );
 });
 
-test("fails closed for namespaced and dynamic concern inclusion", () => {
+test("resolves an explicit namespaced concern included by a namespaced controller", async () => {
+  await withRepo(
+    {
+      "config/routes.rb": [
+        "namespace :admin do",
+        "  resources :invoices, only: :update",
+        "end",
+      ].join("\n"),
+      "app/controllers/concerns/admin/authorization_concern.rb": adminAuthorizationConcern,
+      "app/controllers/admin/invoices_controller.rb": [
+        "class Admin::InvoicesController < ApplicationController",
+        "  include Admin::AuthorizationConcern",
+        "  def update",
+        "    invoice.update!(status: 'approved')",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const action = graph.nodes.find((node) => node.qualified_name === "Admin::InvoicesController#update");
+      assert.ok(action);
+      assert.ok(action.roles.includes("authorization"));
+    },
+  );
+});
+
+test("fails closed for lexical-module concern declarations and dynamic inclusion", () => {
   const controller = [
     "class InvoicesController < ApplicationController",
     "  include Admin::AuthorizationConcern",
     "  include concern_module",
     "end",
   ].join("\n");
-  const namespacedConcern = authorizationConcern
-    .replace("module AuthorizationConcern", "module Admin::AuthorizationConcern");
+  const lexicalConcern = [
+    "module Admin",
+    "  module AuthorizationConcern",
+    "    extend ActiveSupport::Concern",
+    "    included do",
+    "      before_action :authorize_request",
+    "    end",
+    "    def authorize_request",
+    "      authorize current_user",
+    "    end",
+    "  end",
+    "end",
+  ].join("\n");
 
   assert.equal(hasAuthorizationBeforeAction({
     target_source: controller,
     controller: "InvoicesController",
     action: "update",
     controller_sources: [
-      { path: "app/controllers/concerns/admin/authorization_concern.rb", source: namespacedConcern },
+      { path: "app/controllers/concerns/admin/authorization_concern.rb", source: lexicalConcern },
       { path: "app/controllers/invoices_controller.rb", source: controller },
     ],
     authorization_methods: new Set(["Admin::AuthorizationConcern#authorize_request"]),
