@@ -159,7 +159,7 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Rails and Frappe mutation discovery uses ast-grep/Tree-sitter call nodes instead of raw line regex, removing comment/string false positives.
 - Calls are attached to owning Ruby method/Python function scopes, so unrelated audit calls in the same file do not cover a mutation.
 - A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
-- Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, ActiveJob/Sidekiq dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
+- Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, conservative top-level Rails `resources`/`resource` routes, ActiveJob/Sidekiq dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
 - Stable boundary fingerprints permit line-independent base/head reachability comparison.
 - Assurance Graph topology diff tracks new/removed entrypoints, framework dispatches and entrypoint-to-mutation paths by semantic identity rather than source line.
 - Canonical all-path Inspector evaluates every resolved entrypoint path up to a bounded cap instead of trusting only the strongest path.
@@ -175,10 +175,11 @@ Completed:
 
 - added the Apache License 2.0 `LICENSE` file and aligned README licensing.
 - synchronized the runtime working backlog with implemented observation scope, query/diff, comparability and authorization-producer capabilities.
+- added conservative top-level Rails `resources`/`resource` resolution with literal `only`, `except`, `path`, `param` and `controller` options plus fail-closed namespace tests.
 
 Remaining release backlog:
 
-- Expand Rails framework resolution for `resources`, nested/namespaced routes, callbacks, concerns, ActionCable and framework-generated dispatch.
+- Expand Rails framework resolution for nested/namespaced routes, callbacks, concerns, ActionCable and framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
