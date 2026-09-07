@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
-import { beforeActionCallbacks } from "./rails-callbacks.js";
+import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { resourceRouteDeclarations } from "./rails-routes.js";
 
 export type AssuranceRole = "entrypoint" | "authorization" | "transaction" | "mutation" | "audit";
@@ -540,6 +540,14 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
   const routedControllers = new Set(
     edges.filter((edge) => edge.kind === "framework_dispatch" && edge.framework?.kind === "rails_route").map((edge) => edge.to),
   );
+  const controllerSources = [...sourceByPath.entries()]
+    .filter(([path]) => path.startsWith("app/controllers/") && path.endsWith(".rb"))
+    .map(([path, source]) => ({ path, source }));
+  const authorizationMethods = new Set(
+    indexed
+      .filter((item) => item.node.language === "ruby" && item.node.roles.includes("authorization"))
+      .map((item) => item.node.qualified_name),
+  );
 
   for (const targetId of routedControllers) {
     const target = indexed.find((item) => item.node.id === targetId);
@@ -547,10 +555,12 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
     const controller = target.node.qualified_name.split("#")[0];
     if (!controller) continue;
 
-    const callbacks = beforeActionCallbacks(target.source, controller, target.node.name);
-    const hasAuthorizationCallback = callbacks.some((callback) => {
-      const callbackNode = indexed.find((item) => item.node.qualified_name === `${controller}#${callback.method}`);
-      return callbackNode?.node.roles.includes("authorization") ?? false;
+    const hasAuthorizationCallback = hasAuthorizationBeforeAction({
+      target_source: target.source,
+      controller,
+      action: target.node.name,
+      controller_sources: controllerSources,
+      authorization_methods: authorizationMethods,
     });
     if (hasAuthorizationCallback) addRole(target.node, "authorization");
   }
