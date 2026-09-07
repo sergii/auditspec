@@ -45,7 +45,7 @@ A boundary is `reachable` only when the Assurance Graph can trace it to a known 
 
 A reachable boundary records confidence, the resolved entrypoint, framework attribution when known, and a representative path of qualified scopes/surfaces.
 
-Current entrypoint evidence can include explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nesting, controller fallbacks, ActiveJob/Sidekiq workers, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
+Current entrypoint evidence can include explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nesting, controller fallbacks, ActiveJob/Sidekiq workers, conservative ActionCable channel actions/lifecycle callbacks, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
 
 Reachability is static evidence. It does not prove that a path executed in production. Runtime Corroboration can independently support, contradict, or remain inconclusive about static observations without rewriting the static Assessment Report.
 
@@ -85,7 +85,25 @@ Conditional callbacks such as `if:` or `unless:`, dynamic callback names, dynami
 
 In particular, lexical nesting such as `module Admin; class InvoicesController ... end; end` or nested concern declarations is not treated as equivalent to an explicit fully-qualified declaration in this v0.1 proof model.
 
-ActionCable dispatch, supported `scope` variants, constraints, lexical/nested concern composition, concern dependencies, and additional framework-generated dispatch remain outside the current v0.1 resolver.
+Supported `scope` variants, constraints, lexical/nested concern composition, concern dependencies, and additional framework-generated dispatch remain outside the current v0.1 resolver.
+
+### Rails ActionCable boundary
+
+ActionCable is modeled as framework dispatch because Rails exposes channel behavior as RPC-style client-callable methods rather than REST routes.
+
+The v0.1 resolver creates separate high-confidence framework surfaces for:
+
+- direct public channel methods, represented as `rails_action_cable_action`;
+- a directly defined `subscribed` lifecycle callback, represented as `rails_action_cable_subscribe`;
+- a directly defined `unsubscribed` lifecycle callback, represented as `rails_action_cable_unsubscribe`.
+
+Positive ActionCable evidence requires an `app/channels/**/*.rb` method belonging to an explicitly declared channel class that directly inherits from `ApplicationCable::Channel` or `ActionCable::Channel::Base`. Explicit fully-qualified class identities such as `class Admin::ChatChannel < ApplicationCable::Channel` are supported.
+
+RPC action exposure is conservative about Ruby visibility. Direct methods proven to be under class-level `private` or `protected` visibility, including explicit non-public symbol declarations, are not exposed as ActionCable action surfaces. Known ActionCable internal methods are not treated as client actions. `subscribed` and `unsubscribed` are modeled only as lifecycle dispatch, not as RPC actions.
+
+Indirect channel inheritance, lexical namespace resolution such as `module Admin; class ChatChannel ...`, inherited or concern-provided actions, dynamic visibility/metaprogramming, ActionCable connection `connect`/`disconnect`, and runtime channel registration behavior are not currently used to strengthen static assurance.
+
+Authorization found in `subscribed` is deliberately not projected onto later client-callable actions. Subscription authorization may in practice guard channel access, but proving that stateful guarantee for every later action requires a stronger framework/runtime model. The static graph therefore keeps `SUBSCRIBE -> Channel#subscribed` and `ACTION -> Channel#method` as distinct paths.
 
 ## All-path assurance
 
@@ -136,7 +154,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, local, inherited, concern-derived, and explicit fully-qualified namespaced callback authorization, topology change, and an authorized-path-plus-bypass-path scenario.
+Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, local, inherited, concern-derived, and explicit fully-qualified namespaced callback authorization, ActionCable public/lifecycle dispatch, non-public channel exclusion, namespaced channel identities, subscription/action authorization separation, topology change, and an authorized-path-plus-bypass-path scenario.
 
 ## Findings
 
@@ -161,4 +179,4 @@ Human output includes audit coverage and statically reachable boundary counts. J
 
 PR integration compares base/head assessments using stable finding and boundary fingerprints, and separately compares Assurance Graph topology. Existing debt stays in summary while new findings and newly exposed uncovered boundaries become advisory warnings.
 
-A pull request that adds an unauthorized alternate route to an existing privileged mutation can therefore produce a new `AS-AUTH-002` even when the mutation source itself is unchanged.
+A pull request that adds an unauthorized alternate route or ActionCable action to an existing privileged mutation can therefore produce a new path-level assurance gap even when the mutation source itself is unchanged.
