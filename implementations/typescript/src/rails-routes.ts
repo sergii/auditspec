@@ -21,6 +21,7 @@ interface ResourceExpansion {
 
 const PLURAL_ACTIONS = ["index", "create", "new", "show", "edit", "update", "destroy"] as const;
 const SINGULAR_ACTIONS = ["create", "new", "show", "edit", "update", "destroy"] as const;
+const SUPPORTED_RESOURCE_OPTIONS = new Set(["only", "except", "controller", "path", "param"]);
 const IRREGULAR_PLURALS = new Map<string, string>([
   ["child", "children"],
   ["foot", "feet"],
@@ -97,6 +98,7 @@ function pluralizeResourceName(name: string): string | undefined {
   const irregular = IRREGULAR_PLURALS.get(name);
   if (irregular) return irregular;
   if (/[^aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`;
+  if (/(?:is|us|ss)$/i.test(name)) return undefined;
   if (/(?:s|x|z|ch|sh)$/i.test(name)) return `${name}es`;
   if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return `${name}s`;
   return undefined;
@@ -107,6 +109,7 @@ function singularizeResourceName(name: string): string | undefined {
   if (irregular) return irregular;
   if (/[^aeiou]ies$/i.test(name)) return `${name.slice(0, -3)}y`;
   if (/(?:ches|shes|sses|xes|zes)$/i.test(name)) return name.slice(0, -2);
+  if (/ses$/i.test(name)) return undefined;
   if (/s$/i.test(name) && !/ss$/i.test(name)) return name.slice(0, -1);
   return undefined;
 }
@@ -127,8 +130,8 @@ function joinController(prefix: string, controller: string): string {
 }
 
 function resourceOptionsSupported(options: string): boolean {
-  if (/\b(?:module|path_names):/.test(options)) return false;
-  return true;
+  const optionKeys = [...options.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map((match) => match[1]!);
+  return optionKeys.every((key) => SUPPORTED_RESOURCE_OPTIONS.has(key));
 }
 
 function routesForResource(
@@ -224,11 +227,13 @@ function opensUnsupportedBlock(code: string): boolean {
 export function resourceRouteDeclarations(source: string): RailsRouteDeclaration[] {
   const results: RailsRouteDeclaration[] = [];
   const stack: RouteContext[] = [];
+  const lines = source.split("\n");
   let inRoutes = false;
 
-  for (const rawLine of source.split("\n")) {
-    const code = stripRubyComment(rawLine).trim();
+  for (let index = 0; index < lines.length; index += 1) {
+    const code = stripRubyComment(lines[index]!).trim();
     if (!code) continue;
+    const line = index + 1;
 
     if (!inRoutes) {
       if (/\.routes\.draw\s+do\s*$/.test(code)) {
@@ -262,7 +267,7 @@ export function resourceRouteDeclarations(source: string): RailsRouteDeclaration
       const hasBlock = /\bdo\s*$/.test(remainder);
       const options = hasBlock ? remainder.replace(/\bdo\s*$/, "").trim() : remainder.trim();
       const expansion = current.supported
-        ? routesForResource(kind, name, options, source.split("\n").indexOf(rawLine) + 1, current, hasBlock)
+        ? routesForResource(kind, name, options, line, current, hasBlock)
         : null;
 
       if (expansion) results.push(...expansion.routes);
