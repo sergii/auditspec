@@ -103,6 +103,7 @@ This repository is an early `v0.1` working draft. Breaking changes are still exp
 - `docs/testing.md` - conformance, property, mutation, and behavioral testing strategy.
 - `docs/github-action.md` - advisory PR ratchet integration.
 - `docs/mcp.md` - MCP server and agent-facing tools.
+- `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics and producer model.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.
 - `WORKING_NOTES.md` - temporary v0.1 design backlog; intended to be removed or promoted before release.
@@ -213,9 +214,27 @@ The Action compares finding fingerprints, mutation reachability, and Assurance G
 
 The Action runs inside the repository's GitHub Actions runner; source code does not need to be uploaded to an AuditSpec service.
 
+## Runtime corroboration
+
+Runtime Corroboration is a separate evidence layer. It compares static Assessment Reports with explicit runtime observations without rewriting static coverage or turning a bounded observation into proof about all execution paths.
+
+The reference surface supports:
+
+```bash
+auditspec corroborate assessment.json runtime-evidence.json
+auditspec diff-corroboration base-corroboration.json head-corroboration.json
+auditspec query-corroboration corroboration.json --relation contradicts --trust authoritative
+```
+
+Corroboration preserves evidence kind, producer identity, trust, observation coverage and observation scope. Corroboration diffs compare stable contradiction targets and report whether their observation scopes are `comparable`, `partially_comparable`, `not_comparable`, or `unknown`.
+
+A contradiction that is no longer reported is not automatically considered resolved. Runtime evidence remains corroboration, not a replacement for static findings or business-semantic truth.
+
+See `docs/runtime-corroboration.md` for the producer model, observation-scope rules, query filters and limitations.
+
 ## MCP server
 
-The same Inspector, graph, remediation, verification, evidence, and control-mapping engines are exposed through a local MCP v2 stdio server:
+The same Inspector, graph, remediation, verification, evidence, runtime corroboration, producer registry, and control-mapping engines are exposed through a local MCP v2 stdio server:
 
 ```bash
 cd implementations/typescript
@@ -238,6 +257,10 @@ Current tools include:
 - `auditspec.diff_assurance_graphs`
 - `auditspec.plan_remediation`
 - `auditspec.verify_remediation`
+- `auditspec.corroborate_runtime`
+- `auditspec.list_runtime_producers`
+- `auditspec.diff_runtime_corroboration`
+- `auditspec.query_runtime_corroboration`
 - `auditspec.map_controls`
 - `auditspec.export_oscal`
 
