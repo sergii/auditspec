@@ -159,14 +159,14 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Rails and Frappe mutation discovery uses ast-grep/Tree-sitter call nodes instead of raw line regex, removing comment/string false positives.
 - Calls are attached to owning Ruby method/Python function scopes, so unrelated audit calls in the same file do not cover a mutation.
 - A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
-- Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, conservative top-level Rails `resources`/`resource` routes, ActiveJob/Sidekiq dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
+- Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nested-resource composition, ActiveJob/Sidekiq dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
 - Stable boundary fingerprints permit line-independent base/head reachability comparison.
 - Assurance Graph topology diff tracks new/removed entrypoints, framework dispatches and entrypoint-to-mutation paths by semantic identity rather than source line.
 - Canonical all-path Inspector evaluates every resolved entrypoint path up to a bounded cap instead of trusting only the strongest path.
 - Mixed-path gaps produce `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002`.
 - Path enumeration is capped at 64 paths / depth 8; truncation downgrades the boundary to `unknown/low` rather than creating optimistic coverage.
 - Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
-- Synthetic PR tests cover new route exposure, graph topology change, and authorization bypass through an alternate route.
+- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, and namespaced/nested resource dispatch.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening status
@@ -175,11 +175,12 @@ Completed:
 
 - added the Apache License 2.0 `LICENSE` file and aligned README licensing.
 - synchronized the runtime working backlog with implemented observation scope, query/diff, comparability and authorization-producer capabilities.
-- added conservative top-level Rails `resources`/`resource` resolution with literal `only`, `except`, `path`, `param` and `controller` options plus fail-closed namespace tests.
+- added conservative Rails `resources`/`resource` resolution with literal `only`, `except`, `path`, `param` and `controller` options.
+- added literal `namespace` and nested resource composition, with dynamic/unsupported routing constructs failing closed rather than producing guessed framework edges.
 
 Remaining release backlog:
 
-- Expand Rails framework resolution for nested/namespaced routes, callbacks, concerns, ActionCable and framework-generated dispatch.
+- Expand Rails framework resolution for callbacks, concerns, ActionCable, supported `scope` variants, constraints and additional framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
