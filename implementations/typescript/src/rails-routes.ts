@@ -21,7 +21,6 @@ interface ResourceExpansion {
 
 const PLURAL_ACTIONS = ["index", "create", "new", "show", "edit", "update", "destroy"] as const;
 const SINGULAR_ACTIONS = ["create", "new", "show", "edit", "update", "destroy"] as const;
-const SUPPORTED_RESOURCE_OPTIONS = new Set(["only", "except", "controller", "path", "param"]);
 const IRREGULAR_PLURALS = new Map<string, string>([
   ["child", "children"],
   ["foot", "feet"],
@@ -130,8 +129,10 @@ function joinController(prefix: string, controller: string): string {
 }
 
 function resourceOptionsSupported(options: string): boolean {
-  const optionKeys = [...options.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*:/g)].map((match) => match[1]!);
-  return optionKeys.every((key) => SUPPORTED_RESOURCE_OPTIONS.has(key));
+  let remaining = options;
+  remaining = remaining.replace(/\b(?:only|except):\s*(?:\[[^\]]*\]|%i\[[^\]]*\]|:[A-Za-z_][A-Za-z0-9_]*)/g, "");
+  remaining = remaining.replace(/\b(?:controller|path|param):\s*(?:["'][^"']+["']|:[A-Za-z_][A-Za-z0-9_\/]*)/g, "");
+  return /^[,\s]*$/.test(remaining);
 }
 
 function routesForResource(
