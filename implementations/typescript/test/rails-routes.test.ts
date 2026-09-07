@@ -74,14 +74,16 @@ test("fails closed inside unsupported routing scopes and conditionals", () => {
   assert.equal(result.some((route) => route.controller === "public_users" && route.action === "show"), true);
 });
 
-test("fails closed on unsupported resource options", () => {
+test("fails closed on unsupported and dynamic resource options", () => {
   const result = routes([
     "Rails.application.routes.draw do",
     "  resources :users, constraints: AdminConstraint.new",
+    "  resources :projects, ROUTE_OPTIONS",
     "  resources :accounts, only: :show",
     "end",
   ]);
 
   assert.equal(result.some((route) => route.controller === "users"), false);
+  assert.equal(result.some((route) => route.controller === "projects"), false);
   assert.equal(result.some((route) => route.controller === "accounts" && route.action === "show"), true);
 });
