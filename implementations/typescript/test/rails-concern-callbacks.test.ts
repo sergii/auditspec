@@ -167,8 +167,10 @@ test("resolves an explicit namespaced concern included by a namespaced controlle
   await withRepo(
     {
       "config/routes.rb": [
-        "namespace :admin do",
-        "  resources :invoices, only: :update",
+        "Rails.application.routes.draw do",
+        "  namespace :admin do",
+        "    resources :invoices, only: :update",
+        "  end",
         "end",
       ].join("\n"),
       "app/controllers/concerns/admin/authorization_concern.rb": adminAuthorizationConcern,
@@ -186,6 +188,7 @@ test("resolves an explicit namespaced concern included by a namespaced controlle
       const action = graph.nodes.find((node) => node.qualified_name === "Admin::InvoicesController#update");
       assert.ok(action);
       assert.ok(action.roles.includes("authorization"));
+      assert.ok(graph.edges.some((edge) => edge.framework?.kind === "rails_route" && edge.to === action.id));
     },
   );
 });
