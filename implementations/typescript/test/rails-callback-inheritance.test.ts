@@ -63,6 +63,32 @@ test("resolves authorization through an unambiguous controller superclass chain"
   }), false);
 });
 
+test("resolves an explicit fully-qualified namespaced superclass callback with canonical identity", () => {
+  const base = [
+    "class Admin::BaseController < ApplicationController",
+    "  before_action :authorize_admin",
+    "  def authorize_admin",
+    "    authorize current_user",
+    "  end",
+    "end",
+  ].join("\n");
+  const invoices = [
+    "class Admin::InvoicesController < Admin::BaseController",
+    "end",
+  ].join("\n");
+
+  assert.equal(hasAuthorizationBeforeAction({
+    target_source: invoices,
+    controller: "Admin::InvoicesController",
+    action: "update",
+    controller_sources: [
+      { path: "app/controllers/admin/base_controller.rb", source: base },
+      { path: "app/controllers/admin/invoices_controller.rb", source: invoices },
+    ],
+    authorization_methods: new Set(["Admin::BaseController#authorize_admin"]),
+  }), true);
+});
+
 test("fails closed when a subclass skips callbacks", () => {
   const application = [
     "class ApplicationController < ActionController::Base",
@@ -147,6 +173,13 @@ test("projects authorization through an explicit fully-qualified namespaced cont
     },
     async (root) => {
       const graph = await buildAssuranceGraph(root);
+      console.log("AUDITSPEC_NAMESPACED_AUTH_NODES", JSON.stringify(
+        graph.nodes.filter((node) => node.roles.includes("authorization")).map((node) => ({
+          name: node.name,
+          qualified_name: node.qualified_name,
+          path: node.location.path,
+        })),
+      ));
       const action = graph.nodes.find((node) => node.qualified_name === "Admin::InvoicesController#update");
       assert.ok(action);
       assert.ok(action.roles.includes("authorization"));
