@@ -74,14 +74,18 @@ Supported callback evidence requires:
 - optionally multiple literal callback methods;
 - optional literal `only` and `except` filters using symbols, symbol arrays, or `%i[...]`;
 - a resolved callback method whose body contains authorization semantics already recognized by the deterministic Ruby adapter, such as `authorize`, `policy_scope`, `allowed_to?`, or `can?`;
-- either a callback in the routed controller itself or an unambiguous, literal, non-namespaced superclass chain such as `InvoicesController < SecuredController < ApplicationController`;
-- or a literal `include AuthorizationConcern` on a supported controller in that chain, where the module is uniquely resolved, uses `extend ActiveSupport::Concern`, has a single literal `included do ... end` block, and defines the referenced authorization callback method itself.
+- either a callback in the routed controller itself or an unambiguous literal superclass chain such as `InvoicesController < SecuredController < ApplicationController`;
+- explicit fully-qualified namespaced superclass chains such as `Admin::InvoicesController < Admin::BaseController` when each namespaced class declaration and superclass reference can be matched exactly;
+- or a literal concern include on a supported controller in that chain, where the module is uniquely resolved, uses `extend ActiveSupport::Concern`, has a single literal `included do ... end` block, and defines the referenced authorization callback method itself;
+- explicit fully-qualified concern identities such as `include Admin::AuthorizationConcern` paired with `module Admin::AuthorizationConcern` are supported when they resolve uniquely.
 
 Only the `authorization` assurance role is projected onto the routed action. Audit or transaction roles are not projected from callbacks because observing those operations inside a callback does not prove that the later business mutation shares the same audit or transactional semantics.
 
-Conditional callbacks such as `if:` or `unless:`, dynamic callback names, dynamic or namespaced concern inclusion, non-`ActiveSupport::Concern` modules, malformed or ambiguous concern sources, namespaced superclass traversal, ambiguous superclass sources, and files containing `skip_before_action` do not currently produce positive callback authorization evidence. The resolver fails closed rather than assuming that a callback applies.
+Conditional callbacks such as `if:` or `unless:`, dynamic callback names, dynamic concern inclusion, non-`ActiveSupport::Concern` modules, malformed or ambiguous concern sources, ambiguous superclass sources, files containing `skip_before_action`, and namespace semantics that require Ruby lexical constant lookup do not produce positive callback authorization evidence. The resolver fails closed rather than assuming that a callback applies.
 
-ActionCable dispatch, supported `scope` variants, constraints, namespaced callback inheritance, nested or namespaced concern composition, concern dependencies, and additional framework-generated dispatch remain outside the current v0.1 resolver.
+In particular, lexical nesting such as `module Admin; class InvoicesController ... end; end` or nested concern declarations is not treated as equivalent to an explicit fully-qualified declaration in this v0.1 proof model.
+
+ActionCable dispatch, supported `scope` variants, constraints, lexical/nested concern composition, concern dependencies, and additional framework-generated dispatch remain outside the current v0.1 resolver.
 
 ## All-path assurance
 
@@ -132,7 +136,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, local, inherited, and concern-derived callback authorization, topology change, and an authorized-path-plus-bypass-path scenario.
+Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, local, inherited, concern-derived, and explicit fully-qualified namespaced callback authorization, topology change, and an authorized-path-plus-bypass-path scenario.
 
 ## Findings
 
