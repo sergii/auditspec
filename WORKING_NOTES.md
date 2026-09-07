@@ -160,13 +160,15 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Calls are attached to owning Ruby method/Python function scopes, so unrelated audit calls in the same file do not cover a mutation.
 - A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
 - Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nested-resource composition, ActiveJob/Sidekiq dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
+- Routed Rails controller actions can inherit the `authorization` assurance role from same-controller literal `before_action` callbacks when the callback method contains authorization semantics recognized by the deterministic Ruby adapter.
+- Callback authorization projection supports literal callback method names and literal `only`/`except`; conditional, dynamic, inherited, concern-provided, or skipped callbacks fail closed rather than strengthening assurance.
 - Stable boundary fingerprints permit line-independent base/head reachability comparison.
 - Assurance Graph topology diff tracks new/removed entrypoints, framework dispatches and entrypoint-to-mutation paths by semantic identity rather than source line.
 - Canonical all-path Inspector evaluates every resolved entrypoint path up to a bounded cap instead of trusting only the strongest path.
 - Mixed-path gaps produce `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002`.
 - Path enumeration is capped at 64 paths / depth 8; truncation downgrades the boundary to `unknown/low` rather than creating optimistic coverage.
 - Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
-- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, and namespaced/nested resource dispatch.
+- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested resource dispatch, and callback-derived authorization.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening status
@@ -177,10 +179,11 @@ Completed:
 - synchronized the runtime working backlog with implemented observation scope, query/diff, comparability and authorization-producer capabilities.
 - added conservative Rails `resources`/`resource` resolution with literal `only`, `except`, `path`, `param` and `controller` options.
 - added literal `namespace` and nested resource composition, with dynamic/unsupported routing constructs failing closed rather than producing guessed framework edges.
+- added conservative same-controller Rails `before_action` authorization projection with literal `only`/`except` filtering and fail-closed handling for conditional, dynamic and skipped callbacks.
 
 Remaining release backlog:
 
-- Expand Rails framework resolution for callbacks, concerns, ActionCable, supported `scope` variants, constraints and additional framework-generated dispatch.
+- Expand Rails framework resolution for inherited callbacks, concerns, ActionCable, supported `scope` variants, constraints and additional framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
