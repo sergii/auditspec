@@ -6,7 +6,7 @@ import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } 
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
 import { actionCableDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
-import { resourceRouteDeclarations } from "./rails-routes.js";
+import { railsRouteDeclarations, type RailsRouteDeclaration } from "./rails-routes.js";
 
 export type AssuranceRole = "entrypoint" | "authorization" | "transaction" | "mutation" | "audit";
 export type AssuranceFramework = "rails" | "frappe";
@@ -251,25 +251,8 @@ function lineAt(source: string, offset: number): number {
   return source.slice(0, offset).split("\n").length;
 }
 
-function routeDeclarations(source: string): Array<{ verb: string; path: string; controller: string; action: string; line: number }> {
-  const results: Array<{ verb: string; path: string; controller: string; action: string; line: number }> = [];
-  const patterns = [
-    /^\s*(get|post|put|patch|delete)\s+["']([^"']+)["']\s*,\s*to:\s*["']([^"'#]+)#([^"']+)["']/gm,
-    /^\s*(get|post|put|patch|delete)\s+["']([^"']+)["']\s*=>\s*["']([^"'#]+)#([^"']+)["']/gm,
-  ];
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      results.push({
-        verb: match[1]!.toUpperCase(),
-        path: match[2]!,
-        controller: match[3]!,
-        action: match[4]!,
-        line: lineAt(source, match.index ?? 0),
-      });
-    }
-  }
-  results.push(...resourceRouteDeclarations(source));
-  return results;
+function routeDeclarations(source: string): RailsRouteDeclaration[] {
+  return railsRouteDeclarations(source);
 }
 
 function dottedTarget(callText: string): string | undefined {
@@ -467,7 +450,11 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
       const target = indexed.find((item) => item.node.qualified_name === targetName);
       if (!target) continue;
       const location: SourceLocation = { path: "config/routes.rb", line: route.line, column: 1 };
-      const surface = frameworkSurface("ruby", "rails", "rails_route", `${route.verb} ${route.path} -> ${route.controller}#${route.action}`, location);
+      const constraintSuffix = route.constraints?.length
+        ? ` [constraints: ${route.constraints.join(" && ")}]`
+        : "";
+      const detail = `${route.verb} ${route.path} -> ${route.controller}#${route.action}${constraintSuffix}`;
+      const surface = frameworkSurface("ruby", "rails", "rails_route", detail, location);
       nodes.push(surface);
       pushEdge({
         from: surface.id,
