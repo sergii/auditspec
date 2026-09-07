@@ -81,12 +81,8 @@ function parseActionOption(options: string, key: "only" | "except"): Set<string>
 
 function literalOption(options: string, key: "controller" | "path" | "param"): string | null | undefined {
   if (!new RegExp(`\\b${key}:`).test(options)) return undefined;
-  const match = new RegExp(`\\b${key}:\\s*(?:["']([^"']+)["']|:([A-Za-z_][A-Za-z0-9_\\/]*) )`.replace("*) )", "*))")).exec(options);
-  if (!match) {
-    const corrected = new RegExp(`\\b${key}:\\s*(?:["']([^"']+)["']|:([A-Za-z_][A-Za-z0-9_\\/]*))`).exec(options);
-    return corrected ? (corrected[1] ?? corrected[2]!) : null;
-  }
-  return match[1] ?? match[2]!;
+  const match = new RegExp(`\\b${key}:\\s*(?:["']([^"']+)["']|:([A-Za-z_][A-Za-z0-9_\\/]*))`).exec(options);
+  return match ? (match[1] ?? match[2]!) : null;
 }
 
 function selectedActions(kind: RailsResourceKind, options: string): Set<string> | null {
