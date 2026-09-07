@@ -120,7 +120,7 @@ test("projects inherited ApplicationController authorization onto a routed actio
   );
 });
 
-test("does not claim inherited authorization for namespaced controller chains", async () => {
+test("projects authorization through an explicit fully-qualified namespaced controller chain", async () => {
   await withRepo(
     {
       "config/routes.rb": [
@@ -128,18 +128,52 @@ test("does not claim inherited authorization for namespaced controller chains", 
         "  resources :invoices, only: :update",
         "end",
       ].join("\n"),
-      "app/controllers/application_controller.rb": [
-        "class ApplicationController < ActionController::Base",
-        "  before_action :authorize_request",
+      "app/controllers/admin/base_controller.rb": [
+        "class Admin::BaseController < ApplicationController",
+        "  before_action :authorize_admin",
         "  private",
-        "  def authorize_request",
+        "  def authorize_admin",
+        "    authorize current_user",
+        "  end",
+        "end",
+      ].join("\n"),
+      "app/controllers/admin/invoices_controller.rb": [
+        "class Admin::InvoicesController < Admin::BaseController",
+        "  def update",
+        "    invoice.update!(status: 'approved')",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const action = graph.nodes.find((node) => node.qualified_name === "Admin::InvoicesController#update");
+      assert.ok(action);
+      assert.ok(action.roles.includes("authorization"));
+    },
+  );
+});
+
+test("fails closed for lexical-module namespaced inheritance", async () => {
+  await withRepo(
+    {
+      "config/routes.rb": [
+        "namespace :admin do",
+        "  resources :invoices, only: :update",
+        "end",
+      ].join("\n"),
+      "app/controllers/admin/base_controller.rb": [
+        "class Admin::BaseController < ApplicationController",
+        "  before_action :authorize_admin",
+        "  private",
+        "  def authorize_admin",
         "    authorize current_user",
         "  end",
         "end",
       ].join("\n"),
       "app/controllers/admin/invoices_controller.rb": [
         "module Admin",
-        "  class InvoicesController < ApplicationController",
+        "  class InvoicesController < Admin::BaseController",
         "    def update",
         "      invoice.update!(status: 'approved')",
         "    end",
