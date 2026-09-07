@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
+import { beforeActionCallbacks } from "./rails-callbacks.js";
 import { resourceRouteDeclarations } from "./rails-routes.js";
 
 export type AssuranceRole = "entrypoint" | "authorization" | "transaction" | "mutation" | "audit";
@@ -539,6 +540,21 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
   const routedControllers = new Set(
     edges.filter((edge) => edge.kind === "framework_dispatch" && edge.framework?.kind === "rails_route").map((edge) => edge.to),
   );
+
+  for (const targetId of routedControllers) {
+    const target = indexed.find((item) => item.node.id === targetId);
+    if (!target || target.node.language !== "ruby") continue;
+    const controller = target.node.qualified_name.split("#")[0];
+    if (!controller) continue;
+
+    const callbacks = beforeActionCallbacks(target.source, controller, target.node.name);
+    const hasAuthorizationCallback = callbacks.some((callback) => {
+      const callbackNode = indexed.find((item) => item.node.qualified_name === `${controller}#${callback.method}`);
+      return callbackNode?.node.roles.includes("authorization") ?? false;
+    });
+    if (hasAuthorizationCallback) addRole(target.node, "authorization");
+  }
+
   for (const item of indexed) {
     if (item.node.language === "ruby" && item.node.location.path.startsWith("app/controllers/") && !routedControllers.has(item.node.id)) {
       addRole(item.node, "entrypoint");
