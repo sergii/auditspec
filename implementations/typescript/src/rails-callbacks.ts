@@ -1,3 +1,5 @@
+import { findAstCalls } from "./ast-calls.js";
+
 export interface RailsBeforeAction {
   method: string;
   line: number;
@@ -207,6 +209,28 @@ function exactConcernSource(
   return matches.length === 1 ? matches[0]! : null;
 }
 
+function authorizationMethodKnown(
+  source: string,
+  method: string,
+  authorizationMethods: ReadonlySet<string>,
+  expectedQualifiedName?: string,
+): boolean {
+  if (expectedQualifiedName && authorizationMethods.has(`${expectedQualifiedName}#${method}`)) return true;
+
+  const scan = findAstCalls(source, "ruby");
+  if (!scan.parsed) return false;
+
+  const scopes = new Map<string, string>();
+  for (const call of scan.calls) {
+    if (call.scope?.name !== method) continue;
+    scopes.set(call.scope.id, call.scope.qualified_name);
+  }
+
+  if (scopes.size !== 1) return false;
+  const qualifiedName = [...scopes.values()][0];
+  return qualifiedName ? authorizationMethods.has(qualifiedName) : false;
+}
+
 function hasConcernAuthorization(
   source: string,
   action: string,
@@ -218,7 +242,12 @@ function hasConcernAuthorization(
     if (!concernSource) continue;
 
     const callbacks = concernBeforeActionCallbacks(concernSource.source, concern, action);
-    if (callbacks.some((callback) => authorizationMethods.has(`${concern}#${callback.method}`))) {
+    if (callbacks.some((callback) => authorizationMethodKnown(
+      concernSource.source,
+      callback.method,
+      authorizationMethods,
+      concern,
+    ))) {
       return true;
     }
   }
@@ -237,7 +266,12 @@ export function hasAuthorizationBeforeAction(input: RailsAuthorizationCallbackIn
 
     if (!callbackCompositionSupported(currentSource)) return false;
     const callbacks = beforeActionCallbacks(currentSource, currentController, input.action);
-    if (callbacks.some((callback) => input.authorization_methods.has(`${currentController}#${callback.method}`))) {
+    if (callbacks.some((callback) => authorizationMethodKnown(
+      currentSource,
+      callback.method,
+      input.authorization_methods,
+      currentController,
+    ))) {
       return true;
     }
     if (hasConcernAuthorization(currentSource, input.action, input.controller_sources, input.authorization_methods)) {
