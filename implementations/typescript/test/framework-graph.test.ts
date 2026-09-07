@@ -58,6 +58,174 @@ test("links an explicit Rails route to its controller action", async () => {
   );
 });
 
+test("expands top-level Rails resources into RESTful route surfaces", async () => {
+  await withRepo(
+    {
+      "config/routes.rb": [
+        "Rails.application.routes.draw do",
+        "  resources :invoices",
+        "end",
+      ].join("\n"),
+      "app/controllers/invoices_controller.rb": [
+        "class InvoicesController < ApplicationController",
+        "  def index",
+        "    Invoice.all",
+        "  end",
+        "  def create",
+        "    Invoice.create!",
+        "  end",
+        "  def new",
+        "    Invoice.new",
+        "  end",
+        "  def show",
+        "    Invoice.find(params[:id])",
+        "  end",
+        "  def edit",
+        "    Invoice.find(params[:id])",
+        "  end",
+        "  def update",
+        "    Invoice.find(params[:id]).update!(invoice_params)",
+        "  end",
+        "  def destroy",
+        "    Invoice.find(params[:id]).destroy!",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const details = graph.nodes
+        .filter((node) => node.kind === "surface" && node.surface?.kind === "rails_route")
+        .map((node) => node.surface!.detail);
+
+      assert.ok(details.includes("GET /invoices -> invoices#index"));
+      assert.ok(details.includes("POST /invoices -> invoices#create"));
+      assert.ok(details.includes("GET /invoices/new -> invoices#new"));
+      assert.ok(details.includes("GET /invoices/:id -> invoices#show"));
+      assert.ok(details.includes("GET /invoices/:id/edit -> invoices#edit"));
+      assert.ok(details.includes("PATCH /invoices/:id -> invoices#update"));
+      assert.ok(details.includes("PUT /invoices/:id -> invoices#update"));
+      assert.ok(details.includes("DELETE /invoices/:id -> invoices#destroy"));
+
+      const update = graph.nodes.find((node) => node.qualified_name === "InvoicesController#update");
+      assert.ok(update);
+      assert.equal(
+        graph.edges.filter((edge) => edge.kind === "framework_dispatch" && edge.to === update.id && edge.framework?.kind === "rails_route").length,
+        2,
+      );
+    },
+  );
+});
+
+test("honors Rails resources only and except filters", async () => {
+  await withRepo(
+    {
+      "config/routes.rb": [
+        "Rails.application.routes.draw do",
+        "  resources :invoices, only: [:show, :update]",
+        "  resources :receipts, except: %i[destroy edit]",
+        "end",
+      ].join("\n"),
+      "app/controllers/invoices_controller.rb": [
+        "class InvoicesController < ApplicationController",
+        "  def show",
+        "    Invoice.find(params[:id])",
+        "  end",
+        "  def update",
+        "    Invoice.find(params[:id]).update!(invoice_params)",
+        "  end",
+        "end",
+      ].join("\n"),
+      "app/controllers/receipts_controller.rb": [
+        "class ReceiptsController < ApplicationController",
+        "  def show",
+        "    Receipt.find(params[:id])",
+        "  end",
+        "  def edit",
+        "    Receipt.find(params[:id])",
+        "  end",
+        "  def destroy",
+        "    Receipt.find(params[:id]).destroy!",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const details = graph.nodes
+        .filter((node) => node.kind === "surface" && node.surface?.kind === "rails_route")
+        .map((node) => node.surface!.detail);
+
+      assert.ok(details.includes("GET /invoices/:id -> invoices#show"));
+      assert.ok(details.includes("PATCH /invoices/:id -> invoices#update"));
+      assert.ok(details.includes("PUT /invoices/:id -> invoices#update"));
+      assert.ok(!details.some((detail) => detail.includes("invoices#index")));
+      assert.ok(!details.some((detail) => detail.includes("receipts#destroy")));
+      assert.ok(!details.some((detail) => detail.includes("receipts#edit")));
+    },
+  );
+});
+
+test("expands a simple singular Rails resource with its plural controller", async () => {
+  await withRepo(
+    {
+      "config/routes.rb": [
+        "Rails.application.routes.draw do",
+        "  resource :profile, only: [:show, :update]",
+        "end",
+      ].join("\n"),
+      "app/controllers/profiles_controller.rb": [
+        "class ProfilesController < ApplicationController",
+        "  def show",
+        "    Profile.current",
+        "  end",
+        "  def update",
+        "    Profile.current.update!(profile_params)",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const details = graph.nodes
+        .filter((node) => node.kind === "surface" && node.surface?.kind === "rails_route")
+        .map((node) => node.surface!.detail);
+
+      assert.ok(details.includes("GET /profile -> profiles#show"));
+      assert.ok(details.includes("PATCH /profile -> profiles#update"));
+      assert.ok(details.includes("PUT /profile -> profiles#update"));
+    },
+  );
+});
+
+test("does not invent root resource routes inside unsupported Rails namespaces", async () => {
+  await withRepo(
+    {
+      "config/routes.rb": [
+        "Rails.application.routes.draw do",
+        "  namespace :admin do",
+        "    resources :invoices, only: [:show]",
+        "  end",
+        "end",
+      ].join("\n"),
+      "app/controllers/invoices_controller.rb": [
+        "class InvoicesController < ApplicationController",
+        "  def show",
+        "    Invoice.find(params[:id])",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const details = graph.nodes
+        .filter((node) => node.kind === "surface" && node.surface?.kind === "rails_route")
+        .map((node) => node.surface!.detail);
+      assert.ok(!details.some((detail) => detail.includes("invoices#show")));
+    },
+  );
+});
+
 test("links ActiveJob perform_later to the perform entrypoint", async () => {
   await withRepo(
     {
