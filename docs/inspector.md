@@ -45,7 +45,7 @@ A boundary is `reachable` only when the Assurance Graph can trace it to a known 
 
 A reachable boundary records confidence, the resolved entrypoint, framework attribution when known, and a representative path of qualified scopes/surfaces.
 
-Current entrypoint evidence can include explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nesting, controller fallbacks, ActiveJob/Sidekiq workers, conservative ActionCable channel actions/lifecycle callbacks, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
+Current entrypoint evidence can include context-aware explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace/nesting/`scope` composition and literal constraint metadata, controller fallbacks, ActiveJob/Sidekiq workers, conservative ActionCable channel actions/lifecycle callbacks, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
 
 Reachability is static evidence. It does not prove that a path executed in production. Runtime Corroboration can independently support, contradict, or remain inconclusive about static observations without rewriting the static Assessment Report.
 
@@ -53,16 +53,23 @@ Reachability is static evidence. It does not prove that a path executed in produ
 
 The v0.1 Rails route resolver expands only routing declarations whose dispatch can be determined conservatively from source.
 
-Supported resource routing includes:
+Supported routing includes:
 
+- explicit `get`, `post`, `put`, `patch`, and `delete` routes with a literal controller/action target;
 - `resources` and singular `resource`;
 - literal `only` and `except` action filters;
-- literal `path`, `param`, and `controller` options;
+- literal `path`, `param`, and `controller` resource options;
 - literal `namespace :name do ... end` blocks;
 - nested `resources`/`resource` blocks, including parent member parameters;
-- combinations of supported namespaces and nested resource declarations.
+- literal `scope` blocks with a positional path and/or literal `path`, `module`, and `as` options;
+- combinations of supported namespaces, scopes, and nested resource declarations;
+- literal `constraints ... do` blocks whose constraint hash uses simple scalar string, symbol, numeric, or boolean values.
 
-Unsupported or dynamic routing constructs do not produce optimistic framework edges. For example, dynamic option objects, conditional route declarations, unsupported `scope` blocks, constraints, and resource options whose semantics are not modeled are skipped rather than guessed.
+Routing context is applied to both resource expansion and explicit routes. For example, an explicit route under `scope '/v1', module: :api` resolves to the scoped path and `Api::*Controller` target rather than also producing an optimistic root-route edge.
+
+Static route constraints are preserved in the canonical framework-surface detail and therefore participate in stable topology identity. A constraint is only a condition on when an entrypoint matches. It MUST NOT be treated as authorization evidence and MUST NOT be used to claim that a route is unreachable.
+
+Unsupported or dynamic routing constructs do not produce optimistic framework edges. Examples include dynamic scope path/module values, callable or object-backed constraints, complex constraint expressions outside the literal scalar subset, conditional route declarations, and resource options whose semantics are not modeled. Per-resource `constraints:` options remain outside this v0.1 subset.
 
 ### Rails callback authorization boundary
 
@@ -85,7 +92,7 @@ Conditional callbacks such as `if:` or `unless:`, dynamic callback names, dynami
 
 In particular, lexical nesting such as `module Admin; class InvoicesController ... end; end` or nested concern declarations is not treated as equivalent to an explicit fully-qualified declaration in this v0.1 proof model.
 
-Supported `scope` variants, constraints, lexical/nested concern composition, concern dependencies, and additional framework-generated dispatch remain outside the current v0.1 resolver.
+Lexical/nested concern composition, concern dependencies, more complex route constraints, and additional framework-generated dispatch remain outside the current v0.1 resolver.
 
 ### Rails ActionCable boundary
 
@@ -154,7 +161,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, local, inherited, concern-derived, and explicit fully-qualified namespaced callback authorization, ActionCable public/lifecycle dispatch, non-public channel exclusion, namespaced channel identities, subscription/action authorization separation, topology change, and an authorized-path-plus-bypass-path scenario.
+Synthetic regression tests additionally cover explicit route exposure, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint surface identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable public/lifecycle dispatch, non-public channel exclusion, namespaced channel identities, subscription/action authorization separation, topology change, and an authorized-path-plus-bypass-path scenario.
 
 ## Findings
 
