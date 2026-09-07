@@ -3,6 +3,11 @@ export interface RailsBeforeAction {
   line: number;
 }
 
+export interface RailsControllerDeclaration {
+  declared_name: string;
+  superclass?: string;
+}
+
 const SUPPORTED_CALLBACK_OPTIONS = new Set(["only", "except"]);
 
 function parseActionOption(options: string, key: "only" | "except"): Set<string> | null | undefined {
@@ -24,14 +29,29 @@ function parseActionOption(options: string, key: "only" | "except"): Set<string>
   return null;
 }
 
-function controllerDeclarationMatches(source: string, controllerQualifiedName: string): boolean {
-  const declarations = [...source.matchAll(/^\s*class\s+([A-Za-z_][A-Za-z0-9_:]*Controller)\b/gm)].map((match) => match[1]!);
-  if (declarations.length !== 1) return false;
+export function controllerDeclaration(
+  source: string,
+  controllerQualifiedName: string,
+): RailsControllerDeclaration | null {
+  const declarations = [...source.matchAll(
+    /^\s*class\s+([A-Za-z_][A-Za-z0-9_:]*Controller)\b(?:\s*<\s*([A-Za-z_][A-Za-z0-9_:]*))?/gm,
+  )];
+  if (declarations.length !== 1) return null;
 
-  const declared = declarations[0]!;
+  const declared = declarations[0]![1]!;
   const expectedLast = controllerQualifiedName.split("::").at(-1);
   const declaredLast = declared.split("::").at(-1);
-  return declared === controllerQualifiedName || declaredLast === expectedLast;
+  if (declared !== controllerQualifiedName && declaredLast !== expectedLast) return null;
+
+  return {
+    declared_name: declared,
+    superclass: declarations[0]![2],
+  };
+}
+
+export function callbackCompositionSupported(source: string): boolean {
+  // A skip can change inherited/local callback semantics in ways this v0.1 resolver does not model yet.
+  return !/^\s*skip_before_action\b/m.test(source);
 }
 
 function callbackOptionsSupported(options: string): boolean {
@@ -64,10 +84,8 @@ export function beforeActionCallbacks(
   controllerQualifiedName: string,
   action: string,
 ): RailsBeforeAction[] {
-  if (!controllerDeclarationMatches(source, controllerQualifiedName)) return [];
-
-  // A skip can change inheritance/local callback semantics in ways this v0.1 resolver does not model yet.
-  if (/^\s*skip_before_action\b/m.test(source)) return [];
+  if (!controllerDeclaration(source, controllerQualifiedName)) return [];
+  if (!callbackCompositionSupported(source)) return [];
 
   const results: RailsBeforeAction[] = [];
   const lines = source.split("\n");
