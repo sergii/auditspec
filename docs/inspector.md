@@ -45,9 +45,26 @@ A boundary is `reachable` only when the Assurance Graph can trace it to a known 
 
 A reachable boundary records confidence, the resolved entrypoint, framework attribution when known, and a representative path of qualified scopes/surfaces.
 
-Current entrypoint evidence can include explicit Rails routes, controller fallbacks, ActiveJob/Sidekiq workers, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
+Current entrypoint evidence can include explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nesting, controller fallbacks, ActiveJob/Sidekiq workers, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
 
 Reachability is static evidence. It does not prove that a path executed in production. Future runtime evidence may corroborate or contradict it.
+
+### Rails route DSL boundary
+
+The v0.1 Rails route resolver expands only routing declarations whose dispatch can be determined conservatively from source.
+
+Supported resource routing includes:
+
+- `resources` and singular `resource`;
+- literal `only` and `except` action filters;
+- literal `path`, `param`, and `controller` options;
+- literal `namespace :name do ... end` blocks;
+- nested `resources`/`resource` blocks, including parent member parameters;
+- combinations of supported namespaces and nested resource declarations.
+
+Unsupported or dynamic routing constructs do not produce optimistic framework edges. For example, dynamic option objects, conditional route declarations, unsupported `scope` blocks, constraints, and resource options whose semantics are not modeled are skipped rather than guessed.
+
+Callbacks, concerns, ActionCable dispatch, and additional framework-generated routing surfaces remain outside the current v0.1 route resolver.
 
 ## All-path assurance
 
