@@ -4,6 +4,7 @@ export interface RailsRouteDeclaration {
   controller: string;
   action: string;
   line: number;
+  constraints?: string[];
 }
 
 type RailsResourceKind = "resources" | "resource";
@@ -12,6 +13,7 @@ interface RouteContext {
   supported: boolean;
   path_prefix: string;
   controller_prefix: string;
+  constraints: string[];
 }
 
 interface ResourceExpansion {
@@ -75,7 +77,7 @@ function parseActionOption(options: string, key: "only" | "except"): Set<string>
   return null;
 }
 
-function literalOption(options: string, key: "controller" | "path" | "param"): string | null | undefined {
+function literalOption(options: string, key: "controller" | "path" | "param" | "module" | "as"): string | null | undefined {
   if (!new RegExp(`\\b${key}:`).test(options)) return undefined;
   const match = new RegExp(`\\b${key}:\\s*(?:["']([^"']+)["']|:([A-Za-z_][A-Za-z0-9_\\/]*))`).exec(options);
   return match ? (match[1] ?? match[2]!) : null;
@@ -120,7 +122,7 @@ function normalizedPathSegment(value: string): string | undefined {
 
 function joinPath(prefix: string, segment: string): string | undefined {
   const normalized = normalizedPathSegment(segment);
-  if (!normalized) return undefined;
+  if (!normalized) return prefix || "/";
   return `${prefix}/${normalized}`.replace(/\/{2,}/g, "/");
 }
 
@@ -168,7 +170,15 @@ function routesForResource(
   const routes: RailsRouteDeclaration[] = [];
 
   const add = (action: string, verb: string, path: string): void => {
-    if (actions.has(action)) routes.push({ verb, path, controller, action, line });
+    if (!actions.has(action)) return;
+    routes.push({
+      verb,
+      path,
+      controller,
+      action,
+      line,
+      ...(context.constraints.length > 0 ? { constraints: [...context.constraints] } : {}),
+    });
   };
 
   if (kind === "resources") add("index", "GET", basePath);
@@ -189,6 +199,7 @@ function routesForResource(
         supported: true,
         path_prefix: basePath,
         controller_prefix: context.controller_prefix,
+        constraints: [...context.constraints],
       },
     };
   }
@@ -201,6 +212,7 @@ function routesForResource(
       supported: true,
       path_prefix: `${basePath}/:${singular}_${param}`,
       controller_prefix: context.controller_prefix,
+      constraints: [...context.constraints],
     },
   };
 }
@@ -213,11 +225,117 @@ function namespaceContext(current: RouteContext, name: string, options: string):
     supported: true,
     path_prefix: pathPrefix,
     controller_prefix: joinController(current.controller_prefix, name),
+    constraints: [...current.constraints],
   };
 }
 
+function removeLiteralOption(options: string, key: "path" | "module" | "as"): string {
+  return options.replace(
+    new RegExp(`\\b${key}:\\s*(?:["'][^"']+["']|:[A-Za-z_][A-Za-z0-9_\\/]*)`),
+    "",
+  );
+}
+
+function scopeContext(current: RouteContext, argumentsText: string): RouteContext | null {
+  let remaining = argumentsText.trim();
+  let positionalPath: string | undefined;
+
+  const positional = /^(?:["']([^"']+)["']|:([A-Za-z_][A-Za-z0-9_]*))(?:\s*,|$)/.exec(remaining);
+  if (positional) {
+    positionalPath = positional[1] ?? positional[2]!;
+    remaining = remaining.slice(positional[0].length).trim();
+  }
+
+  const pathOption = literalOption(remaining, "path");
+  const moduleOption = literalOption(remaining, "module");
+  const asOption = literalOption(remaining, "as");
+  if (pathOption === null || moduleOption === null || asOption === null) return null;
+  if (positionalPath && pathOption !== undefined) return null;
+
+  remaining = removeLiteralOption(remaining, "path");
+  remaining = removeLiteralOption(remaining, "module");
+  remaining = removeLiteralOption(remaining, "as");
+  if (!/^[,\s]*$/.test(remaining)) return null;
+
+  const pathSegment = pathOption ?? positionalPath;
+  const pathPrefix = pathSegment === undefined
+    ? current.path_prefix
+    : joinPath(current.path_prefix, pathSegment);
+  if (pathPrefix === undefined) return null;
+
+  return {
+    supported: true,
+    path_prefix: pathPrefix,
+    controller_prefix: moduleOption === undefined
+      ? current.controller_prefix
+      : joinController(current.controller_prefix, moduleOption),
+    constraints: [...current.constraints],
+  };
+}
+
+function literalConstraintSummary(argumentsText: string): string | null {
+  let remaining = argumentsText.trim();
+  if (remaining.startsWith("{") && remaining.endsWith("}")) {
+    remaining = remaining.slice(1, -1).trim();
+  }
+  if (!remaining) return null;
+
+  const pairPattern = /([A-Za-z_][A-Za-z0-9_]*):\s*(?:["']([^"']*)["']|:([A-Za-z_][A-Za-z0-9_]*)|(-?\d+(?:\.\d+)?)|(true|false))/g;
+  const normalized: string[] = [];
+  let scrubbed = remaining;
+  for (const match of remaining.matchAll(pairPattern)) {
+    const key = match[1]!;
+    const value = match[2] !== undefined
+      ? JSON.stringify(match[2])
+      : match[3] !== undefined
+        ? `:${match[3]}`
+        : match[4] ?? match[5]!;
+    normalized.push(`${key}: ${value}`);
+    scrubbed = scrubbed.replace(match[0], "");
+  }
+
+  if (normalized.length === 0 || !/^[,\s]*$/.test(scrubbed)) return null;
+  return normalized.join(", ");
+}
+
+function constraintsContext(current: RouteContext, argumentsText: string): RouteContext | null {
+  const summary = literalConstraintSummary(argumentsText);
+  if (!summary) return null;
+  return {
+    ...current,
+    constraints: [...current.constraints, summary],
+  };
+}
+
+function explicitRouteDeclaration(code: string, line: number, context: RouteContext): RailsRouteDeclaration | null {
+  const patterns = [
+    /^(get|post|put|patch|delete)\s+["']([^"']+)["']\s*,\s*to:\s*["']([^"'#]+)#([^"']+)["']\s*$/,
+    /^(get|post|put|patch|delete)\s+["']([^"']+)["']\s*=>\s*["']([^"'#]+)#([^"']+)["']\s*$/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(code);
+    if (!match) continue;
+    const path = joinPath(context.path_prefix, match[2]!);
+    if (!path) return null;
+    return {
+      verb: match[1]!.toUpperCase(),
+      path,
+      controller: joinController(context.controller_prefix, match[3]!),
+      action: match[4]!,
+      line,
+      ...(context.constraints.length > 0 ? { constraints: [...context.constraints] } : {}),
+    };
+  }
+  return null;
+}
+
 function unsupportedContext(): RouteContext {
-  return { supported: false, path_prefix: "", controller_prefix: "" };
+  return { supported: false, path_prefix: "", controller_prefix: "", constraints: [] };
+}
+
+function rootContext(): RouteContext {
+  return { supported: true, path_prefix: "", controller_prefix: "", constraints: [] };
 }
 
 function opensUnsupportedBlock(code: string): boolean {
@@ -225,7 +343,7 @@ function opensUnsupportedBlock(code: string): boolean {
     || /^(?:if|unless|case|begin|for|while|until)\b/.test(code);
 }
 
-export function resourceRouteDeclarations(source: string): RailsRouteDeclaration[] {
+function parseRouteDeclarations(source: string, includeExplicit: boolean): RailsRouteDeclaration[] {
   const results: RailsRouteDeclaration[] = [];
   const stack: RouteContext[] = [];
   const lines = source.split("\n");
@@ -239,7 +357,12 @@ export function resourceRouteDeclarations(source: string): RailsRouteDeclaration
     if (!inRoutes) {
       if (/\.routes\.draw\s+do\s*$/.test(code)) {
         inRoutes = true;
-        stack.push({ supported: true, path_prefix: "", controller_prefix: "" });
+        stack.push(rootContext());
+        continue;
+      }
+      if (includeExplicit) {
+        const explicit = explicitRouteDeclaration(code, line, rootContext());
+        if (explicit) results.push(explicit);
       }
       continue;
     }
@@ -260,6 +383,20 @@ export function resourceRouteDeclarations(source: string): RailsRouteDeclaration
       continue;
     }
 
+    const scopeMatch = /^scope\s+(.+?)\s+do\s*$/.exec(code);
+    if (scopeMatch) {
+      const next = current.supported ? scopeContext(current, scopeMatch[1]!) : null;
+      stack.push(next ?? unsupportedContext());
+      continue;
+    }
+
+    const constraintsMatch = /^constraints\s+(.+?)\s+do\s*$/.exec(code);
+    if (constraintsMatch) {
+      const next = current.supported ? constraintsContext(current, constraintsMatch[1]!) : null;
+      stack.push(next ?? unsupportedContext());
+      continue;
+    }
+
     const resourceMatch = /^(resources|resource)\s+:([A-Za-z_][A-Za-z0-9_]*)(.*)$/.exec(code);
     if (resourceMatch) {
       const kind = resourceMatch[1] as RailsResourceKind;
@@ -276,8 +413,24 @@ export function resourceRouteDeclarations(source: string): RailsRouteDeclaration
       continue;
     }
 
+    if (includeExplicit && current.supported) {
+      const explicit = explicitRouteDeclaration(code, line, current);
+      if (explicit) {
+        results.push(explicit);
+        continue;
+      }
+    }
+
     if (opensUnsupportedBlock(code)) stack.push(unsupportedContext());
   }
 
   return results;
+}
+
+export function resourceRouteDeclarations(source: string): RailsRouteDeclaration[] {
+  return parseRouteDeclarations(source, false);
+}
+
+export function railsRouteDeclarations(source: string): RailsRouteDeclaration[] {
+  return parseRouteDeclarations(source, true);
 }
