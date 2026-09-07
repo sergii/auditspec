@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
+import { resourceRouteDeclarations } from "./rails-routes.js";
 
 export type AssuranceRole = "entrypoint" | "authorization" | "transaction" | "mutation" | "audit";
 export type AssuranceFramework = "rails" | "frappe";
@@ -265,6 +266,7 @@ function routeDeclarations(source: string): Array<{ verb: string; path: string; 
       });
     }
   }
+  results.push(...resourceRouteDeclarations(source));
   return results;
 }
 
