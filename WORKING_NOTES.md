@@ -161,16 +161,16 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
 - Framework-aware graph surfaces/dispatch currently cover explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace and nested-resource composition, ActiveJob/Sidekiq dispatch, Frappe whitelist functions, `doc_events`, `scheduler_events`, and dotted `frappe.enqueue` targets.
 - Routed Rails controller actions can inherit the `authorization` assurance role from literal `before_action` callbacks when the callback method contains authorization semantics recognized by the deterministic Ruby adapter.
-- Callback authorization projection supports same-controller callbacks plus unambiguous non-namespaced literal superclass chains, with literal `only`/`except` filtering.
-- Canonical `ActiveSupport::Concern` callback projection supports literal `include SomeConcern`, a unique non-namespaced concern module, a single literal `included do ... end` block, and callback methods defined by that concern.
-- Conditional or dynamic callbacks, dynamic/namespaced concern inclusion, namespaced inheritance, ambiguous sources, and skipped callbacks fail closed rather than strengthening assurance.
+- Callback authorization projection supports same-controller callbacks, unambiguous non-namespaced literal superclass chains, and explicit fully-qualified namespaced superclass chains, with literal `only`/`except` filtering.
+- Canonical `ActiveSupport::Concern` callback projection supports literal `include SomeConcern` and explicit qualified `include Admin::SomeConcern`, a unique matching concern module, a single literal `included do ... end` block, and callback methods defined by that concern.
+- Conditional or dynamic callbacks, dynamic concern inclusion, ambiguous sources, skipped callbacks, and namespace semantics requiring lexical Ruby constant lookup fail closed rather than strengthening assurance.
 - Stable boundary fingerprints permit line-independent base/head reachability comparison.
 - Assurance Graph topology diff tracks new/removed entrypoints, framework dispatches and entrypoint-to-mutation paths by semantic identity rather than source line.
 - Canonical all-path Inspector evaluates every resolved entrypoint path up to a bounded cap instead of trusting only the strongest path.
 - Mixed-path gaps produce `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002`.
 - Path enumeration is capped at 64 paths / depth 8; truncation downgrades the boundary to `unknown/low` rather than creating optimistic coverage.
 - Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
-- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested resource dispatch, and local/inherited/concern-derived callback authorization.
+- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested resource dispatch, and local/inherited/concern-derived/explicit-namespaced callback authorization.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening status
@@ -181,12 +181,13 @@ Completed:
 - synchronized the runtime working backlog with implemented observation scope, query/diff, comparability and authorization-producer capabilities.
 - added conservative Rails `resources`/`resource` resolution with literal `only`, `except`, `path`, `param` and `controller` options.
 - added literal `namespace` and nested resource composition, with dynamic/unsupported routing constructs failing closed rather than producing guessed framework edges.
-- added conservative Rails `before_action` authorization projection with literal `only`/`except` filtering, same-controller support and unambiguous non-namespaced superclass traversal.
+- added conservative Rails `before_action` authorization projection with literal `only`/`except` filtering, same-controller support and unambiguous superclass traversal.
 - added conservative `ActiveSupport::Concern` callback authorization projection for literal concern inclusion and concern-defined authorization callback methods.
+- added explicit fully-qualified namespaced controller inheritance and concern identities while keeping lexical namespace lookup fail closed.
 
 Remaining release backlog:
 
-- Expand Rails framework resolution for namespaced callback inheritance, nested/namespaced concern composition, ActionCable, supported `scope` variants, constraints and additional framework-generated dispatch.
+- Expand Rails framework resolution for lexical/nested concern composition, ActionCable, supported `scope` variants, constraints and additional framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
