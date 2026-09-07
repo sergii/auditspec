@@ -29,6 +29,36 @@ test("Ruby AST attaches calls to the owning method scope", () => {
   assert.match(mutation.scope.qualified_name, /ApproveInvoice.*call/);
 });
 
+test("diagnoses explicit namespaced Ruby scope qualification", () => {
+  const controller = [
+    "class Admin::BaseController < ApplicationController",
+    "  def authorize_admin",
+    "    authorize current_user",
+    "  end",
+    "end",
+  ].join("\n");
+  const concern = [
+    "module Admin::AuthorizationConcern",
+    "  extend ActiveSupport::Concern",
+    "  def authorize_request",
+    "    authorize current_user",
+    "  end",
+    "end",
+  ].join("\n");
+
+  const controllerScopes = findAstCalls(controller, "ruby").calls
+    .filter((call) => call.scope)
+    .map((call) => ({ method: call.method, scope: call.scope!.qualified_name }));
+  const concernScopes = findAstCalls(concern, "ruby").calls
+    .filter((call) => call.scope)
+    .map((call) => ({ method: call.method, scope: call.scope!.qualified_name }));
+
+  console.log("AUDITSPEC_NAMESPACED_CONTROLLER_SCOPES", JSON.stringify(controllerScopes));
+  console.log("AUDITSPEC_NAMESPACED_CONCERN_SCOPES", JSON.stringify(concernScopes));
+  assert.ok(controllerScopes.length > 0);
+  assert.ok(concernScopes.length > 0);
+});
+
 test("Python AST exposes full call targets", () => {
   const source = [
     "import frappe",
