@@ -21,7 +21,7 @@ AuditSpec should evolve from an event schema into an executable assurance ecosys
 - Control mappings without compliance overclaiming.
 - Evidence querying.
 - NIST-schema-valid OSCAL Assessment Results export with explicit assessor context.
-- Runtime corroboration with explicit producer trust, observation coverage and static/runtime separation.
+- Runtime corroboration with explicit producer trust, observation coverage, observation scope, provenance, query/diff semantics and static/runtime separation.
 - Machine-readable framework and runtime-producer capability registries.
 
 ## GitHub direction
@@ -42,7 +42,8 @@ Potential runtime PR/continuous-assurance ratchets:
 - new static path with no corresponding runtime evidence should remain informational unless observation scope is known to be relevant;
 - static/runtime contradiction should be a separate signal, not a rewrite of the static finding;
 - only `not_observed + exhaustive` may produce a non-observation contradiction;
-- evidence freshness/observation-window expiry should prevent stale runtime observations from being treated as current corroboration.
+- evidence freshness/observation-window expiry should prevent stale runtime observations from being treated as current corroboration;
+- comparability-aware Corroboration Diffs may feed future regression policy, but `no_longer_reported` must never be treated as automatic remediation.
 
 ## Agent / MCP direction
 
@@ -54,6 +55,7 @@ list framework/runtime capabilities
   -> build/diff assurance graph
   -> query static evidence
   -> ingest/corroborate runtime evidence
+  -> query/diff runtime corroboration
   -> explain
   -> plan remediation
   -> coding agent changes
@@ -93,25 +95,29 @@ AuditSpec MCP must not duplicate Inspector semantics and should keep source-writ
 Implemented L4 foundation:
 
 - `RuntimeEvidenceRecord` schema;
+- `ObservationScope` schema with declared/partial/unknown basis;
 - `CorroborationReport` schema;
+- `CorroborationDiff` schema and comparability semantics;
+- `CorroborationQueryResult` schema with preserved source observation scope and provenance;
 - `observed -> supports`;
 - `contradicted -> contradicts`;
 - `not_observed + exhaustive -> contradicts`;
 - bounded non-observation -> `inconclusive`;
-- CLI `corroborate`;
-- MCP `auditspec.corroborate_runtime`;
+- CLI `corroborate`, `diff-corroboration` and `query-corroboration`;
+- MCP `auditspec.corroborate_runtime`, `auditspec.diff_runtime_corroboration`, `auditspec.query_runtime_corroboration` and producer registry tools;
 - TypeScript/Python/Ruby schema conformance;
 - reference OpenTelemetry producer with explicit target fingerprints;
+- reference authorization-decision producer with narrow decision authority semantics;
 - reference database receipt producer for transaction/audit/outbox persistence;
 - reference delivery receipt producer;
 - machine-readable runtime producer manifests with separate CI validation;
-- producer-to-corroboration integration tests.
+- producer-to-corroboration integration tests;
+- observation-scope comparability across environment, observation-window duration, collection policy and producer set.
 
 Runtime evidence is corroboration, not business-semantic truth. eBPF can prove process/syscall/network/file observations but cannot independently prove that a SQL write means `invoice.approve`.
 
 Next runtime producer candidates:
 
-- authorization-decision producer from the policy engine or application authorization boundary;
 - reverse-proxy/request receipt producer;
 - Linux Audit / osquery / ETW adapters;
 - Tetragon/Falco/eBPF producer for kernel-visible facts;
@@ -119,11 +125,11 @@ Next runtime producer candidates:
 
 Runtime hardening backlog:
 
-- define observation-window identity and freshness/expiry semantics;
+- define evidence freshness/expiry semantics on top of the current explicit observation scope;
 - define whether an evidence record may supersede/revoke a prior record without destroying append-only history;
 - add integrity/signature fields or a separate signed evidence envelope;
-- define explicit producer authority scopes as policy inputs, not only documentation;
-- add static/runtime contradiction diff/ratchet without conflating it with static Assessment Diff;
+- define explicit producer authority scopes as policy inputs, not only documentation/manifests;
+- promote comparability-aware Corroboration Diff into explicit PR/continuous-assurance ratchet policy without conflating it with static Assessment Diff;
 - add multi-producer corroboration rules without naive majority voting;
 - add temporal graph/history views for evidence freshness and contradiction resolution;
 - preserve trace/request/session/tool-call correlation but never create semantic graph edges from correlation coincidence alone.
@@ -163,13 +169,19 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Synthetic PR tests cover new route exposure, graph topology change, and authorization bypass through an alternate route.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
-## Release hardening backlog
+## Release hardening status
+
+Completed:
+
+- added the Apache License 2.0 `LICENSE` file and aligned README licensing.
+- synchronized the runtime working backlog with implemented observation scope, query/diff, comparability and authorization-producer capabilities.
+
+Remaining release backlog:
 
 - Expand Rails framework resolution for `resources`, nested/namespaced routes, callbacks, concerns, ActionCable and framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
-- Add actual Apache-2.0 LICENSE before tag.
 - Review every current `future`/`planned` statement in README/docs against implementation before release.
 - Remove/promote this working notes file before the first release.
 - Squash the v0.1 working history into a clean release commit.
