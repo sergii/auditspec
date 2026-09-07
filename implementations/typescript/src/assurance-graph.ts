@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
+import { actionCableDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { resourceRouteDeclarations } from "./rails-routes.js";
 
@@ -474,6 +475,34 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
         kind: "framework_dispatch",
         confidence: "high",
         framework: { kind: "rails_route", detail: surface.surface!.detail, location },
+      });
+    }
+  }
+
+  for (const [path, source] of sourceByPath) {
+    if (!path.startsWith("app/channels/") || !path.endsWith(".rb")) continue;
+    const methods = indexed
+      .filter((item) => item.node.language === "ruby" && item.node.location.path === path && typeof item.node.location.line === "number")
+      .map((item) => ({
+        name: item.node.name,
+        qualified_name: item.node.qualified_name,
+        line: item.node.location.line!,
+      }));
+
+    for (const dispatch of actionCableDispatches(source, path, methods)) {
+      const target = indexed.find(
+        (item) => item.node.location.path === path && item.node.qualified_name === dispatch.target_qualified_name,
+      );
+      if (!target) continue;
+      const location: SourceLocation = { path, line: dispatch.line, column: 1 };
+      const surface = frameworkSurface("ruby", "rails", dispatch.surface_kind, dispatch.detail, location);
+      nodes.push(surface);
+      pushEdge({
+        from: surface.id,
+        to: target.node.id,
+        kind: "framework_dispatch",
+        confidence: "high",
+        framework: { kind: dispatch.surface_kind, detail: dispatch.detail, location },
       });
     }
   }
