@@ -8,6 +8,20 @@ export interface RailsControllerDeclaration {
   superclass?: string;
 }
 
+export interface RailsControllerSource {
+  path: string;
+  source: string;
+}
+
+export interface RailsAuthorizationCallbackInput {
+  target_source: string;
+  controller: string;
+  action: string;
+  controller_sources: RailsControllerSource[];
+  authorization_methods: ReadonlySet<string>;
+  max_depth?: number;
+}
+
 const SUPPORTED_CALLBACK_OPTIONS = new Set(["only", "except"]);
 
 function parseActionOption(options: string, key: "only" | "except"): Set<string> | null | undefined {
@@ -108,4 +122,47 @@ export function beforeActionCallbacks(
   }
 
   return results;
+}
+
+function exactControllerSource(
+  sources: RailsControllerSource[],
+  controller: string,
+): RailsControllerSource | null {
+  const matches = sources.filter((candidate) => {
+    const declaration = controllerDeclaration(candidate.source, controller);
+    return declaration?.declared_name === controller;
+  });
+  return matches.length === 1 ? matches[0]! : null;
+}
+
+export function hasAuthorizationBeforeAction(input: RailsAuthorizationCallbackInput): boolean {
+  const maxDepth = input.max_depth ?? 8;
+  let currentController = input.controller;
+  let currentSource = input.target_source;
+  const visited = new Set<string>();
+
+  for (let depth = 0; depth < maxDepth; depth += 1) {
+    if (visited.has(currentController)) return false;
+    visited.add(currentController);
+
+    if (!callbackCompositionSupported(currentSource)) return false;
+    const callbacks = beforeActionCallbacks(currentSource, currentController, input.action);
+    if (callbacks.some((callback) => input.authorization_methods.has(`${currentController}#${callback.method}`))) {
+      return true;
+    }
+
+    // v0.1 inheritance proof intentionally stops at namespaced controller chains.
+    if (currentController.includes("::")) return false;
+
+    const declaration = controllerDeclaration(currentSource, currentController);
+    const superclass = declaration?.superclass;
+    if (!superclass || superclass.includes("::") || !superclass.endsWith("Controller")) return false;
+
+    const parentSource = exactControllerSource(input.controller_sources, superclass);
+    if (!parentSource) return false;
+    currentController = superclass;
+    currentSource = parentSource.source;
+  }
+
+  return false;
 }
