@@ -71,13 +71,11 @@ export function concernDeclaration(
   source: string,
   concernQualifiedName: string,
 ): RailsConcernDeclaration | null {
-  if (concernQualifiedName.includes("::")) return null;
-
   const declarations = [...source.matchAll(/^\s*module\s+([A-Z][A-Za-z0-9_:]*)\b/gm)];
   if (declarations.length !== 1) return null;
 
   const declared = declarations[0]![1]!;
-  if (declared !== concernQualifiedName || declared.includes("::")) return null;
+  if (declared !== concernQualifiedName) return null;
   if (!/^\s*extend\s+ActiveSupport::Concern\s*(?:#.*)?$/m.test(source)) return null;
 
   return { declared_name: declared };
@@ -184,7 +182,7 @@ function literalConcernIncludes(source: string): string[] {
   const concerns: string[] = [];
   for (const line of source.split("\n")) {
     const code = line.replace(/#.*$/, "").trim();
-    const match = /^include\s+([A-Z][A-Za-z0-9_]*)$/.exec(code);
+    const match = /^include\s+([A-Z][A-Za-z0-9_]*(?:::[A-Z][A-Za-z0-9_]*)*)$/.exec(code);
     if (match) concerns.push(match[1]!);
   }
   return [...new Set(concerns)];
@@ -246,12 +244,16 @@ export function hasAuthorizationBeforeAction(input: RailsAuthorizationCallbackIn
       return true;
     }
 
-    // v0.1 inheritance proof intentionally stops at namespaced controller chains.
-    if (currentController.includes("::")) return false;
-
     const declaration = controllerDeclaration(currentSource, currentController);
-    const superclass = declaration?.superclass;
-    if (!superclass || superclass.includes("::") || !superclass.endsWith("Controller")) return false;
+    if (!declaration) return false;
+
+    // Namespaced inheritance is only proven for explicit fully-qualified class declarations.
+    // Lexical module nesting remains fail-closed because Ruby constant lookup can be context-dependent.
+    if (currentController.includes("::") && declaration.declared_name !== currentController) return false;
+
+    const superclass = declaration.superclass;
+    if (!superclass || !superclass.endsWith("Controller")) return false;
+    if (currentController.includes("::") && !superclass.includes("::")) return false;
 
     const parentSource = exactControllerSource(input.controller_sources, superclass);
     if (!parentSource) return false;
