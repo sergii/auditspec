@@ -306,4 +306,4 @@ The intended ecosystem includes stronger framework adapters, agent-native remedi
 
 ## License
 
-Apache-2.0 is intended for the project. A full license file will be added before the first tagged release.
+Licensed under the Apache License, Version 2.0. See `LICENSE`.
