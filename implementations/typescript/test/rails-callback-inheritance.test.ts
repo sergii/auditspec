@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -173,15 +173,32 @@ test("projects authorization through an explicit fully-qualified namespaced cont
     },
     async (root) => {
       const graph = await buildAssuranceGraph(root);
-      console.log("AUDITSPEC_NAMESPACED_AUTH_NODES", JSON.stringify(
-        graph.nodes.filter((node) => node.roles.includes("authorization")).map((node) => ({
-          name: node.name,
-          qualified_name: node.qualified_name,
-          path: node.location.path,
-        })),
-      ));
       const action = graph.nodes.find((node) => node.qualified_name === "Admin::InvoicesController#update");
       assert.ok(action);
+
+      const routeEdges = graph.edges.filter((edge) => edge.framework?.kind === "rails_route" && edge.to === action.id);
+      const authorizationMethods = new Set(
+        graph.nodes.filter((node) => node.roles.includes("authorization")).map((node) => node.qualified_name),
+      );
+      const baseSource = await readFile(join(root, "app/controllers/admin/base_controller.rb"), "utf8");
+      const invoiceSource = await readFile(join(root, "app/controllers/admin/invoices_controller.rb"), "utf8");
+      const directProjection = hasAuthorizationBeforeAction({
+        target_source: invoiceSource,
+        controller: "Admin::InvoicesController",
+        action: "update",
+        controller_sources: [
+          { path: "app/controllers/admin/base_controller.rb", source: baseSource },
+          { path: "app/controllers/admin/invoices_controller.rb", source: invoiceSource },
+        ],
+        authorization_methods: authorizationMethods,
+      });
+
+      console.log("AUDITSPEC_NAMESPACED_ROUTE_EDGES", JSON.stringify(routeEdges.map((edge) => edge.framework?.detail)));
+      console.log("AUDITSPEC_NAMESPACED_AUTH_METHODS", JSON.stringify([...authorizationMethods]));
+      console.log("AUDITSPEC_NAMESPACED_DIRECT_PROJECTION", directProjection);
+
+      assert.ok(routeEdges.length > 0);
+      assert.equal(directProjection, true);
       assert.ok(action.roles.includes("authorization"));
     },
   );
