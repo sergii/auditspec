@@ -77,10 +77,14 @@ The after-commit callback is not delivery durability. If it fails, the database 
 
 The current Inspector adapter is `rails-ast-assisted-v0.1`. It combines AST mutation discovery with Rails routes, controllers, jobs, ActionCable channel dispatch and Assurance Graph paths. Static evidence remains conservative and is not runtime proof.
 
+The route graph supports conservative literal `resources`/`resource`, namespaces, nesting, and literal `scope` composition. Supported `scope` forms may provide a positional path or literal `path`, `module`, and `as` options. Context is applied to both resource expansion and explicit `get`/`post`/`put`/`patch`/`delete` dispatch, so a scoped explicit route is not also treated as an unscoped root route.
+
+Literal `constraints ... do` blocks with simple scalar key/value pairs are preserved in the canonical route-surface identity. A constraint remains a condition on an external entrypoint; it is not treated as authorization and it does not prove that a route is unreachable. Dynamic scopes, callable/complex constraints, and unsupported per-route routing options fail closed rather than producing guessed dispatch edges.
+
 For ActionCable, the v0.1 graph models direct public methods on explicitly declared channel classes as client-callable RPC surfaces, plus direct `subscribed` and `unsubscribed` lifecycle callbacks. Private/protected methods, indirect channel inheritance, lexical namespace resolution, inherited/concern-provided channel actions and connection-level `connect`/`disconnect` semantics are not guessed.
 
 Authorization observed in `subscribed` is not automatically projected onto later RPC actions. Proving that stateful subscription authorization protects every later action requires a stronger framework/runtime model than the current static graph provides.
 
 Model versioning libraries such as PaperTrail or Audited can coexist with AuditSpec. They answer lower-level history questions; AuditSpec focuses on semantic actions, responsibility/delegation, authorization, execution results, correlation, redaction and evidence.
 
-Further Rails work can deepen Pundit/CanCanCan decision evidence, ActiveJob/Sidekiq context propagation, ActionCable connection/inheritance semantics, supported routing `scope`/constraint variants and runtime corroboration without changing the Core event contract.
+Further Rails work can deepen Pundit/CanCanCan decision evidence, ActiveJob/Sidekiq context propagation, ActionCable connection/inheritance semantics, lexical/nested concern composition, more complex route constraints/framework-generated dispatch and runtime corroboration without changing the Core event contract.
