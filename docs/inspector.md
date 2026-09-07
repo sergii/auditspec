@@ -64,7 +64,22 @@ Supported resource routing includes:
 
 Unsupported or dynamic routing constructs do not produce optimistic framework edges. For example, dynamic option objects, conditional route declarations, unsupported `scope` blocks, constraints, and resource options whose semantics are not modeled are skipped rather than guessed.
 
-Callbacks, concerns, ActionCable dispatch, and additional framework-generated routing surfaces remain outside the current v0.1 route resolver.
+### Rails callback authorization boundary
+
+The v0.1 Rails adapter can project authorization evidence from a conservative subset of controller `before_action` callbacks onto a routed controller action.
+
+Supported callback evidence requires:
+
+- a literal `before_action :method` callback in the same controller source;
+- optionally multiple literal callback methods;
+- optional literal `only` and `except` filters using symbols, symbol arrays, or `%i[...]`;
+- a resolved callback method whose body contains authorization semantics already recognized by the deterministic Ruby adapter, such as `authorize`, `policy_scope`, `allowed_to?`, or `can?`.
+
+Only the `authorization` assurance role is projected onto the routed action. Audit or transaction roles are not projected from callbacks because observing those operations inside a callback does not prove that the later business mutation shares the same audit or transactional semantics.
+
+Conditional callbacks such as `if:` or `unless:`, dynamic callback names, inherited callbacks, concern-provided callbacks, and files containing `skip_before_action` do not currently produce positive callback authorization evidence. The resolver fails closed rather than assuming that a callback applies.
+
+Concerns, ActionCable dispatch, supported `scope` variants, constraints, inherited callback composition, and additional framework-generated dispatch remain outside the current v0.1 resolver.
 
 ## All-path assurance
 
@@ -115,7 +130,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, topology change, and an authorized-path-plus-bypass-path scenario.
+Synthetic regression tests additionally cover explicit route exposure, namespaced and nested resource dispatch, callback-derived authorization, topology change, and an authorized-path-plus-bypass-path scenario.
 
 ## Findings
 
