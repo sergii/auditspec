@@ -75,8 +75,12 @@ The after-commit callback is not delivery durability. If it fails, the database 
 
 ## Inspector
 
-The current Inspector adapter is `rails-ast-assisted-v0.1`. It combines AST mutation discovery with Rails routes, controllers, jobs and Assurance Graph paths. Static evidence remains conservative and is not runtime proof.
+The current Inspector adapter is `rails-ast-assisted-v0.1`. It combines AST mutation discovery with Rails routes, controllers, jobs, ActionCable channel dispatch and Assurance Graph paths. Static evidence remains conservative and is not runtime proof.
+
+For ActionCable, the v0.1 graph models direct public methods on explicitly declared channel classes as client-callable RPC surfaces, plus direct `subscribed` and `unsubscribed` lifecycle callbacks. Private/protected methods, indirect channel inheritance, lexical namespace resolution, inherited/concern-provided channel actions and connection-level `connect`/`disconnect` semantics are not guessed.
+
+Authorization observed in `subscribed` is not automatically projected onto later RPC actions. Proving that stateful subscription authorization protects every later action requires a stronger framework/runtime model than the current static graph provides.
 
 Model versioning libraries such as PaperTrail or Audited can coexist with AuditSpec. They answer lower-level history questions; AuditSpec focuses on semantic actions, responsibility/delegation, authorization, execution results, correlation, redaction and evidence.
 
-Further Rails work can deepen Pundit/CanCanCan decision evidence, ActiveJob/Sidekiq context propagation, callbacks, ActionCable surfaces and runtime corroboration without changing the Core event contract.
+Further Rails work can deepen Pundit/CanCanCan decision evidence, ActiveJob/Sidekiq context propagation, ActionCable connection/inheritance semantics, supported routing `scope`/constraint variants and runtime corroboration without changing the Core event contract.
