@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { buildAssuranceGraph } from "../src/assurance-graph.js";
+import { buildAssuranceGraph, findAssurancePath } from "../src/assurance-graph.js";
 import { actionCableDispatches } from "../src/rails-action-cable.js";
 
 async function withRepo(files: Record<string, string>, run: (root: string) => Promise<void>): Promise<void> {
@@ -148,6 +148,13 @@ test("builds ActionCable framework surfaces into the Assurance Graph", async () 
       assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === actionSurface.id && edge.to === speak.id));
       assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === subscribeSurface.id && edge.to === subscribed.id));
       assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === unsubscribeSurface.id && edge.to === unsubscribed.id));
+
+      const subscriptionPath = findAssurancePath(graph, subscribed.location);
+      const actionPath = findAssurancePath(graph, speak.location);
+      assert.ok(subscriptionPath);
+      assert.ok(actionPath);
+      assert.equal(subscriptionPath.roles.includes("authorization"), true);
+      assert.equal(actionPath.roles.includes("authorization"), false);
     },
   );
 });
