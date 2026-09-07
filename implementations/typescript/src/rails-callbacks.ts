@@ -8,6 +8,10 @@ export interface RailsControllerDeclaration {
   superclass?: string;
 }
 
+export interface RailsConcernDeclaration {
+  declared_name: string;
+}
+
 export interface RailsControllerSource {
   path: string;
   source: string;
@@ -63,6 +67,22 @@ export function controllerDeclaration(
   };
 }
 
+export function concernDeclaration(
+  source: string,
+  concernQualifiedName: string,
+): RailsConcernDeclaration | null {
+  if (concernQualifiedName.includes("::")) return null;
+
+  const declarations = [...source.matchAll(/^\s*module\s+([A-Z][A-Za-z0-9_:]*)\b/gm)];
+  if (declarations.length !== 1) return null;
+
+  const declared = declarations[0]![1]!;
+  if (declared !== concernQualifiedName || declared.includes("::")) return null;
+  if (!/^\s*extend\s+ActiveSupport::Concern\s*(?:#.*)?$/m.test(source)) return null;
+
+  return { declared_name: declared };
+}
+
 export function callbackCompositionSupported(source: string): boolean {
   // A skip can change inherited/local callback semantics in ways this v0.1 resolver does not model yet.
   return !/^\s*skip_before_action\b/m.test(source);
@@ -93,16 +113,8 @@ function methodsAndOptions(remainder: string): { methods: string[]; options: str
   return { methods: tokens.map((token) => token.slice(1)), options };
 }
 
-export function beforeActionCallbacks(
-  source: string,
-  controllerQualifiedName: string,
-  action: string,
-): RailsBeforeAction[] {
-  if (!controllerDeclaration(source, controllerQualifiedName)) return [];
-  if (!callbackCompositionSupported(source)) return [];
-
+function callbacksFromLines(lines: string[], action: string, firstLine = 1): RailsBeforeAction[] {
   const results: RailsBeforeAction[] = [];
-  const lines = source.split("\n");
 
   for (let index = 0; index < lines.length; index += 1) {
     const code = lines[index]!.replace(/#.*$/, "").trim();
@@ -118,10 +130,64 @@ export function beforeActionCallbacks(
     if (only && !only.has(action)) continue;
     if (except?.has(action)) continue;
 
-    for (const method of parsed.methods) results.push({ method, line: index + 1 });
+    for (const method of parsed.methods) results.push({ method, line: firstLine + index });
   }
 
   return results;
+}
+
+export function beforeActionCallbacks(
+  source: string,
+  controllerQualifiedName: string,
+  action: string,
+): RailsBeforeAction[] {
+  if (!controllerDeclaration(source, controllerQualifiedName)) return [];
+  if (!callbackCompositionSupported(source)) return [];
+  return callbacksFromLines(source.split("\n"), action);
+}
+
+function includedConcernBlock(source: string): { lines: string[]; first_line: number } | null {
+  const lines = source.split("\n");
+  const starts = lines
+    .map((line, index) => ({ line, index, match: /^(\s*)included\s+do\s*(?:#.*)?$/.exec(line) }))
+    .filter((entry) => entry.match);
+  if (starts.length !== 1) return null;
+
+  const start = starts[0]!;
+  const indent = start.match![1]!;
+  for (let index = start.index + 1; index < lines.length; index += 1) {
+    const match = /^(\s*)end\s*(?:#.*)?$/.exec(lines[index]!);
+    if (!match || match[1] !== indent) continue;
+    return {
+      lines: lines.slice(start.index + 1, index),
+      first_line: start.index + 2,
+    };
+  }
+
+  return null;
+}
+
+export function concernBeforeActionCallbacks(
+  source: string,
+  concernQualifiedName: string,
+  action: string,
+): RailsBeforeAction[] {
+  if (!concernDeclaration(source, concernQualifiedName)) return [];
+  if (!callbackCompositionSupported(source)) return [];
+
+  const block = includedConcernBlock(source);
+  if (!block) return [];
+  return callbacksFromLines(block.lines, action, block.first_line);
+}
+
+function literalConcernIncludes(source: string): string[] {
+  const concerns: string[] = [];
+  for (const line of source.split("\n")) {
+    const code = line.replace(/#.*$/, "").trim();
+    const match = /^include\s+([A-Z][A-Za-z0-9_]*)$/.exec(code);
+    if (match) concerns.push(match[1]!);
+  }
+  return [...new Set(concerns)];
 }
 
 function exactControllerSource(
@@ -133,6 +199,32 @@ function exactControllerSource(
     return declaration?.declared_name === controller;
   });
   return matches.length === 1 ? matches[0]! : null;
+}
+
+function exactConcernSource(
+  sources: RailsControllerSource[],
+  concern: string,
+): RailsControllerSource | null {
+  const matches = sources.filter((candidate) => concernDeclaration(candidate.source, concern)?.declared_name === concern);
+  return matches.length === 1 ? matches[0]! : null;
+}
+
+function hasConcernAuthorization(
+  source: string,
+  action: string,
+  sources: RailsControllerSource[],
+  authorizationMethods: ReadonlySet<string>,
+): boolean {
+  for (const concern of literalConcernIncludes(source)) {
+    const concernSource = exactConcernSource(sources, concern);
+    if (!concernSource) continue;
+
+    const callbacks = concernBeforeActionCallbacks(concernSource.source, concern, action);
+    if (callbacks.some((callback) => authorizationMethods.has(`${concern}#${callback.method}`))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function hasAuthorizationBeforeAction(input: RailsAuthorizationCallbackInput): boolean {
@@ -148,6 +240,9 @@ export function hasAuthorizationBeforeAction(input: RailsAuthorizationCallbackIn
     if (!callbackCompositionSupported(currentSource)) return false;
     const callbacks = beforeActionCallbacks(currentSource, currentController, input.action);
     if (callbacks.some((callback) => input.authorization_methods.has(`${currentController}#${callback.method}`))) {
+      return true;
+    }
+    if (hasConcernAuthorization(currentSource, input.action, input.controller_sources, input.authorization_methods)) {
       return true;
     }
 
