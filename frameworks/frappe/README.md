@@ -33,6 +33,23 @@ Common mutation surfaces include:
 
 Static evidence remains conservative. A resolved call path is not runtime proof.
 
+### Background enqueue dispatch
+
+The v0.1 Assurance Graph resolves Frappe background dispatch only from an exact `frappe.enqueue(...)` call with a statically literal dotted target.
+
+Supported forms are:
+
+```python
+frappe.enqueue("wiki.jobs.rebuild_index")
+frappe.enqueue(method="wiki.jobs.rebuild_index", queue="long")
+```
+
+The `method=` keyword is interpreted semantically rather than by taking the first dotted string from the call. For example, `queue="reports.high", method="wiki.jobs.rebuild_index"` resolves `wiki.jobs.rebuild_index`; the queue name cannot become a false job target.
+
+If `method=` is present but dynamic, AuditSpec fails closed even when another keyword contains a dotted string. Calls such as `queue.enqueue(...)`, imported aliases, direct function references, `*args`/`**kwargs`, and other forms requiring Python import/name resolution are not treated as proven Frappe dispatch in v0.1.
+
+A resolved target is linked to the actual Python function node and receives the `entrypoint` assurance role. This remains static framework evidence, not proof that the job executed.
+
 ## Transaction model
 
 Frappe owns the normal request/job transaction lifecycle:
