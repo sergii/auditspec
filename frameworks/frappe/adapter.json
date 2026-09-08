@@ -43,8 +43,11 @@
       "evidence": [
         "implementations/typescript/src/inspector-frappe.ts",
         "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/frappe-hooks.ts",
         "implementations/typescript/src/frappe-document-hooks.ts",
         "implementations/typescript/test/framework-graph.test.ts",
+        "implementations/typescript/test/frappe-hooks.test.ts",
+        "implementations/typescript/test/frappe-hooks-graph.test.ts",
         "implementations/typescript/test/frappe-enqueue-graph.test.ts",
         "implementations/typescript/test/frappe-enqueue-doc-graph.test.ts",
         "implementations/typescript/test/frappe-document-hooks.test.ts",
@@ -53,6 +56,8 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
+        "Frappe doc_events and scheduler_events are resolved only from one literal assignment with documented event keys and literal dotted handler strings/lists; scheduler cron maps are supported as literal nested maps.",
+        "Dynamic hook composition, later mutation/reassignment, duplicate literal keys, unknown event keys, and non-literal handler composition fail closed rather than producing optimistic hook dispatch edges.",
         "Frappe enqueue resolution supports exact frappe.enqueue calls whose target is a literal dotted positional string or literal dotted method= keyword value.",
         "Dynamic enqueue targets, imported aliases, direct function references, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges.",
         "frappe.enqueue_doc resolution supports exact calls with literal doctype and method identity; the document name may remain dynamic because it does not change the controller method target.",
