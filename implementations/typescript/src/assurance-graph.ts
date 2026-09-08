@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
-import { frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
+import { frappeDocumentControllerMethods, frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { railsRouteDeclarations, type RailsRouteDeclaration } from "./rails-routes.js";
@@ -268,7 +268,7 @@ function splitTopLevelCallArguments(callText: string, callee: string): string[] 
   if (!text.startsWith(prefix) || !text.endsWith(")")) return null;
 
   const body = text.slice(prefix.length, -1);
-  if (body.includes("'''" ) || body.includes('"""')) return null;
+  if (body.includes("'''") || body.includes('"""')) return null;
 
   const argumentsList: string[] = [];
   let start = 0;
@@ -317,9 +317,15 @@ function pythonKeywordArgument(argument: string): { name: string; value: string 
   return { name: match[1]!, value: match[2]!.trim() };
 }
 
-function literalDottedPythonString(value: string): string | undefined {
-  const match = /^(["'])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\1$/.exec(value.trim());
+function literalPythonString(value: string): string | undefined {
+  const match = /^(["'])([^\\\n\r]*)\1$/.exec(value.trim());
   return match?.[2];
+}
+
+function literalDottedPythonString(value: string): string | undefined {
+  const literal = literalPythonString(value);
+  if (!literal || !/^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(literal)) return undefined;
+  return literal;
 }
 
 function frappeEnqueueTarget(callText: string): string | undefined {
@@ -342,12 +348,75 @@ function frappeEnqueueTarget(callText: string): string | undefined {
   return literalDottedPythonString(positional[0]!);
 }
 
+function frappeEnqueueDocTarget(callText: string): { doctype: string; method: string } | undefined {
+  const argumentsList = splitTopLevelCallArguments(callText, "frappe.enqueue_doc");
+  if (!argumentsList || argumentsList.some((argument) => argument.trim().startsWith("*"))) return undefined;
+
+  const keywords = argumentsList
+    .map((argument) => pythonKeywordArgument(argument))
+    .filter((argument): argument is { name: string; value: string } => Boolean(argument));
+  const keywordNames = keywords.map((argument) => argument.name);
+  if (new Set(keywordNames).size !== keywordNames.length) return undefined;
+
+  const positionals = argumentsList.filter((argument) => !pythonKeywordArgument(argument));
+  const argumentFor = (name: string, index: number): string | undefined =>
+    keywords.find((argument) => argument.name === name)?.value ?? positionals[index];
+
+  const doctypeValue = argumentFor("doctype", 0);
+  const nameValue = argumentFor("name", 1);
+  const methodValue = argumentFor("method", 2);
+  if (!doctypeValue || !nameValue || !methodValue) return undefined;
+
+  const doctype = literalPythonString(doctypeValue);
+  const method = literalPythonString(methodValue);
+  if (!doctype || !method || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(method)) return undefined;
+  return { doctype, method };
+}
+
 function resolvePythonDottedTarget(indexed: IndexedScope[], target: string): IndexedScope | undefined {
   const parts = target.split(".");
   if (parts.length < 2) return undefined;
   const name = parts.at(-1)!;
   const modulePath = `${parts.slice(0, -1).join("/")}.py`;
   const candidates = indexed.filter((item) => item.node.language === "python" && item.node.name === name && item.node.location.path.endsWith(modulePath));
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
+function frappeDocTypeSlug(doctype: string): string | undefined {
+  const slug = doctype.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return slug || undefined;
+}
+
+function resolveFrappeDocumentMethod(
+  indexed: IndexedScope[],
+  sourceByPath: Map<string, string>,
+  doctype: string,
+  method: string,
+): IndexedScope | undefined {
+  const slug = frappeDocTypeSlug(doctype);
+  if (!slug) return undefined;
+  const controllerSuffix = `doctype/${slug}/${slug}.py`;
+  const candidates: IndexedScope[] = [];
+
+  for (const [path, source] of sourceByPath) {
+    if (path !== controllerSuffix && !path.endsWith(`/${controllerSuffix}`)) continue;
+    const methods = indexed
+      .filter((item) => item.node.language === "python" && item.node.location.path === path && typeof item.node.location.line === "number")
+      .map((item) => ({
+        name: item.node.name,
+        qualified_name: item.node.qualified_name,
+        line: item.node.location.line!,
+      }));
+    const resolvedMethods = frappeDocumentControllerMethods(source, path, methods)
+      .filter((candidate) => candidate.name === method);
+    for (const candidate of resolvedMethods) {
+      const indexedTarget = indexed.find(
+        (item) => item.node.location.path === path && item.node.qualified_name === candidate.qualified_name,
+      );
+      if (indexedTarget) candidates.push(indexedTarget);
+    }
+  }
+
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
@@ -671,20 +740,42 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
 
   for (const sourceScope of indexed.filter((item) => item.node.language === "python")) {
     for (const call of sourceScope.calls) {
-      if (call.callee !== "frappe.enqueue") continue;
-      const targetName = frappeEnqueueTarget(call.text);
-      if (!targetName) continue;
-      const target = resolvePythonDottedTarget(indexed, targetName);
-      if (!target) continue;
-      addRole(target.node, "entrypoint");
-      const location: SourceLocation = { path: sourceScope.node.location.path, line: call.line, column: call.column };
-      pushEdge({
-        from: sourceScope.node.id,
-        to: target.node.id,
-        kind: "framework_dispatch",
-        confidence: "high",
-        framework: { kind: "frappe_enqueue", detail: `frappe.enqueue -> ${targetName}`, location },
-      });
+      if (call.callee === "frappe.enqueue") {
+        const targetName = frappeEnqueueTarget(call.text);
+        if (!targetName) continue;
+        const target = resolvePythonDottedTarget(indexed, targetName);
+        if (!target) continue;
+        addRole(target.node, "entrypoint");
+        const location: SourceLocation = { path: sourceScope.node.location.path, line: call.line, column: call.column };
+        pushEdge({
+          from: sourceScope.node.id,
+          to: target.node.id,
+          kind: "framework_dispatch",
+          confidence: "high",
+          framework: { kind: "frappe_enqueue", detail: `frappe.enqueue -> ${targetName}`, location },
+        });
+        continue;
+      }
+
+      if (call.callee === "frappe.enqueue_doc") {
+        const dispatch = frappeEnqueueDocTarget(call.text);
+        if (!dispatch) continue;
+        const target = resolveFrappeDocumentMethod(indexed, sourceByPath, dispatch.doctype, dispatch.method);
+        if (!target) continue;
+        addRole(target.node, "entrypoint");
+        const location: SourceLocation = { path: sourceScope.node.location.path, line: call.line, column: call.column };
+        pushEdge({
+          from: sourceScope.node.id,
+          to: target.node.id,
+          kind: "framework_dispatch",
+          confidence: "high",
+          framework: {
+            kind: "frappe_enqueue_doc",
+            detail: `frappe.enqueue_doc ${dispatch.doctype}#${dispatch.method} -> ${target.node.qualified_name}`,
+            location,
+          },
+        });
+      }
     }
   }
 
