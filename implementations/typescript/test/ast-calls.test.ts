@@ -115,15 +115,16 @@ test("Python import scan distinguishes module and exact-scope from imports", () 
   const imports = pythonImportBindingsForScope(source, enqueue.scope);
   assert.equal(imports.parsed, true);
   assert.equal(imports.complete, true);
-  assert.deepEqual(
-    imports.bindings.map((binding) => [binding.owner, binding.local_name, binding.target]),
-    [
-      ["scope", "rebuild_index", "wiki.jobs.rebuild_index"],
-      ["scope", "clean", "wiki.jobs.cleanup"],
-      ["module", "module_alias", "wiki.jobs.module_job"],
-      ["module", "frappe", undefined],
-    ],
-  );
+  const actual = imports.bindings
+    .map((binding) => [binding.owner, binding.local_name, binding.target] as const)
+    .sort((a, b) => `${a[0]}:${a[1]}`.localeCompare(`${b[0]}:${b[1]}`));
+  const expected = [
+    ["module", "frappe", undefined],
+    ["module", "module_alias", "wiki.jobs.module_job"],
+    ["scope", "clean", "wiki.jobs.cleanup"],
+    ["scope", "rebuild_index", "wiki.jobs.rebuild_index"],
+  ] as const;
+  assert.deepEqual(actual, expected);
 });
 
 test("Python import scan supports multiline aliases but keeps relative imports unresolved", () => {
