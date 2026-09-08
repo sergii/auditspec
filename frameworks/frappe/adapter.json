@@ -43,14 +43,19 @@
       "evidence": [
         "implementations/typescript/src/inspector-frappe.ts",
         "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/frappe-document-hooks.ts",
         "implementations/typescript/test/framework-graph.test.ts",
         "implementations/typescript/test/frappe-enqueue-graph.test.ts",
+        "implementations/typescript/test/frappe-document-hooks.test.ts",
+        "implementations/typescript/test/frappe-document-hook-graph.test.ts",
         ".github/workflows/conformance.yml"
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
         "Frappe enqueue resolution supports exact frappe.enqueue calls whose target is a literal dotted positional string or literal dotted method= keyword value.",
-        "Dynamic enqueue targets, imported aliases, direct function references, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges."
+        "Dynamic enqueue targets, imported aliases, direct function references, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges.",
+        "Document lifecycle dispatch is modeled only for conventional .../doctype/<name>/<name>.py controllers with exactly one explicit Document or frappe.model.document.Document subclass.",
+        "Indirect or aliased Document bases, multiple candidate controller classes, non-conventional controller paths, and storage primitives such as db_insert/db_update do not create optimistic lifecycle dispatch edges."
       ]
     },
     "runtime_corroboration": {
