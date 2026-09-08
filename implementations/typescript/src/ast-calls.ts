@@ -86,6 +86,33 @@ function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined
   };
 }
 
+export function pythonDecoratorsForScope(source: string, scope: AstScope): string[] | null {
+  if (scope.kind !== "function") return [];
+
+  try {
+    const root = parse("python", source).root();
+    const definitions = root.findAll({ rule: { kind: "function_definition" } });
+    const definition = definitions.find((candidate) => {
+      const range = candidate.range();
+      return range.start.line + 1 === scope.start_line
+        && range.start.column + 1 === scope.start_column
+        && candidate.field("name")?.text() === scope.name;
+    });
+    if (!definition) return null;
+
+    const decorated = definition
+      .ancestors()
+      .find((ancestor) => String(ancestor.kind()) === "decorated_definition");
+    if (!decorated) return [];
+
+    return decorated
+      .findAll({ rule: { kind: "decorator" } })
+      .map((decorator) => decorator.text());
+  } catch {
+    return null;
+  }
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
