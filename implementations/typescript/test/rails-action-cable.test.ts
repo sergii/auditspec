@@ -58,6 +58,65 @@ test("resolves direct public ActionCable actions and lifecycle callbacks", () =>
   assert.equal(dispatches.some((dispatch) => dispatch.target_qualified_name === "ChatChannel#helper"), false);
 });
 
+test("resolves the conventional ApplicationCable connection lifecycle", () => {
+  const source = [
+    "module ApplicationCable",
+    "  class Connection < ActionCable::Connection::Base",
+    "    def connect",
+    "      authorize current_user",
+    "    end",
+    "",
+    "    def disconnect",
+    "      Presence.update!(online: false)",
+    "    end",
+    "  end",
+    "end",
+  ].join("\n");
+
+  const dispatches = actionCableDispatches(source, "app/channels/application_cable/connection.rb", [
+    { name: "connect", qualified_name: "ApplicationCable::Connection#connect", line: 3 },
+    { name: "disconnect", qualified_name: "ApplicationCable::Connection#disconnect", line: 7 },
+  ]);
+
+  assert.deepEqual(
+    dispatches.map(({ surface_kind, detail }) => ({ surface_kind, detail })),
+    [
+      {
+        surface_kind: "rails_action_cable_connect",
+        detail: "CONNECT -> ApplicationCable::Connection#connect",
+      },
+      {
+        surface_kind: "rails_action_cable_disconnect",
+        detail: "DISCONNECT -> ApplicationCable::Connection#disconnect",
+      },
+    ],
+  );
+});
+
+test("fails closed for custom or indirect ActionCable connection inheritance", () => {
+  const custom = [
+    "class RealtimeConnection < ActionCable::Connection::Base",
+    "  def connect",
+    "    authorize current_user",
+    "  end",
+    "end",
+  ].join("\n");
+  assert.deepEqual(actionCableDispatches(custom, "app/channels/realtime_connection.rb", [
+    { name: "connect", qualified_name: "RealtimeConnection#connect", line: 2 },
+  ]), []);
+
+  const inherited = [
+    "class ApplicationCable::Connection < SecuredConnection",
+    "  def connect",
+    "    authorize current_user",
+    "  end",
+    "end",
+  ].join("\n");
+  assert.deepEqual(actionCableDispatches(inherited, "app/channels/application_cable/connection.rb", [
+    { name: "connect", qualified_name: "ApplicationCable::Connection#connect", line: 2 },
+  ]), []);
+});
+
 test("fails closed for inherited, lexical-module, and non-public ActionCable actions", () => {
   const inherited = [
     "class ChatChannel < SecuredChannel",
@@ -154,6 +213,62 @@ test("builds ActionCable framework surfaces into the Assurance Graph", async () 
       assert.ok(subscriptionPath);
       assert.ok(actionPath);
       assert.equal(subscriptionPath.roles.includes("authorization"), true);
+      assert.equal(actionPath.roles.includes("authorization"), false);
+    },
+  );
+});
+
+test("builds connection lifecycle surfaces without projecting connection authorization onto channel actions", async () => {
+  await withRepo(
+    {
+      "app/channels/application_cable/connection.rb": [
+        "module ApplicationCable",
+        "  class Connection < ActionCable::Connection::Base",
+        "    def connect",
+        "      authorize current_user",
+        "    end",
+        "",
+        "    def disconnect",
+        "      Presence.update!(online: false)",
+        "    end",
+        "  end",
+        "end",
+      ].join("\n"),
+      "app/channels/chat_channel.rb": [
+        "class ChatChannel < ApplicationCable::Channel",
+        "  def speak(data)",
+        "    Message.create!(body: data['body'])",
+        "  end",
+        "end",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const connect = graph.nodes.find((node) => node.qualified_name === "ApplicationCable::Connection#connect");
+      const disconnect = graph.nodes.find((node) => node.qualified_name === "ApplicationCable::Connection#disconnect");
+      const speak = graph.nodes.find((node) => node.qualified_name === "ChatChannel#speak");
+      assert.ok(connect);
+      assert.ok(disconnect);
+      assert.ok(speak);
+
+      const connectSurface = graph.nodes.find(
+        (node) => node.surface?.kind === "rails_action_cable_connect"
+          && node.surface.detail === "CONNECT -> ApplicationCable::Connection#connect",
+      );
+      const disconnectSurface = graph.nodes.find(
+        (node) => node.surface?.kind === "rails_action_cable_disconnect"
+          && node.surface.detail === "DISCONNECT -> ApplicationCable::Connection#disconnect",
+      );
+      assert.ok(connectSurface);
+      assert.ok(disconnectSurface);
+      assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === connectSurface.id && edge.to === connect.id));
+      assert.ok(graph.edges.some((edge) => edge.kind === "framework_dispatch" && edge.from === disconnectSurface.id && edge.to === disconnect.id));
+
+      const connectionPath = findAssurancePath(graph, connect.location);
+      const actionPath = findAssurancePath(graph, speak.location);
+      assert.ok(connectionPath);
+      assert.ok(actionPath);
+      assert.equal(connectionPath.roles.includes("authorization"), true);
       assert.equal(actionPath.roles.includes("authorization"), false);
     },
   );
