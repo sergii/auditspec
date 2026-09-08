@@ -85,6 +85,7 @@ class LiteralParser {
   private parseDict(): LiteralValue | null {
     this.index += 1;
     const entries: Array<{ key: LiteralValue; value: LiteralValue }> = [];
+    const keys = new Set<string>();
     this.skipTrivia();
     if (this.source[this.index] === "}") {
       this.index += 1;
@@ -93,7 +94,8 @@ class LiteralParser {
 
     while (this.index < this.source.length) {
       const key = this.parseValue();
-      if (!key || key.kind !== "string") return null;
+      if (!key || key.kind !== "string" || keys.has(key.value)) return null;
+      keys.add(key.value);
       this.skipTrivia();
       if (this.source[this.index] !== ":") return null;
       this.index += 1;
@@ -137,12 +139,50 @@ function lineAt(source: string, offset: number): number {
   return source.slice(0, offset).split("\n").length;
 }
 
+function literalBlock(source: string, start: number): { text: string; offset: number } | null {
+  if (source[start] !== "{") return null;
+  let depth = 0;
+  let quote: string | null = null;
+  let inComment = false;
+
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index]!;
+    if (inComment) {
+      if (char === "\n") inComment = false;
+      continue;
+    }
+    if (quote) {
+      if (char === "\\") return null;
+      if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "#") {
+      inComment = true;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return { text: source.slice(start, index + 1), offset: start };
+    }
+  }
+  return null;
+}
+
 function assignmentLiteral(source: string, name: string): LiteralValue | null {
-  const assignment = new RegExp(`(?:^|\\n)\\s*${name}\\s*=\\s*`).exec(source);
-  if (!assignment || assignment.index === undefined) return null;
-  const start = assignment.index + assignment[0].length;
-  const parser = new LiteralParser(source.slice(start), start);
-  return parser.parse();
+  const assignments = [...source.matchAll(new RegExp(`^\\s*${name}\\s*=\\s*`, "gm"))];
+  if (assignments.length !== 1) return null;
+  if (new RegExp(`\\b${name}\\s*(?:\\.|\\+=|\\|=)`).test(source)) return null;
+
+  const assignment = assignments[0]!;
+  const start = (assignment.index ?? 0) + assignment[0].length;
+  const block = literalBlock(source, start);
+  if (!block) return null;
+  return new LiteralParser(block.text, block.offset).parse();
 }
 
 function dottedTarget(value: LiteralValue): value is Extract<LiteralValue, { kind: "string" }> {
