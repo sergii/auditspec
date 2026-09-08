@@ -33,6 +33,27 @@ Common mutation surfaces include:
 
 Static evidence remains conservative. A resolved call path is not runtime proof.
 
+### Whitelisted RPC entrypoints
+
+A Frappe function receives the `entrypoint` assurance role only when `@frappe.whitelist` is attributed to that exact Python function. AuditSpec no longer searches a loose window of preceding source lines.
+
+Supported forms include:
+
+```python
+@frappe.whitelist()
+def update_project(name):
+    ...
+
+@frappe.whitelist(allow_guest=True)
+@validate_request
+def public_update(name):
+    ...
+```
+
+The decorator block must be contiguous with the decorated `def`. A whitelist decorator on a neighboring function cannot strengthen a later function, even when it is only a few lines away.
+
+The v0.1 resolver deliberately supports single-line `@frappe.whitelist` and `@frappe.whitelist(...)` expressions. Multiline or otherwise dynamic decorator expressions fail closed until decorator AST attribution is expanded. This may produce `unknown`/missing static entrypoint evidence for an unusual valid decorator form, but it cannot create a false positive entrypoint from unrelated source text.
+
 ### Static hook dispatch
 
 The v0.1 Assurance Graph parses `doc_events` and `scheduler_events` as literal Frappe hook structures rather than searching every string inside `hooks.py`.
