@@ -7,17 +7,13 @@ export function isFrappeWhitelistedScope(source: string, scope: AstScope): boole
 
   const lines = source.split("\n");
   let index = scope.start_line - 2;
-  let sawDecorator = false;
 
   while (index >= 0) {
-    const line = lines[index] ?? "";
-    const trimmed = line.trim();
+    const trimmed = (lines[index] ?? "").trim();
     if (!trimmed.startsWith("@")) break;
-
-    sawDecorator = true;
     if (FRAPPE_WHITELIST_DECORATOR.test(trimmed)) return true;
     index -= 1;
   }
 
-  return sawDecorator ? false : false;
+  return false;
 }
