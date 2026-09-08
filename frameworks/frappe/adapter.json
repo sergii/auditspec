@@ -27,13 +27,15 @@
       ]
     },
     "behavioral_runtime_lab": {
-      "status": "partial",
-      "proof": "contract",
+      "status": "implemented",
+      "proof": "framework_runtime",
       "evidence": [
-        "frameworks/frappe/test_auditspec_frappe.py"
+        "lab/frappe-bench-atomicity/",
+        ".github/workflows/frappe-bench-atomicity.yml"
       ],
       "limitations": [
-        "No full pinned Frappe Bench site runtime failure-injection lab is implemented yet."
+        "The v0.1 lab uses a pinned Frappe Bench site backed by MariaDB and exercises Frappe request and background-job transaction functions in-process; it does not start an external HTTP server or a separate Redis/RQ worker process.",
+        "The proof does not upgrade explicit frappe.db.commit(), frappe.db.truncate(), custom database backends, or arbitrary extension code to normal rollback-capable same-transaction atomicity."
       ]
     },
     "inspector_adapter": {
