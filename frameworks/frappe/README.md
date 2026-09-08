@@ -89,18 +89,26 @@ Dynamic composition such as `**shared_hooks`, later `.update(...)` mutation, rea
 
 ### Background enqueue dispatch
 
-The v0.1 Assurance Graph resolves Frappe background dispatch only from an exact `frappe.enqueue(...)` call with a statically literal dotted target.
+The v0.1 Assurance Graph resolves Frappe background dispatch from an exact `frappe.enqueue(...)` call when callable identity can be proven conservatively.
 
-Supported forms are:
+Supported forms include literal dotted targets and unshadowed top-level function references from the same Python module:
 
 ```python
 frappe.enqueue("wiki.jobs.rebuild_index")
 frappe.enqueue(method="wiki.jobs.rebuild_index", queue="long")
+
+frappe.enqueue(rebuild_index, queue="long")
+frappe.enqueue(method=rebuild_index, queue="long")
+
+def rebuild_index():
+    ...
 ```
 
 The `method=` keyword is interpreted semantically rather than by taking the first dotted string from the call. For example, `queue="reports.high", method="wiki.jobs.rebuild_index"` resolves `wiki.jobs.rebuild_index`; the queue name cannot become a false job target.
 
-If `method=` is present but dynamic, AuditSpec fails closed even when another keyword contains a dotted string. Calls such as `queue.enqueue(...)`, imported aliases, direct function references, `*args`/`**kwargs`, and other forms requiring Python import/name resolution are not treated as proven Frappe dispatch in v0.1.
+For a same-module function reference, AuditSpec requires exactly one top-level function with that name in the caller's `.py` file and rejects cases where the identifier may instead denote a parameter, local assignment, `global`/`nonlocal` binding, import, loop/exception binding, walrus assignment, or deleted/rebound name. This allows common Frappe forms such as `frappe.enqueue(rebuild_index)` without general Python dataflow inference.
+
+Imported aliases, attribute references such as `tasks.rebuild_index`, dynamic expressions, `*args`/`**kwargs`, unrelated `.enqueue` methods, and other targets requiring broader Python import/name resolution fail closed rather than producing optimistic dispatch edges.
 
 A resolved target is linked to the actual Python function node and receives the `entrypoint` assurance role. This remains static framework evidence, not proof that the job executed.
 
