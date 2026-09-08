@@ -51,7 +51,7 @@ test("marks only the directly decorated Frappe function as an entrypoint", async
   );
 });
 
-test("fails closed for multiline frappe.whitelist decorator arguments", async () => {
+test("marks multiline frappe.whitelist decorator arguments on the exact function", async () => {
   await withRepo(
     {
       "wiki/api.py": [
@@ -59,6 +59,7 @@ test("fails closed for multiline frappe.whitelist decorator arguments", async ()
         "",
         "@frappe.whitelist(",
         "    allow_guest=True,",
+        "    methods=['POST'],",
         ")",
         "def public_update(name):",
         "    frappe.db.set_value('Project', name, 'status', 'Public')",
@@ -68,7 +69,8 @@ test("fails closed for multiline frappe.whitelist decorator arguments", async ()
       const graph = await buildAssuranceGraph(root);
       const publicUpdate = graph.nodes.find((node) => node.qualified_name === "public_update");
       assert.ok(publicUpdate);
-      assert.equal(publicUpdate.roles.includes("entrypoint"), false);
+      assert.equal(publicUpdate.roles.includes("entrypoint"), true);
+      assert.equal(publicUpdate.roles.includes("mutation"), true);
     },
   );
 });
