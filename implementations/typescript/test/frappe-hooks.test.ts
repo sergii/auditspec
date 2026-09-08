@@ -66,6 +66,26 @@ test("does not interpret dotted keys or unrelated strings as hook targets", () =
   );
 });
 
+test("ignores unknown document and scheduler event names", () => {
+  const source = [
+    "doc_events = {",
+    "    'Wiki Page': {",
+    "        'on_update': 'wiki.handlers.audit_update',",
+    "        'metadata.pipeline': 'wiki.handlers.not_a_document_event',",
+    "    },",
+    "}",
+    "scheduler_events = {",
+    "    'hourly': ['wiki.jobs.refresh_index'],",
+    "    'metadata.pipeline': ['wiki.jobs.not_a_scheduler_event'],",
+    "}",
+  ].join("\n");
+
+  assert.deepEqual(
+    frappeStaticHookDispatches(source).map(({ target }) => target),
+    ["wiki.handlers.audit_update", "wiki.jobs.refresh_index"],
+  );
+});
+
 test("fails closed for dynamic hook composition and later mutation", () => {
   const spread = [
     "doc_events = {",
