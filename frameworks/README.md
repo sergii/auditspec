@@ -48,11 +48,12 @@ Minimum cases:
 6. publisher failure after commit leaves durable retry intent;
 7. retry preserves one logical event identity.
 
-Current lab:
+Current labs:
 
 - Rails / ActiveRecord: `lab/rails-atomicity/`
+- Frappe / Bench + MariaDB: `lab/frappe-bench-atomicity/`
 
-Frappe currently has L1 contract tests plus pinned real-world Inspector smoke. A full Bench runtime lab remains a separate heavier target.
+The Frappe lab is a pinned framework-runtime proof for real database, after-commit, request, and background-job transaction semantics. Its request/job executors run in-process; external HTTP transport, Redis/RQ enqueue/worker process behavior, and production deployment specifics remain outside the v0.1 lab boundary. The adapter contract and shared language conformance tests cover validation and logical-event identity separately from the heavier Bench runtime proof.
 
 ### L3 - Inspector adapter
 
