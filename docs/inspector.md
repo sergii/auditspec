@@ -45,7 +45,7 @@ A boundary is `reachable` only when the Assurance Graph can trace it to a known 
 
 A reachable boundary records confidence, the resolved entrypoint, framework attribution when known, and a representative path of qualified scopes/surfaces.
 
-Current entrypoint evidence can include context-aware explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace/nesting/`scope` composition and literal constraint metadata, controller fallbacks, ActiveJob/Sidekiq workers, conservative ActionCable channel actions/lifecycle callbacks and conventional connection lifecycle callbacks, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
+Current entrypoint evidence can include context-aware explicit Rails routes, conservative literal Rails `resources`/`resource` routes including supported namespace/nesting/`scope` composition and literal constraint metadata, controller fallbacks, ActiveJob/Sidekiq workers, conservative ActionCable direct/inherited/concern-provided RPC actions and lifecycle callbacks, Frappe whitelisted methods, `doc_events`, `scheduler_events`, and background enqueue targets.
 
 Reachability is static evidence. It does not prove that a path executed in production. Runtime Corroboration can independently support, contradict, or remain inconclusive about static observations without rewriting the static Assessment Report.
 
@@ -100,21 +100,27 @@ ActionCable is modeled as framework dispatch because Rails exposes channel behav
 
 The v0.1 resolver creates separate high-confidence framework surfaces for:
 
-- direct public channel methods, represented as `rails_action_cable_action`;
+- public channel RPC methods, represented as `rails_action_cable_action`;
 - a directly defined `subscribed` lifecycle callback, represented as `rails_action_cable_subscribe`;
 - a directly defined `unsubscribed` lifecycle callback, represented as `rails_action_cable_unsubscribe`;
 - the conventional `ApplicationCable::Connection#connect` lifecycle callback, represented as `rails_action_cable_connect`;
 - the conventional `ApplicationCable::Connection#disconnect` lifecycle callback, represented as `rails_action_cable_disconnect`.
 
-Positive channel evidence requires an `app/channels/**/*.rb` method belonging to an explicitly declared channel class that directly inherits from `ApplicationCable::Channel` or `ActionCable::Channel::Base`. Explicit fully-qualified class identities such as `class Admin::ChatChannel < ApplicationCable::Channel` are supported.
+Direct channel actions require an `app/channels/**/*.rb` method belonging to an explicitly declared channel class that directly inherits from `ApplicationCable::Channel` or `ActionCable::Channel::Base`. Explicit fully-qualified class identities such as `class Admin::ChatChannel < ApplicationCable::Channel` are supported.
+
+The resolver also follows an unambiguous literal channel superclass chain up to a direct ActionCable base, bounded to depth 8 with cycle detection. A child channel therefore inherits a public RPC surface only when every superclass source resolves uniquely. For explicit namespaced classes, superclass references must also be fully qualified; Ruby lexical constant lookup is not inferred. The framework surface retains the concrete child-channel identity while the edge targets the actual superclass method implementation.
+
+A direct literal concern include may provide RPC methods when the included module resolves uniquely, declares `extend ActiveSupport::Concern`, and exposes the method publicly. Private/protected methods are excluded. If multiple included concerns provide the same candidate method, the result is order-sensitive and AuditSpec fails closed rather than guessing Ruby include precedence. Concern dependencies and dynamic/metaprogrammed inclusion are not used to strengthen assurance.
+
+Ruby method visibility and overrides remain part of the proof. A direct child definition shadows an inherited method even when the child definition is non-public, preventing an optimistic inherited RPC surface. Known ActionCable internal methods are excluded. `subscribed` and `unsubscribed` remain lifecycle surfaces rather than RPC actions.
 
 Connection lifecycle evidence is intentionally narrower. The resolver supports the conventional `ApplicationCable::Connection` identity when it directly inherits from `ActionCable::Connection::Base`, including both `class ApplicationCable::Connection < ...` and the Rails-generated lexical form `module ApplicationCable; class Connection < ...`. Custom connection-class configuration and indirect connection inheritance do not produce optimistic lifecycle edges.
 
-RPC action exposure is conservative about Ruby visibility. Direct channel methods proven to be under class-level `private` or `protected` visibility, including explicit non-public symbol declarations, are not exposed as ActionCable action surfaces. Known ActionCable internal methods are not treated as client actions. `subscribed` and `unsubscribed` are modeled only as lifecycle dispatch, not as RPC actions.
-
-Indirect channel inheritance, lexical namespace resolution such as `module Admin; class ChatChannel ...`, inherited or concern-provided channel actions, dynamic visibility/metaprogramming, custom connection-class wiring, and runtime channel registration behavior are not currently used to strengthen static assurance.
+`reject_unauthorized_connection` is a recognized Rails authorization primitive for the connection path. The Ruby AST scanner also handles the common zero-argument command form conservatively: a bare identifier is treated as a zero-argument send only when it is the standalone expression on the line, optionally with an `if`/`unless` modifier, and the enclosing method does not bind that name as a parameter or local variable.
 
 Authorization found in `connect` or `subscribed` is deliberately not projected onto later client-callable actions. Connection/subscription authorization may in practice guard later channel access, but proving that stateful guarantee for every later action requires a stronger framework/runtime model. The static graph therefore keeps `CONNECT -> ApplicationCable::Connection#connect`, `SUBSCRIBE -> Channel#subscribed`, and `ACTION -> Channel#method` as distinct paths.
+
+Inherited or concern-provided `subscribed`/`unsubscribed` lifecycle callbacks, Ruby lexical constant lookup for arbitrary namespaced inheritance, concern dependencies, dynamic visibility/metaprogramming, custom connection-class wiring, and runtime channel registration behavior remain fail-closed and do not strengthen static assurance.
 
 ## All-path assurance
 
@@ -143,7 +149,9 @@ The canonical adapter list includes `assurance-all-path-v0.1` when this post-pas
 
 ## AST-assisted adapters
 
-The v0.1 Rails and Frappe adapters use ast-grep/Tree-sitter to locate actual call AST nodes. Mutation-looking text inside comments or string literals is therefore not treated as an executable call.
+The v0.1 Rails and Frappe adapters use ast-grep/Tree-sitter to locate executable syntax rather than matching arbitrary source text. Mutation-looking text inside comments or string literals is therefore not treated as an executable call.
+
+For Ruby, explicit calls are taken from call AST nodes. The scanner additionally recognizes conservative standalone zero-argument sends where Tree-sitter represents Ruby's ambiguous bare command syntax as an identifier; local/parameter bindings and identifier uses as arguments remain excluded.
 
 Calls are attached to their owning method/function scopes. The Assurance Graph connects unambiguous cross-file calls and supported framework dispatch surfaces. Ambiguous calls remain unresolved and MUST NOT strengthen coverage.
 
@@ -165,7 +173,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover explicit route exposure, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint surface identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable public/channel lifecycle dispatch, conventional connection `connect`/`disconnect` dispatch, non-public channel exclusion, namespaced channel identities, and connection/subscription authorization separation from later actions.
+Synthetic regression tests additionally cover explicit route exposure, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint surface identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable public/channel lifecycle dispatch, conventional connection `connect`/`disconnect`, inherited RPC implementations, direct concern-provided RPC implementations, public/non-public override behavior, ambiguous concern overlap, explicit namespaced channel inheritance, conservative zero-argument Ruby sends, and connection/subscription authorization separation from later actions.
 
 ## Findings
 
