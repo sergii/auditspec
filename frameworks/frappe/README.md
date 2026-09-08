@@ -91,7 +91,7 @@ Dynamic composition such as `**shared_hooks`, later `.update(...)` mutation, rea
 
 The v0.1 Assurance Graph resolves Frappe background dispatch from an exact `frappe.enqueue(...)` call when callable identity can be proven conservatively.
 
-Supported forms include literal dotted targets and unshadowed top-level function references from the same Python module:
+Supported forms include literal dotted targets, unshadowed top-level function references from the same Python module, and direct absolute `from ... import ...` references owned by the exact caller scope:
 
 ```python
 frappe.enqueue("wiki.jobs.rebuild_index")
@@ -104,11 +104,26 @@ def rebuild_index():
     ...
 ```
 
+A common Frappe local-import pattern is also supported:
+
+```python
+def update_search_index():
+    from wiki.jobs import rebuild_index
+    frappe.enqueue(rebuild_index, queue="long")
+
+
+def update_search_index_with_alias():
+    from wiki.jobs import rebuild_index as job
+    frappe.enqueue(method=job, queue="long")
+```
+
 The `method=` keyword is interpreted semantically rather than by taking the first dotted string from the call. For example, `queue="reports.high", method="wiki.jobs.rebuild_index"` resolves `wiki.jobs.rebuild_index`; the queue name cannot become a false job target.
 
 For a same-module function reference, AuditSpec requires exactly one top-level function with that name in the caller's `.py` file and rejects cases where the identifier may instead denote a parameter, local assignment, `global`/`nonlocal` binding, import, loop/exception binding, walrus assignment, or deleted/rebound name. This allows common Frappe forms such as `frappe.enqueue(rebuild_index)` without general Python dataflow inference.
 
-Imported aliases, attribute references such as `tasks.rebuild_index`, dynamic expressions, `*args`/`**kwargs`, unrelated `.enqueue` methods, and other targets requiring broader Python import/name resolution fail closed rather than producing optimistic dispatch edges.
+For an imported function reference, AuditSpec requires one exact-scope, direct, absolute `from module import function` binding, optionally with an `as` alias, that appears before the enqueue call and resolves to one function in the inspected repository. The import is discovered from the Python AST and must belong to the same caller scope. Conditional or otherwise nested imports are retained as bindings for shadowing safety but do not create dispatch edges.
+
+Relative imports, wildcard imports, duplicate imports of the same local name, imports after the enqueue call, rebound imported names, module-level imported function references, attribute references such as `tasks.rebuild_index`, `import module` references, dynamic expressions, `*args`/`**kwargs`, unrelated `.enqueue` methods, and other targets requiring broader Python import/name resolution fail closed rather than producing optimistic dispatch edges. If a proven import binding points to a target that is absent from the inspected repository, AuditSpec does not fall back to a same-named local function.
 
 A resolved target is linked to the actual Python function node and receives the `entrypoint` assurance role. This remains static framework evidence, not proof that the job executed.
 
