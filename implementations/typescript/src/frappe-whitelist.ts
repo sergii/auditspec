@@ -1,0 +1,23 @@
+import type { AstScope } from "./ast-calls.js";
+
+const FRAPPE_WHITELIST_DECORATOR = /^@frappe\.whitelist(?:\([^()\n]*\))?$/;
+
+export function isFrappeWhitelistedScope(source: string, scope: AstScope): boolean {
+  if (scope.kind !== "function" || scope.start_line <= 1) return false;
+
+  const lines = source.split("\n");
+  let index = scope.start_line - 2;
+  let sawDecorator = false;
+
+  while (index >= 0) {
+    const line = lines[index] ?? "";
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("@")) break;
+
+    sawDecorator = true;
+    if (FRAPPE_WHITELIST_DECORATOR.test(trimmed)) return true;
+    index -= 1;
+  }
+
+  return sawDecorator ? false : false;
+}
