@@ -261,8 +261,84 @@ function routeDeclarations(source: string): RailsRouteDeclaration[] {
   return railsRouteDeclarations(source);
 }
 
-function dottedTarget(callText: string): string | undefined {
-  return callText.match(/["']([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)["']/)?.[1];
+function splitTopLevelCallArguments(callText: string, callee: string): string[] | null {
+  const text = callText.trim();
+  const prefix = `${callee}(`;
+  if (!text.startsWith(prefix) || !text.endsWith(")")) return null;
+
+  const body = text.slice(prefix.length, -1);
+  if (body.includes("'''" ) || body.includes('"""')) return null;
+
+  const argumentsList: string[] = [];
+  let start = 0;
+  let depth = 0;
+  let quote: string | null = null;
+  let escaped = false;
+
+  for (let index = 0; index < body.length; index += 1) {
+    const char = body[index]!;
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === quote) quote = null;
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+    if (char === "(" || char === "[" || char === "{") {
+      depth += 1;
+      continue;
+    }
+    if (char === ")" || char === "]" || char === "}") {
+      if (depth === 0) return null;
+      depth -= 1;
+      continue;
+    }
+    if (char === "," && depth === 0) {
+      const argument = body.slice(start, index).trim();
+      if (argument) argumentsList.push(argument);
+      start = index + 1;
+    }
+  }
+
+  if (quote || depth !== 0) return null;
+  const tail = body.slice(start).trim();
+  if (tail) argumentsList.push(tail);
+  return argumentsList;
+}
+
+function pythonKeywordArgument(argument: string): { name: string; value: string } | null {
+  const match = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([\s\S]+)$/.exec(argument.trim());
+  if (!match) return null;
+  return { name: match[1]!, value: match[2]!.trim() };
+}
+
+function literalDottedPythonString(value: string): string | undefined {
+  const match = /^(["'])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\1$/.exec(value.trim());
+  return match?.[2];
+}
+
+function frappeEnqueueTarget(callText: string): string | undefined {
+  const argumentsList = splitTopLevelCallArguments(callText, "frappe.enqueue");
+  if (!argumentsList) return undefined;
+
+  const methodArguments = argumentsList
+    .map((argument) => pythonKeywordArgument(argument))
+    .filter((argument): argument is { name: string; value: string } => argument?.name === "method");
+  if (methodArguments.length > 0) {
+    if (methodArguments.length !== 1) return undefined;
+    return literalDottedPythonString(methodArguments[0]!.value);
+  }
+
+  const positional = argumentsList.filter((argument) => {
+    const trimmed = argument.trim();
+    return !pythonKeywordArgument(trimmed) && !trimmed.startsWith("*");
+  });
+  if (positional.length === 0) return undefined;
+  return literalDottedPythonString(positional[0]!);
 }
 
 function resolvePythonDottedTarget(indexed: IndexedScope[], target: string): IndexedScope | undefined {
@@ -566,8 +642,8 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
 
   for (const sourceScope of indexed.filter((item) => item.node.language === "python")) {
     for (const call of sourceScope.calls) {
-      if (call.callee !== "frappe.enqueue" && call.method !== "enqueue") continue;
-      const targetName = dottedTarget(call.text);
+      if (call.callee !== "frappe.enqueue") continue;
+      const targetName = frappeEnqueueTarget(call.text);
       if (!targetName) continue;
       const target = resolvePythonDottedTarget(indexed, targetName);
       if (!target) continue;
