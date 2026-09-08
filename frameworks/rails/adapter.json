@@ -41,12 +41,15 @@
         "implementations/typescript/src/assurance-graph.ts",
         "implementations/typescript/src/rails-action-cable.ts",
         "implementations/typescript/test/rails-action-cable.test.ts",
+        "implementations/typescript/test/rails-action-cable-composed.test.ts",
+        "implementations/typescript/test/rails-action-cable-composed-graph.test.ts",
         ".github/workflows/conformance.yml"
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
-        "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, and the conventional ApplicationCable::Connection connect/disconnect lifecycle; inherited/concern-provided channel actions and custom connection-class resolution are not statically proven.",
-        "Authorization in ActionCable connect or subscribed is not projected onto later RPC actions without a stronger stateful proof."
+        "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, the conventional ApplicationCable::Connection connect/disconnect lifecycle, unambiguous inherited public RPC actions, and direct ActiveSupport::Concern-provided public RPC actions.",
+        "Explicit fully-qualified channel superclass chains are supported; Ruby lexical constant lookup, concern dependencies, ambiguous concern method overlap, inherited/concern-provided lifecycle callbacks, and custom connection-class resolution are not statically proven.",
+        "reject_unauthorized_connection is recognized as connection-local authorization evidence, but authorization in ActionCable connect or subscribed is not projected onto later RPC actions without a stronger stateful proof."
       ]
     },
     "runtime_corroboration": {
