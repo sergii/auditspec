@@ -119,7 +119,7 @@ function scopeMayRebindName(source: string, startLine: number, endLine: number, 
   if (new RegExp(`\\bfor\\s+${escaped}\\s+in\\b`).test(body)) return true;
   if (new RegExp(`\\bas\\s+${escaped}\\b`).test(body)) return true;
   if (new RegExp(`\\b${escaped}\\s*:=`).test(body)) return true;
-  if (new RegExp(`^[^#\\n]*\\b${escaped}\\b[^#\\n]*=(?!=)`, "m").test(body)) return true;
+  if (new RegExp(`^\\s*${escaped}\\s*(?::[^=\\n]+)?=(?!=)`, "m").test(body)) return true;
   if (new RegExp(`\\bdel\\s+${escaped}\\b`).test(body)) return true;
   return false;
 }
