@@ -1,3 +1,5 @@
+import { pythonImportBindingsForScope } from "./ast-calls.js";
+
 export interface FrappeLocalEnqueueContext {
   call_text: string;
   source: string;
@@ -75,6 +77,11 @@ function referenceExpression(callText: string): string | undefined {
   return positionals[0]?.trim();
 }
 
+export function frappeEnqueueBareReference(callText: string): string | undefined {
+  const reference = referenceExpression(callText);
+  return reference && /^[A-Za-z_][A-Za-z0-9_]*$/.test(reference) ? reference : undefined;
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -137,8 +144,16 @@ function moduleMayRebindName(source: string, name: string): boolean {
 }
 
 export function frappeLocalEnqueueReference(context: FrappeLocalEnqueueContext): string | undefined {
-  const reference = referenceExpression(context.call_text);
-  if (!reference || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(reference)) return undefined;
+  const reference = frappeEnqueueBareReference(context.call_text);
+  if (!reference) return undefined;
+
+  const imports = pythonImportBindingsForScope(context.source, {
+    start_line: context.scope_start_line,
+    end_line: context.scope_end_line,
+  });
+  if (!imports.parsed || !imports.complete || imports.wildcard_in_module || imports.wildcard_in_scope) return undefined;
+  if (imports.bindings.some((binding) => binding.local_name === reference)) return undefined;
+
   if (scopeMayRebindName(context.source, context.scope_start_line, context.scope_end_line, reference)) return undefined;
   if (moduleMayRebindName(context.source, reference)) return undefined;
   return reference;
