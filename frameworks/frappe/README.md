@@ -50,6 +50,23 @@ If `method=` is present but dynamic, AuditSpec fails closed even when another ke
 
 A resolved target is linked to the actual Python function node and receives the `entrypoint` assurance role. This remains static framework evidence, not proof that the job executed.
 
+### Document background dispatch
+
+The v0.1 Assurance Graph also resolves the Frappe `frappe.enqueue_doc(...)` worker surface when controller identity is statically known.
+
+Supported examples include:
+
+```python
+frappe.enqueue_doc("Wiki Page", docname, "rebuild_index", queue="long")
+frappe.enqueue_doc(doctype="Wiki Page", name=docname, method="rebuild_index")
+```
+
+`doctype` and `method` must be literal strings because together they determine which controller method is executed. The document `name` may be dynamic because it selects the runtime document instance without changing code-target identity.
+
+The DocType name is mapped to the conventional controller path, for example `Wiki Page` to `.../doctype/wiki_page/wiki_page.py`. AuditSpec then requires the same conservative controller model used for lifecycle hooks: exactly one direct `Document` controller and exactly one matching method. A successful resolution creates a `frappe_enqueue_doc` framework dispatch edge to the concrete controller method and marks that target as an entrypoint.
+
+Dynamic DocType or method identity, starred argument composition, ambiguous controllers across apps, indirect or aliased `Document` inheritance, and custom controller wiring fail closed. This is static framework reachability evidence, not proof that the queued job executed.
+
 ### DocType controller lifecycle dispatch
 
 The v0.1 Assurance Graph also models documented Frappe `Document` controller lifecycle methods as framework entrypoint surfaces when the controller can be resolved conservatively.
