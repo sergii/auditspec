@@ -16,26 +16,30 @@ It covers:
 - Remediation Plan and Verification Result;
 - Control Mapping Profile and Result;
 - Evidence Query Result;
-- OSCAL export request;
+- OSCAL Export Request;
+- Runtime Evidence Record and Observation Scope;
+- Corroboration Report, Diff, and Query Result;
+- Framework Adapter Manifest;
+- Runtime Producer Manifest;
 - Agent Profile.
 
-Negative non-Core vectors are contract-specific. They target enum, range, shape, and semantic guardrails rather than relying only on empty or missing-field examples.
+Negative non-Core vectors are contract-specific. They target enum, range, shape, provenance, comparability, and semantic guardrails rather than relying only on empty or missing-field examples.
 
 ## 2. Differential conformance
 
-The TypeScript reference validator executes the same Core and non-Core invalid corpus as the Python runner.
+The TypeScript, Ruby, and Python reference implementations consume the same repository-root schemas and shared valid/invalid corpus.
 
-A fixture that Python rejects but TypeScript accepts, or vice versa, is an interoperability defect even when both implementations individually pass their own tests.
+A fixture accepted by one reference implementation but rejected by another is an interoperability defect unless the contract is explicitly outside that language surface.
 
-Future Ruby, Python package, Go, and Rust implementations should consume the same corpus rather than maintaining language-specific truth tables.
+Future Go and Rust implementations should consume the same corpus rather than maintaining language-specific truth tables.
 
 ## 3. Exhaustive small-state model checking
 
 The assurance evaluator has a deliberately small semantic state space for resolved entrypoint paths:
 
 ```text
-audit evidence        yes / no
-transaction evidence  yes / no
+audit evidence         yes / no
+transaction evidence   yes / no
 authorization evidence yes / no
 ```
 
@@ -69,7 +73,9 @@ Examples:
 - cycles terminate;
 - bounded search fails to `unknown`, never optimistic `covered`;
 - source ordering does not change semantic paths;
-- static absence is not runtime unreachability.
+- static absence is not runtime unreachability;
+- framework-runtime proof does not silently become per-path static proof;
+- runtime evidence does not rewrite static coverage.
 
 These are specification-level design constraints, not merely implementation details.
 
@@ -93,9 +99,7 @@ After adding explicit confidence and empty-path truth tables:
 0 survived
 ```
 
-The AuditSpec repository now treats a mutation score below 95% for this evaluator as a failing quality gate when the evaluator or its focused tests change.
-
-The 95% gate leaves room for future equivalent mutants while keeping semantic weakening visible. The current target remains 100%.
+The AuditSpec repository now treats a mutation score below 95% for this evaluator as a failing quality gate when the evaluator, its focused tests, mutation configuration, or mutation workflow changes. The current target remains 100%.
 
 ## 7. Real-world regression smoke
 
@@ -111,21 +115,19 @@ AuditSpec runs its own advisory Action inside CI with automatic baseline mode.
 
 This tests the real base/head path used by downstream repositories, including Assessment Diff and topology artifacts.
 
-## 9. Failure-injection and runtime testing - next layer
+## 9. Failure-injection and framework runtime testing
 
-Static and schema testing cannot prove durable audit emission under infrastructure failure.
+Static and schema testing cannot prove durable audit behavior under transaction or infrastructure failure, so v0.1 includes executable integration labs at several layers.
 
-Future behavioral profiles should test scenarios such as:
+Current labs include:
 
-```text
-business mutation succeeds + audit insert fails -> rollback
-business mutation succeeds + outbox insert fails -> rollback
-commit succeeds + publisher crashes -> durable retry
-message delivered twice -> one logical Audit Event
-runtime evidence missing -> confidence decreases, not fabricated success
-```
+- `lab/postgres-atomicity/` - storage-neutral PostgreSQL failure injection for same-store audit, transactional outbox, rollback, stable logical identity, and retry/dedup behavior;
+- `lab/rails-atomicity/` - ActiveRecord 8.1 behavioral integration covering audit/outbox failure rollback, invalid-event rejection, and after-commit wake-up semantics;
+- `lab/frappe-bench-atomicity/` - pinned Frappe Bench + MariaDB framework-runtime proof covering real request/job transaction policy, same-store audit/outbox failures, and `after_commit` behavior.
 
-These tests belong in framework/storage integration labs rather than AuditSpec Core JSON Schema.
+These labs prove only their stated transaction/runtime boundaries. They do not establish production-wide audit completeness, external transport availability, custom database semantics, or arbitrary application extensions.
+
+Remaining runtime-hardening targets include external HTTP/process/worker transport boundaries, additional database/framework configurations, signed evidence, freshness/expiry, and production runtime corroboration policies.
 
 ## 10. Future fuzz targets
 
@@ -137,6 +139,7 @@ Useful fuzz surfaces include:
 - large graph fan-out and cyclic topology;
 - CloudEvents envelope/payload inconsistencies;
 - redaction policies over nested arrays and objects;
-- schema adapters and normalization round-trips.
+- schema adapters and normalization round-trips;
+- runtime evidence, observation-scope, and corroboration inputs.
 
 Fuzzing MUST preserve deterministic regression cases for every discovered defect.

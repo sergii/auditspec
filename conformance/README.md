@@ -2,7 +2,7 @@
 
 AuditSpec conformance is executable, not only descriptive.
 
-The v0.1 repository defines multiple machine-readable contracts. Implementations should treat the JSON Schemas, canonical examples, positive vectors, negative vectors, and behavioral invariants as shared interoperability material rather than re-inventing local shapes.
+The v0.1 repository defines multiple machine-readable contracts. Implementations should treat the JSON Schemas, canonical examples, positive vectors, negative vectors, behavioral invariants, and capability manifests as shared interoperability material rather than re-inventing local shapes.
 
 Current machine-readable contracts include:
 
@@ -18,6 +18,13 @@ Current machine-readable contracts include:
 - Control Mapping Result
 - Evidence Query Result
 - OSCAL Export Request
+- Runtime Evidence Record
+- Observation Scope
+- Corroboration Report
+- Corroboration Diff
+- Corroboration Query Result
+- Framework Adapter Manifest
+- Runtime Producer Manifest
 
 ## Schema conformance
 
@@ -81,9 +88,19 @@ These protect against schemas becoming accidentally too permissive. Current exam
 - control mapping relations that attempt to assert `compliant` or `passed`
 - unsupported evidence-query source filters
 - empty OSCAL Assessment Plan references
+- runtime non-observation without a target or correlation anchor
+- declared Observation Scope without the required producer set
+- Corroboration Report matches without a stable target
+- invalid Corroboration Diff target types and Corroboration Query relations
 - unsupported Agent Profile approval states
 
 The control-mapping negative vectors intentionally protect a core product boundary: AuditSpec mappings express evidence relevance or potential gaps, not compliance certification or pass/fail verdicts.
+
+## Differential reference conformance
+
+TypeScript, Ruby, and Python consume the same repository-root schemas and shared valid/invalid corpus. A disagreement between reference implementations is treated as an interoperability defect rather than a language-specific interpretation.
+
+Go and Rust references remain future work; when added, they should join the same corpus rather than define parallel truth tables.
 
 ## Assurance invariants
 
@@ -98,7 +115,7 @@ implementations/typescript/test/all-path-model.test.ts
 implementations/typescript/test/depth-truncation-hardening.test.ts
 ```
 
-The small-state model test exhaustively checks 584 one-to-three-entrypoint combinations of audit, transaction, and authorization evidence against an independent oracle.
+The small-state model test exhaustively checks 584 one-to-three-entrypoint combinations of audit, transaction, and authorization evidence against an independent oracle. Deterministic randomized tests additionally cover graph/path ordering, cycles, normalization, CloudEvents round-trips, and redaction properties.
 
 ## Mutation testing
 
@@ -109,26 +126,40 @@ cd implementations/typescript
 npm run test:mutation
 ```
 
-The initial mutation workflow is intentionally advisory. It runs only when the assurance evaluator, its dedicated tests, mutation configuration, or mutation workflow changes, and it can also be started manually.
+The current focused baseline is:
 
-The repository does not invent a blocking mutation-score threshold before observing a real baseline. Once a stable score is measured, v0.1 can establish a ratchet rather than selecting an arbitrary percentage.
+```text
+100% mutation score
+88 / 88 mutants killed
+0 survived
+```
+
+The repository quality gate fails below 95% when the assurance evaluator, its focused tests, mutation configuration, or mutation workflow changes. The target remains 100%; the threshold exists to keep semantic weakening visible while allowing for future equivalent mutants.
 
 ## Real-world regression surface
 
 CI also runs the Inspector against pinned public Rails and Frappe repositories. The goal is regression detection for parser/framework behavior, not a compliance or security judgment about those projects.
 
-## Future conformance families
+## Failure-injection and framework runtime conformance
 
-The v0.1 cycle should continue toward:
+v0.1 already exercises transactional/delivery behavior outside JSON Schema:
 
-- behavioral transaction/atomicity and failure-injection tests
-- idempotency and duplicate-delivery tests
-- CloudEvents/OTel/PROV round-trip tests
-- property-based generation beyond the current exhaustive small-state model
-- fuzzing malformed, deeply nested, and oversized inputs
-- broader mutation testing after the initial evaluator baseline is understood
-- differential conformance across TypeScript, Ruby, Python, Go, and Rust
-- additional framework fixture repositories
-- control mapping validation against authoritative external catalog versions
-- generated OSCAL validation against the complete official NIST OSCAL 1.2.3 schemas
-- failure-injection tests for outbox and durable audit publication patterns
+- `lab/postgres-atomicity/` verifies same-store/outbox rollback, failure injection, stable logical identity, and duplicate delivery semantics against PostgreSQL;
+- `lab/rails-atomicity/` verifies the ActiveRecord transaction adapter behavior and after-commit wake-up semantics;
+- `lab/frappe-bench-atomicity/` verifies pinned Frappe Bench + MariaDB request/job transaction behavior, real persistence failures, and after-commit handling.
+
+These behavioral labs are scoped proofs for their tested environments, not production certification.
+
+CloudEvents, OpenTelemetry, and W3C PROV mappings also have executable TypeScript round-trip/consistency tests. Generated OSCAL Assessment Results are validated in CI against the SHA-256-verified official NIST OSCAL v1.2.3 Assessment Results JSON Schema.
+
+## Remaining conformance and hardening families
+
+The v0.1 cycle can still deepen conformance through:
+
+- fuzzing malformed, deeply nested, cyclic, and oversized inputs with deterministic regression capture;
+- differential conformance for future Go and Rust implementations;
+- additional pinned real-world framework fixture repositories;
+- control-mapping validation against authoritative external catalog versions where licensing/provenance permit;
+- broader failure injection across external HTTP, broker, process/worker, and alternative database boundaries;
+- runtime evidence freshness/expiry, signed evidence envelopes, producer authority policy, and multi-producer reconciliation rules;
+- stronger integrity/transparency profile tests without conflating them with Core event conformance.

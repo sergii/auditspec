@@ -16,4 +16,4 @@ Filters include:
 auditspec query-evidence assessment.json --rule AS-AUDIT-001 --source finding
 ```
 
-The result preserves the originating boundary/finding identity and confidence so an agent can distinguish a raw source match from a stronger future AST, runtime, OTel, or eBPF evidence producer.
+The result preserves the originating boundary/finding identity and confidence so an agent can distinguish static Assessment evidence from separately collected runtime corroboration. Current runtime evidence is queried through `query-corroboration` / `auditspec.query_runtime_corroboration` and can come from the OpenTelemetry, authorization-decision, database-receipt, or delivery-receipt reference producers. Future kernel/eBPF or signed evidence producers must preserve the same provenance boundary.

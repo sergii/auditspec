@@ -41,30 +41,70 @@ A graph contains:
 - `unresolved_calls` - ambiguous calls that AuditSpec deliberately refuses to guess.
 - `roles` - `entrypoint`, `authorization`, `transaction`, `mutation`, and `audit` evidence.
 - `confidence` - confidence in the static evidence represented by the graph.
-- framework provenance - the route, hook, scheduler, or queue declaration that created a framework edge.
+- framework provenance - the route, hook, scheduler, queue, channel, callback, or other declaration/call that created a framework edge.
 
 The canonical example is `schema/examples/assurance-graph.json`.
 
 ## Framework-aware surfaces in v0.1
 
-The reference implementation currently adds deterministic framework evidence for:
+The reference implementation currently adds deterministic or deliberately bounded framework evidence for the following supported subsets.
 
 ### Rails
 
-- explicit routes using `get/post/put/patch/delete ... to: "controller#action"` or hash-rocket syntax;
-- controller actions as fallback entrypoints when no explicit route edge can be resolved;
+Routing and HTTP dispatch:
+
+- explicit `get/post/put/patch/delete` routes with literal controller/action targets, including supported `scope` and `constraints` context;
+- literal `resources` and singular `resource` expansion;
+- literal `only`, `except`, `path`, `param`, and `controller` resource options;
+- literal `namespace`, nested resources, and literal `scope` composition using positional path plus supported `path`, `module`, and `as` options;
+- simple literal scalar `constraints ... do` metadata preserved in route-surface identity without treating constraints as authorization or proof of unreachability;
+- controller actions as conservative fallback entrypoints when no explicit route edge can be resolved.
+
+Authorization projection:
+
+- literal `before_action` authorization callbacks with supported `only`/`except` filtering;
+- same-controller callbacks plus unambiguous literal superclass chains;
+- explicit fully-qualified namespaced superclass chains;
+- direct uniquely resolved `ActiveSupport::Concern` callback composition, including explicit fully-qualified concern identities.
+
+Background dispatch:
+
 - `ApplicationJob` / `ActiveJob::Base` `perform` methods;
 - Sidekiq `Job` / `Worker` `perform` methods;
-- `perform_later`, `perform_now`, `perform_async`, `perform_in`, and `perform_at` dispatch when the receiver uniquely identifies a job/worker.
+- `perform_later`, `perform_now`, `perform_async`, `perform_in`, and `perform_at` when the receiver uniquely identifies a job/worker.
+
+ActionCable:
+
+- direct public channel RPC actions;
+- unambiguous inherited public RPC actions;
+- direct uniquely resolved `ActiveSupport::Concern`-provided public RPC actions;
+- direct/inherited/concern-provided `subscribed` and `unsubscribed` lifecycle callbacks, including non-public lifecycle visibility;
+- conventional `ApplicationCable::Connection` `connect` / `disconnect` lifecycle surfaces, including the standard lexical Rails declaration;
+- connection-local `reject_unauthorized_connection` authorization evidence.
+
+Connection or subscription authorization is intentionally not projected onto every later channel RPC action.
 
 ### Frappe
 
-- `@frappe.whitelist` functions;
-- `hooks.py` `doc_events` handlers;
-- `hooks.py` `scheduler_events` handlers;
-- `frappe.enqueue("dotted.module.function")` when the dotted target uniquely resolves to repository source.
+RPC/hooks:
 
-Framework dispatch is evidence, not runtime proof. AuditSpec records the declaration/call location and confidence instead of silently treating framework conventions as certainty.
+- exact AST-owned `@frappe.whitelist` function attribution, including stacked and multiline decorators;
+- literal typed `doc_events` handlers using documented event names;
+- literal typed `scheduler_events`, including literal nested `cron` handler maps.
+
+Background dispatch:
+
+- literal dotted `frappe.enqueue(...)` positional and `method=` targets;
+- unshadowed same-module top-level function references passed to `frappe.enqueue`;
+- direct exact-scope absolute `from ... import ...` function references, including aliases, when the import and repository target can be proven;
+- `frappe.enqueue_doc(...)` with literal DocType/method identity resolving to a unique conventional direct `Document` controller method;
+- `Document.queue_action(...)` for literal self-dispatch inside a conventional direct controller, preserving Frappe's app-local `_<action>` precedence and the asynchronous assurance boundary.
+
+Document lifecycle:
+
+- documented `Document` controller lifecycle methods on conventional `.../doctype/<name>/<name>.py` paths when exactly one direct `Document` controller can be proven.
+
+Framework dispatch is static evidence, not runtime proof. AuditSpec records the declaration/call location and confidence instead of silently treating framework conventions as certainty.
 
 ## Conservative resolution
 
@@ -75,7 +115,7 @@ The v0.1 reference implementation resolves a direct source call when either:
 1. its receiver identifies exactly one matching container/method candidate, or
 2. only one repository-wide method/function candidate exists, in which case the edge is lower confidence.
 
-Framework-specific edges have their own stricter resolvers. For example, a Rails job receiver must uniquely identify a `perform` scope, while a Frappe dotted target must map to one source module and function.
+Framework-specific edges have stricter resolvers. Unsupported dynamic composition, ambiguous controller/channel/concern identity, Ruby lexical constant lookup outside the explicitly modeled cases, and Python import/name semantics that cannot be proven remain fail-closed.
 
 If multiple candidates remain, the relationship MUST NOT strengthen audit coverage.
 
@@ -86,6 +126,10 @@ This is intentional. Ruby metaprogramming, Python dynamic dispatch, dependency i
 `findAssurancePath` starts from a repository-relative source location and walks resolved incoming calls/dispatches toward an entrypoint or the edge of the known graph. It reports the roles observed on the selected path and a confidence level.
 
 A path with `audit` evidence may remove an `AS-AUDIT-001` gap for the corresponding mutation. A Rails path with both `audit` and `transaction` may support `covered` status. Authorization evidence can resolve `AS-AUTH-001` when it is on the same resolved path.
+
+The canonical Inspector also evaluates all resolved entrypoint paths for a mutation rather than trusting only the strongest path. Alternate weaker paths can therefore produce `AS-AUDIT-002`, `AS-ATOMIC-002`, or `AS-AUTH-002`.
+
+Path enumeration is bounded to 64 paths and depth 8. Truncation is explicit incompleteness and degrades the canonical boundary result to `unknown` / low confidence instead of optimistic coverage.
 
 The graph does not claim that a path executed at runtime. It is static-source evidence only.
 
@@ -126,17 +170,17 @@ The reference MCP server exposes:
 
 This lets an agent inspect a repository, compare architecture before/after a change, ask for the evidence path behind a finding, propose remediation, re-inspect, and verify whether the relevant path changed.
 
-## Evidence boundary
+## Static/runtime evidence boundary
 
 The Assurance Graph is not runtime proof, formal verification, or a complete program call graph. In v0.1 it is deliberately bounded static evidence.
 
-Future evidence layers can strengthen or contradict it, including:
+Runtime Corroboration is already implemented as a separate evidence layer with explicit Observation Scope, provenance, trust, query/diff semantics, and reference OpenTelemetry, authorization-decision, database-receipt, and delivery-receipt producers. Runtime evidence can support, contradict, or remain inconclusive about stable static targets without rewriting the Assurance Graph or static Assessment coverage.
 
-- richer Rails route/resource/callback resolution;
-- richer Frappe dynamic hook and enqueue resolution;
-- message-bus and RPC edges;
-- OpenTelemetry trace correlation;
-- runtime instrumentation;
-- kernel/eBPF observations.
+Remaining graph/framework work includes:
 
-Those layers should preserve provenance instead of silently replacing static evidence.
+- Rails lexical/nested concern composition, custom ActionCable connection wiring, more complex/callable route constraints, additional route DSL variants, and additional framework-generated dispatch;
+- Frappe aliased whitelist decorators, module-level imported enqueue references, module/attribute targets, resolvable relative imports, custom/indirect DocType controllers, and other dynamic composition that can be proven without optimistic inference;
+- message-bus and cross-service RPC edges;
+- evidence-backed trace/request/session/tool-call correlation that never invents semantic graph edges from correlation coincidence.
+
+Future runtime producers may add reverse-proxy, OS-audit, eBPF/kernel, or signed/attested receipts. Those layers must preserve provenance and authority boundaries instead of silently replacing static evidence.

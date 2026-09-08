@@ -71,7 +71,7 @@ Line and column numbers remain provenance and presentation data, not primary sem
 
 Combining evidence sources MUST preserve provenance and confidence. A lower-confidence or partial producer MUST NOT silently upgrade another producer to stronger certainty without an explicit reconciliation rule.
 
-This applies to future OpenTelemetry, eBPF, framework metadata, runtime instrumentation, and remote evidence sources as well as static source analysis.
+This applies to OpenTelemetry, database/authorization/delivery receipts, future eBPF evidence, framework metadata, runtime instrumentation, and remote evidence sources as well as static source analysis.
 
 ## Pure path-set evaluation
 
@@ -101,7 +101,7 @@ Frappe
   truncated search                     -> unknown / low
 ```
 
-Frappe remains `partial` even when transaction-looking evidence exists because v0.1 does not claim the same atomicity proof used for the Rails reference adapter.
+Frappe remains `partial` in this static path classifier even though v0.1 now has a pinned Frappe Bench framework-runtime atomicity lab. The runtime lab proves selected Frappe request/job transaction behavior for its pinned Bench/MariaDB configuration; it does not prove that every statically discovered audited path shares one rollback-capable transaction, especially across explicit `frappe.db.commit()`, `frappe.db.truncate()`, custom database backends, or extension-defined boundaries. Framework-runtime proof and per-path static assurance therefore remain separate evidence classes.
 
 ## Executable regression surface
 

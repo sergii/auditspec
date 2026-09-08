@@ -89,21 +89,24 @@ This repository is an early `v0.1` working draft. Breaking changes are still exp
 ## Repository map
 
 - `SPEC.md` - normative v0.1 working specification.
-- `schema/` - JSON Schemas and canonical examples for events, assessments, diffs, remediation, verification, and control mappings.
+- `schema/` - JSON Schemas and canonical examples for events, assessments, graphs/diffs, remediation/verification, runtime corroboration, capability manifests, and control/OSCAL bridges.
 - `spec/` - focused design notes, including delivery/retry semantics.
 - `profiles/` - optional semantic/behavioral profiles such as agent and atomicity.
 - `conformance/` - valid and invalid vectors shared by implementations.
-- `tools/conformance/` - executable schema validator and container runner.
+- `tools/conformance/` - executable schema/capability validators and container runner.
 - `implementations/` - TypeScript, Ruby, and Python executable reference implementations.
-- `frameworks/` - framework adapters and integration guidance.
+- `frameworks/` - framework adapters, machine-readable capability manifests, and integration guidance.
+- `runtime/producers/` - machine-readable OpenTelemetry, authorization-decision, database-receipt, and delivery-receipt producer capabilities.
 - `mappings/` - CloudEvents, OpenTelemetry, W3C PROV, OSCAL guidance, and control mapping profiles.
-- `lab/postgres-atomicity/` - executable PostgreSQL failure-injection reference for transactional audit intent.
+- `lab/postgres-atomicity/` - storage-neutral PostgreSQL failure-injection reference for transactional audit intent.
+- `lab/rails-atomicity/` - ActiveRecord framework transaction/after-commit behavioral proof.
+- `lab/frappe-bench-atomicity/` - pinned Frappe Bench + MariaDB framework-runtime transaction proof.
 - `docs/inspector.md` - system assessment model.
 - `docs/assurance-invariants.md` - conservative graph/evidence safety properties.
 - `docs/testing.md` - conformance, property, mutation, and behavioral testing strategy.
 - `docs/github-action.md` - advisory PR ratchet integration.
 - `docs/mcp.md` - MCP server and agent-facing tools.
-- `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics and producer model.
+- `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics, and producer model.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.
 - `WORKING_NOTES.md` - temporary v0.1 design backlog; intended to be removed or promoted before release.
@@ -128,7 +131,7 @@ The Core and non-Core JSON Schemas are exercised by three independent executable
 
 | Implementation | Current reference surface | CI |
 | --- | --- | --- |
-| TypeScript | validation, normalize, redaction, CloudEvents, delivery identity, Inspector, CLI, MCP, assessment/remediation/OSCAL | Node 22 |
+| TypeScript | validation/normalization/redaction, mappings, delivery identity, Inspector/Assurance Graph, CLI/MCP, assessment/remediation, runtime corroboration/producers, OSCAL | Node 22 |
 | Ruby | validation, normalize, redaction, delivery identity/dedup, emitter | Ruby 3.4.10 and 4.0.6 |
 | Python | validation, normalize, redaction, delivery identity/dedup, emitter | Python 3.11.16 and 3.14.7 |
 
@@ -146,8 +149,11 @@ AuditSpec deliberately uses multiple independent verification techniques:
 - Stryker mutation testing of the pure assurance evaluator;
 - pinned real-world Rails/Frappe Inspector smoke;
 - GitHub Action self-smoke;
-- official NIST OSCAL schema validation;
-- PostgreSQL failure-injection tests for atomic audit/outbox intent and retry.
+- framework/runtime-producer manifest validation;
+- official SHA-256-pinned NIST OSCAL schema validation;
+- PostgreSQL failure injection for transactional audit/outbox intent and retry identity;
+- ActiveRecord framework transaction/after-commit failure injection;
+- pinned Frappe Bench + MariaDB request/job transaction failure injection.
 
 The current TypeScript assurance evaluator reaches a 100% focused mutation score (88/88 generated mutants killed); the repository quality gate fails below 95% for changes to that semantic evaluator.
 
@@ -228,6 +234,8 @@ auditspec query-corroboration corroboration.json --relation contradicts --trust 
 
 Corroboration preserves evidence kind, producer identity, trust, observation coverage and observation scope. Corroboration diffs compare stable contradiction targets and report whether their observation scopes are `comparable`, `partially_comparable`, `not_comparable`, or `unknown`.
 
+The runtime producer registry currently includes OpenTelemetry, authorization-decision, database-receipt, and delivery-receipt reference producers with explicit target requirements, defaults, authority scopes, allowed overrides, and limitations.
+
 A contradiction that is no longer reported is not automatically considered resolved. Runtime evidence remains corroboration, not a replacement for static findings or business-semantic truth.
 
 See `docs/runtime-corroboration.md` for the producer model, observation-scope rules, query filters and limitations.
@@ -247,6 +255,7 @@ Current tools include:
 
 - `auditspec.validate_event`
 - `auditspec.validate_agent_profile`
+- `auditspec.list_framework_adapters`
 - `auditspec.inspect`
 - `auditspec.get_findings`
 - `auditspec.explain_gap`
@@ -292,7 +301,7 @@ AuditSpec can export an Assessment Report into an OSCAL Assessment Results proje
 auditspec export-oscal assessment.json ./assessment-plan.json
 ```
 
-CI validates generated Assessment Results against the verified official NIST OSCAL v1.2.3 JSON Schema. AuditSpec does not invent missing SSP/Assessment Plan context and does not convert Inspector heuristics into a compliance verdict.
+CI validates generated Assessment Results against the SHA-256-verified official NIST OSCAL v1.2.3 JSON Schema. AuditSpec does not invent missing SSP/Assessment Plan context and does not convert Inspector heuristics into a compliance verdict.
 
 ## Delivery and atomicity
 
@@ -300,9 +309,9 @@ Logical event identity is `(source, id)`. At-least-once transport retries must n
 
 When a business mutation and durable audit record share a transactional store, they should commit or roll back together. When the final sink is external, durable outbox intent should join the business transaction and delivery should be retried separately.
 
-The PostgreSQL reference lab verifies rollback on audit/outbox failure, business-failure rollback, stable retry identity, and publisher-crash recovery with idempotent sink delivery.
+The storage-neutral PostgreSQL lab verifies rollback on audit/outbox failure and stable retry identity. Rails and Frappe add separate framework-runtime labs that test their actual transaction/after-commit boundaries under the explicitly documented configurations. None of these scoped labs is a production-wide certification.
 
-See `spec/delivery.md` and `profiles/atomicity/README.md`.
+See `spec/delivery.md`, `profiles/atomicity/README.md`, and `frameworks/README.md`.
 
 ## Design principles
 
@@ -325,7 +334,7 @@ See `spec/delivery.md` and `profiles/atomicity/README.md`.
 
 ## Direction
 
-The intended ecosystem includes stronger framework adapters, agent-native remediation, GitHub PR assessment, provenance and observability mappings, richer control evidence bridges, runtime corroboration, integrity/tamper-evidence profiles, and eventually optional continuous-assurance cloud services. The Core specification remains useful independently of any cloud service.
+The v0.1 repository already includes executable framework adapters, PR assessment, agent/MCP remediation surfaces, provenance/observability mappings, runtime corroboration with reference producers, control/OSCAL evidence bridges, and framework transaction labs. Remaining direction focuses on deeper framework resolution, cross-service/message-bus graph edges, evidence-backed correlation, stronger runtime policy and producer coverage, integrity/tamper-evidence profiles, additional language/framework conformance, and eventually optional continuous-assurance cloud services. The Core specification remains useful independently of any cloud service.
 
 ## License
 
