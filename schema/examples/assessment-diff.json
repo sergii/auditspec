@@ -1,0 +1,70 @@
+{
+  "diff_version": "0.1",
+  "generated_at": "2026-08-24T16:50:00Z",
+  "base": {
+    "subject_path": "/workspace/example-app",
+    "revision": "git:base123",
+    "generated_at": "2026-08-24T16:45:00Z"
+  },
+  "head": {
+    "subject_path": "/workspace/example-app",
+    "revision": "git:head456",
+    "generated_at": "2026-08-24T16:49:00Z"
+  },
+  "new_findings": [],
+  "resolved_findings": [
+    {
+      "fingerprint": "fp_example_001",
+      "rule_id": "AS-AUDIT-001",
+      "title": "Unaudited mutation boundary",
+      "severity": "warning",
+      "confidence": "medium",
+      "location": {
+        "path": "app/services/refund_service.rb",
+        "line": 12
+      }
+    }
+  ],
+  "unchanged_findings": 0,
+  "coverage": {
+    "base": 0,
+    "head": 1,
+    "delta": 1
+  },
+  "reachability": {
+    "base_reachable": 0,
+    "head_reachable": 1,
+    "delta": 1,
+    "newly_reachable": [
+      {
+        "fingerprint": "bfp_invoice_approve",
+        "kind": "mutation",
+        "framework": "rails",
+        "operation": "update!",
+        "audit_status": "covered",
+        "confidence": "high",
+        "location": {
+          "path": "app/services/approve_invoice.rb",
+          "line": 12,
+          "column": 7
+        },
+        "reachability": {
+          "status": "reachable",
+          "confidence": "medium",
+          "entrypoint": {
+            "kind": "rails_route",
+            "qualified_name": "rails.rails_route:POST /invoices/:id/approve -> invoices#approve",
+            "framework": "rails"
+          },
+          "path": [
+            "rails.rails_route:POST /invoices/:id/approve -> invoices#approve",
+            "InvoicesController#approve",
+            "ApproveInvoice#call"
+          ]
+        }
+      }
+    ],
+    "no_longer_statically_reachable": [],
+    "unchanged_reachable": 0
+  }
+}

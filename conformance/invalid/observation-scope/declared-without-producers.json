@@ -1,0 +1,13 @@
+{
+  "scope_version": "0.1",
+  "basis": "declared",
+  "environment": "staging",
+  "window": {
+    "start": "2026-08-25T00:00:00Z",
+    "end": "2026-08-25T01:00:00Z"
+  },
+  "collection_policy": {
+    "id": "runtime-hourly-v1",
+    "mode": "continuous"
+  }
+}

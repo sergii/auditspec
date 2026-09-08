@@ -1,0 +1,46 @@
+{
+  "provider": "example-provider",
+  "model": "example-model",
+  "runtime": {
+    "name": "example-agent-runtime",
+    "version": "1.2.3",
+    "environment": "mcp"
+  },
+  "tool": {
+    "name": "invoice.approve",
+    "kind": "mcp",
+    "server": "erp"
+  },
+  "approval": {
+    "required": true,
+    "status": "approved",
+    "principal": {
+      "type": "user",
+      "id": "usr_42"
+    }
+  },
+  "prompt": {
+    "digest": {
+      "algorithm": "sha256",
+      "value": "prompt-digest-placeholder"
+    },
+    "preview": "Approve invoice INV-0042"
+  },
+  "input": {
+    "digest": {
+      "algorithm": "sha256",
+      "value": "input-digest-placeholder"
+    }
+  },
+  "output": {
+    "digest": {
+      "algorithm": "sha256",
+      "value": "output-digest-placeholder"
+    }
+  },
+  "tokens": {
+    "input": 120,
+    "output": 42,
+    "total": 162
+  }
+}

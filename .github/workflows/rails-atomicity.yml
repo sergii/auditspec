@@ -1,0 +1,55 @@
+name: Rails atomicity
+
+on:
+  push:
+    branches:
+      - v0.1
+    paths:
+      - "frameworks/rails/**"
+      - "lab/rails-atomicity/**"
+      - "implementations/ruby/**"
+      - "schema/audit-event.schema.json"
+      - "schema/examples/user-action.json"
+      - "profiles/atomicity/**"
+      - ".github/workflows/rails-atomicity.yml"
+  pull_request:
+    paths:
+      - "frameworks/rails/**"
+      - "lab/rails-atomicity/**"
+      - "implementations/ruby/**"
+      - "schema/audit-event.schema.json"
+      - "schema/examples/user-action.json"
+      - "profiles/atomicity/**"
+      - ".github/workflows/rails-atomicity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rails-atomicity:
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - "3.4.10"
+          - "4.0.6"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install Rails atomicity dependencies
+        working-directory: lab/rails-atomicity
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Run Rails atomicity integration
+        working-directory: lab/rails-atomicity
+        run: bundle exec ruby atomicity_test.rb

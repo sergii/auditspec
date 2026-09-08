@@ -1,0 +1,13 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_invalid_target_type",
+  "source": "urn:example:project-service",
+  "actor": { "type": "user", "id": "usr_42" },
+  "action": "project.update",
+  "targets": [
+    { "id": "PRJ-0042" }
+  ],
+  "result": { "status": "succeeded" },
+  "occurred_at": "2026-08-24T15:10:00Z",
+  "recorded_at": "2026-08-24T15:10:00.001Z"
+}

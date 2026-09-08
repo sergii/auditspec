@@ -1,0 +1,30 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_impersonation_001",
+  "source": "urn:example:admin-console",
+  "actor": {
+    "type": "user",
+    "id": "support_7",
+    "display": { "name": "Support Operator" }
+  },
+  "delegation": [
+    {
+      "relationship": "impersonation",
+      "principal": { "type": "user", "id": "customer_42" },
+      "reason": "support_case",
+      "reference": "SUP-1922"
+    }
+  ],
+  "action": "customer.session_impersonate",
+  "subjects": [
+    { "type": "user", "id": "customer_42", "role": "affected" }
+  ],
+  "authorization": {
+    "decision": "allowed",
+    "policy": { "id": "support-impersonation", "version": "2" }
+  },
+  "result": { "status": "succeeded" },
+  "origin": { "surface": "web" },
+  "occurred_at": "2026-08-24T15:05:00Z",
+  "recorded_at": "2026-08-24T15:05:00.004Z"
+}

@@ -1,0 +1,58 @@
+{
+  "diff_version": "0.1",
+  "subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app",
+    "base_revision": "git:abc123",
+    "head_revision": "git:def456"
+  },
+  "generated_at": "2026-08-24T22:45:00Z",
+  "base_generated_at": "2026-08-24T22:40:00Z",
+  "head_generated_at": "2026-08-24T22:44:00Z",
+  "comparability": {
+    "status": "comparable",
+    "dimensions": {
+      "environment": "match",
+      "window": "match",
+      "collection_policy": "match",
+      "producers": "match"
+    },
+    "reasons": [
+      "Environment, collection policy, producer set, and observation-window duration match."
+    ]
+  },
+  "summary": {
+    "base_contradicted_targets": 1,
+    "head_contradicted_targets": 2,
+    "delta": 1,
+    "newly_reported": 1,
+    "no_longer_reported": 0,
+    "persisting": 1
+  },
+  "newly_reported_contradictions": [
+    {
+      "target": {
+        "type": "finding",
+        "fingerprint": "ffp_auth_001"
+      },
+      "evidence_ids": ["authz_finding_001"],
+      "trust_levels": ["authoritative"],
+      "coverage_levels": ["point"]
+    }
+  ],
+  "no_longer_reported_contradictions": [],
+  "persisting_contradictions": [
+    {
+      "target": {
+        "type": "boundary",
+        "fingerprint": "bfp_refund_update_001"
+      },
+      "evidence_ids": ["rte_runtime_conflict_001"],
+      "trust_levels": ["attributed"],
+      "coverage_levels": ["window"]
+    }
+  ],
+  "limitations": [
+    "No-longer-reported contradictions are not automatically resolved; remediation still requires independent verification."
+  ]
+}

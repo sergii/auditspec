@@ -1,0 +1,53 @@
+name: Ruby reference
+
+on:
+  push:
+    branches:
+      - v0.1
+    paths:
+      - "implementations/ruby/**"
+      - "schema/**"
+      - "profiles/agent/**"
+      - "conformance/**"
+      - "mappings/controls/**"
+      - ".github/workflows/ruby-reference.yml"
+  pull_request:
+    paths:
+      - "implementations/ruby/**"
+      - "schema/**"
+      - "profiles/agent/**"
+      - "conformance/**"
+      - "mappings/controls/**"
+      - ".github/workflows/ruby-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ruby-reference:
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - "3.4.10"
+          - "4.0.6"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install Ruby reference dependencies
+        working-directory: implementations/ruby
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Run Ruby reference conformance
+        working-directory: implementations/ruby
+        run: bundle exec rake test

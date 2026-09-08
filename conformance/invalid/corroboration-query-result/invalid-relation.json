@@ -1,0 +1,17 @@
+{
+  "query_version": "0.1",
+  "assessment_subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app"
+  },
+  "source_generated_at": "2026-08-24T21:41:00Z",
+  "source_observation_scope": {
+    "scope_version": "0.1",
+    "basis": "unknown"
+  },
+  "filters": {
+    "relation": "confirmed"
+  },
+  "count": 0,
+  "matches": []
+}

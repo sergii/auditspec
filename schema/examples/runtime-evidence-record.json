@@ -1,0 +1,28 @@
+{
+  "record_version": "0.1",
+  "id": "rte_example_001",
+  "kind": "transaction_commit",
+  "producer": {
+    "name": "postgres-commit-observer",
+    "type": "database",
+    "version": "0.1"
+  },
+  "trust": "authoritative",
+  "observed_at": "2026-08-24T21:40:00Z",
+  "targets": {
+    "boundary_fingerprint": "bfp_refund_update_001"
+  },
+  "correlation": {
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "event_source": "urn:example:billing",
+    "event_id": "aud_example_001"
+  },
+  "observation": {
+    "state": "observed",
+    "coverage": "point",
+    "detail": "The database observer saw the transaction containing the targeted mutation commit successfully."
+  },
+  "limitations": [
+    "Point evidence corroborates one observed execution and does not establish that every possible execution commits atomically."
+  ]
+}

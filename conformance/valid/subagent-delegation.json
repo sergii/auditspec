@@ -1,0 +1,30 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_subagent_001",
+  "source": "urn:example:agent-runtime",
+  "actor": { "type": "agent", "id": "agent_child" },
+  "delegation": [
+    {
+      "relationship": "delegated_by",
+      "principal": { "type": "agent", "id": "agent_parent" }
+    },
+    {
+      "relationship": "on_behalf_of",
+      "principal": { "type": "user", "id": "usr_42" }
+    }
+  ],
+  "action": "repository.file_update",
+  "targets": [
+    { "type": "repository", "id": "sergii/auditspec", "role": "container" },
+    { "type": "file", "id": "SPEC.md", "role": "primary" }
+  ],
+  "authorization": { "decision": "allowed" },
+  "result": { "status": "succeeded" },
+  "correlation": {
+    "session_id": "sess_88",
+    "turn_id": "turn_12",
+    "tool_call_id": "call_55"
+  },
+  "occurred_at": "2026-08-24T15:06:00Z",
+  "recorded_at": "2026-08-24T15:06:00.006Z"
+}

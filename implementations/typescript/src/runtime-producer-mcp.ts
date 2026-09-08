@@ -1,0 +1,121 @@
+import { McpServer } from "@modelcontextprotocol/server";
+import * as z from "zod/v4";
+import { diffCorroborationReports } from "./corroboration-diff.js";
+import { queryCorroboration, type CorroborationQueryFilters } from "./corroboration-query.js";
+import { createAuditSpecMcpServer } from "./mcp.js";
+import { getRuntimeProducer, listRuntimeProducers } from "./runtime-producer-registry.js";
+import type { RuntimeCorroborationReport } from "./runtime-corroboration.js";
+import {
+  validateCorroborationDiff,
+  validateCorroborationQueryResult,
+  validateCorroborationReport,
+} from "./validate.js";
+
+function asToolResult(value: Record<string, unknown>) {
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
+    structuredContent: value,
+  };
+}
+
+function validationError(value: unknown) {
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
+    isError: true,
+  };
+}
+
+const corroborationFiltersSchema = z.object({
+  relation: z.enum(["supports", "contradicts", "inconclusive"]).optional(),
+  trust: z.enum(["authoritative", "attributed", "self_reported", "derived"]).optional(),
+  coverage: z.enum(["point", "sampled", "window", "exhaustive"]).optional(),
+  evidence_kind: z.enum([
+    "application_execution",
+    "authorization_decision",
+    "transaction_commit",
+    "audit_persist",
+    "outbox_persist",
+    "delivery_receipt",
+    "trace_span",
+    "database_observation",
+    "kernel_observation",
+  ]).optional(),
+  producer_name: z.string().min(1).optional(),
+  producer_type: z.enum(["application", "database", "collector", "proxy", "kernel", "agent", "external"]).optional(),
+  boundary_fingerprint: z.string().min(1).optional(),
+  finding_fingerprint: z.string().min(1).optional(),
+});
+
+export function registerRuntimeProducerRegistryTools(server: McpServer): McpServer {
+  server.registerTool(
+    "auditspec.list_runtime_producers",
+    {
+      description: "List schema-valid runtime evidence producer manifests including supported evidence kinds, default trust/coverage, authority scope, and limitations.",
+      inputSchema: z.object({ producer_id: z.string().min(1).optional() }),
+    },
+    async ({ producer_id }) => {
+      if (producer_id) {
+        const manifest = getRuntimeProducer(producer_id);
+        return manifest
+          ? asToolResult({ count: 1, producers: [manifest] })
+          : asToolResult({ count: 0, producers: [] });
+      }
+      const producers = listRuntimeProducers();
+      return asToolResult({ count: producers.length, producers });
+    },
+  );
+
+  server.registerTool(
+    "auditspec.diff_runtime_corroboration",
+    {
+      description: "Compare two Runtime Corroboration Reports by contradicted target identity. Reports newly reported, no-longer-reported, and persisting contradictions without claiming that no-longer-reported means resolved.",
+      inputSchema: z.object({ base: z.unknown(), head: z.unknown() }),
+    },
+    async ({ base, head }) => {
+      const baseValidation = validateCorroborationReport(base);
+      const headValidation = validateCorroborationReport(head);
+      if (!baseValidation.valid || !headValidation.valid) {
+        return validationError({ base: baseValidation, head: headValidation });
+      }
+
+      const diff = diffCorroborationReports(
+        base as RuntimeCorroborationReport,
+        head as RuntimeCorroborationReport,
+      );
+      const validation = validateCorroborationDiff(diff);
+      return validation.valid
+        ? asToolResult(diff as unknown as Record<string, unknown>)
+        : validationError(validation);
+    },
+  );
+
+  server.registerTool(
+    "auditspec.query_runtime_corroboration",
+    {
+      description: "Query a Runtime Corroboration Report by relation, trust, observation coverage, evidence kind, producer identity/type, or stable boundary/finding fingerprint.",
+      inputSchema: z.object({
+        report: z.unknown(),
+        filters: corroborationFiltersSchema.optional(),
+      }),
+    },
+    async ({ report, filters }) => {
+      const reportValidation = validateCorroborationReport(report);
+      if (!reportValidation.valid) return validationError(reportValidation);
+
+      const result = queryCorroboration(
+        report as RuntimeCorroborationReport,
+        (filters ?? {}) as CorroborationQueryFilters,
+      );
+      const validation = validateCorroborationQueryResult(result);
+      return validation.valid
+        ? asToolResult(result as unknown as Record<string, unknown>)
+        : validationError(validation);
+    },
+  );
+
+  return server;
+}
+
+export function createAuditSpecReferenceMcpServer(): McpServer {
+  return registerRuntimeProducerRegistryTools(createAuditSpecMcpServer());
+}

@@ -1,0 +1,51 @@
+name: AuditSpec
+
+description: Advisory AuditSpec assessment for pull requests and CI
+
+author: AuditSpec
+
+inputs:
+  baseline:
+    description: Use the pull request base branch as a ratchet baseline when available (auto or off)
+    required: false
+    default: auto
+
+outputs:
+  report-path:
+    description: Path to the generated head Assessment Report JSON
+    value: ${{ steps.assess.outputs.report_path }}
+  diff-path:
+    description: Path to the generated Assessment Diff JSON when a baseline was available
+    value: ${{ steps.assess.outputs.diff_path }}
+  topology-diff-path:
+    description: Path to the generated Assurance Graph topology diff JSON when a baseline was available
+    value: ${{ steps.assess.outputs.topology_diff_path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Install AuditSpec reference dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/implementations/typescript
+      run: npm install --no-audit --no-fund
+
+    - name: Build AuditSpec reference implementation
+      shell: bash
+      working-directory: ${{ github.action_path }}/implementations/typescript
+      run: npm run build
+
+    - name: Run AuditSpec assessment
+      id: assess
+      shell: bash
+      env:
+        AUDITSPEC_BASELINE: ${{ inputs.baseline }}
+      run: node "$GITHUB_ACTION_PATH/tools/github-action/run.mjs"
+
+branding:
+  icon: shield
+  color: blue
