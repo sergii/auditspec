@@ -107,9 +107,9 @@ This repository is an early `v0.1` working draft. Breaking changes are still exp
 - `docs/github-action.md` - advisory PR ratchet integration.
 - `docs/mcp.md` - MCP server and agent-facing tools.
 - `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics, and producer model.
+- `docs/roadmap.md` - non-normative future work and permanent assurance guardrails.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.
-- `WORKING_NOTES.md` - temporary v0.1 design backlog; intended to be removed or promoted before release.
 
 ## Run schema conformance
 
@@ -335,6 +335,8 @@ See `spec/delivery.md`, `profiles/atomicity/README.md`, and `frameworks/README.m
 ## Direction
 
 The v0.1 repository already includes executable framework adapters, PR assessment, agent/MCP remediation surfaces, provenance/observability mappings, runtime corroboration with reference producers, control/OSCAL evidence bridges, and framework transaction labs. Remaining direction focuses on deeper framework resolution, cross-service/message-bus graph edges, evidence-backed correlation, stronger runtime policy and producer coverage, integrity/tamper-evidence profiles, additional language/framework conformance, and eventually optional continuous-assurance cloud services. The Core specification remains useful independently of any cloud service.
+
+See `docs/roadmap.md` for the non-normative work queue and the guardrails that future capabilities must preserve.
 
 ## License
 
