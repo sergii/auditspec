@@ -160,7 +160,9 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Ruby AST discovery additionally handles conservative standalone zero-argument sends when Tree-sitter exposes an ambiguous bare command as an identifier; parameter/local bindings and non-standalone identifier uses remain excluded.
 - Calls are attached to owning Ruby method/Python function scopes, so unrelated audit calls in the same file do not cover a mutation.
 - A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
-- Framework-aware graph surfaces/dispatch currently cover context-aware explicit Rails routes; conservative literal Rails `resources`/`resource` routes with namespace, nesting and supported `scope` composition; literal static constraint metadata; ActiveJob/Sidekiq dispatch; direct and composed ActionCable RPC plus channel/connection lifecycle dispatch; Frappe whitelist functions, `doc_events`, `scheduler_events`; and dotted `frappe.enqueue` targets.
+- Framework-aware graph surfaces/dispatch currently cover context-aware explicit Rails routes; conservative literal Rails `resources`/`resource` routes with namespace, nesting and supported `scope` composition; literal static constraint metadata; ActiveJob/Sidekiq dispatch; direct and composed ActionCable RPC plus channel/connection lifecycle dispatch; Frappe whitelist functions, `doc_events`, `scheduler_events`; literal dotted `frappe.enqueue` positional/`method=` targets; and conservative DocType `Document` controller lifecycle hooks.
+- Frappe enqueue resolution interprets the exact `frappe.enqueue(...)` call semantically: literal `method=` wins over unrelated dotted keyword strings, while dynamic targets, imported aliases, direct function references, starred argument composition and unrelated `.enqueue` methods fail closed.
+- Frappe DocType lifecycle projection requires the conventional `.../doctype/<name>/<name>.py` path, exactly one explicit direct `Document` controller, and a documented lifecycle method. The framework surface remains the entrypoint and targets the concrete controller method; storage primitives such as `db_insert`/`db_update` are not promoted to lifecycle entrypoints.
 - Literal Rails `scope` supports a positional path plus literal `path`, `module`, and `as` options. Scope context is shared by resource expansion and explicit routes so scoped dispatch is not duplicated as an optimistic root route.
 - Literal `constraints ... do` blocks with simple scalar values are preserved in route-surface identity but never treated as authorization or proof of unreachability. Dynamic/complex constraints fail closed.
 - Routed Rails controller actions can inherit the `authorization` assurance role from literal `before_action` callbacks when the callback method contains authorization semantics recognized by the deterministic Ruby adapter.
@@ -181,7 +183,7 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Mixed-path gaps produce `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002`.
 - Path enumeration is capped at 64 paths / depth 8; truncation downgrades the boundary to `unknown/low` rather than creating optimistic coverage.
 - Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
-- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable direct/channel lifecycle dispatch, conventional connection lifecycle, inherited and concern-provided RPC actions, inherited and concern-provided `subscribed`/`unsubscribed` lifecycle callbacks including non-public lifecycle methods, non-public override behavior, ambiguous concern overlap, namespaced channel inheritance, conservative zero-argument Ruby sends and connection/subscription auth separation.
+- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable direct/channel lifecycle dispatch, conventional connection lifecycle, inherited and concern-provided RPC actions, inherited and concern-provided `subscribed`/`unsubscribed` lifecycle callbacks including non-public lifecycle methods, non-public override behavior, ambiguous concern overlap, namespaced channel inheritance, conservative zero-argument Ruby sends, connection/subscription auth separation, Frappe enqueue keyword/positional target resolution, and DocType lifecycle surface-to-mutation reachability.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening status
@@ -200,11 +202,13 @@ Completed:
 - added conventional `ApplicationCable::Connection` `connect`/`disconnect` lifecycle surfaces while keeping connection authorization separate from later channel actions.
 - added unambiguous inherited and direct `ActiveSupport::Concern`-provided ActionCable RPC resolution, explicit fully-qualified namespaced channel inheritance, override/visibility handling, and connection-local `reject_unauthorized_connection` evidence.
 - added inherited and direct `ActiveSupport::Concern`-provided ActionCable `subscribed`/`unsubscribed` lifecycle resolution with framework visibility semantics and ambiguity-safe shadowing.
+- hardened exact `frappe.enqueue(...)` dispatch so literal dotted positional targets and literal dotted `method=` targets resolve deterministically without confusing queue/job metadata for callable identity.
+- added conservative Frappe DocType controller lifecycle surfaces for documented direct `Document` hooks on conventional controller paths, including graph-level reachability tests from lifecycle entrypoint to mutation.
 
 Remaining release backlog:
 
 - Expand Rails framework resolution for lexical/nested concern composition, custom ActionCable connection wiring, complex/callable route constraints, additional route DSL variants and additional framework-generated dispatch.
-- Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
+- Expand Frappe framework resolution for dynamic hook composition, imported alias/name resolution, custom or indirect DocType controller resolution and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
 - Review every current `future`/`planned` statement in README/docs against implementation before release.
