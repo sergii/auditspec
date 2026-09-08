@@ -93,6 +93,27 @@ The DocType name is mapped to the conventional controller path, for example `Wik
 
 Dynamic DocType or method identity, starred argument composition, ambiguous controllers across apps, indirect or aliased `Document` inheritance, and custom controller wiring fail closed. This is static framework reachability evidence, not proof that the queued job executed.
 
+### Document `queue_action` dispatch
+
+Frappe `Document.queue_action` is also modeled in a deliberately narrow form. AuditSpec recognizes an AST-proven `self.queue_action(...)` call only when it appears inside a conventional direct `Document` controller and the action name is a literal Python identifier.
+
+For example:
+
+```python
+class WikiPage(Document):
+    def on_update(self):
+        self.queue_action("rebuild_index", queue="long")
+
+    def rebuild_index(self):
+        self.db_set("status", "Indexed")
+```
+
+This creates a separate `frappe_queue_action` background surface targeting `WikiPage.rebuild_index`. Keeping the queued action as its own entrypoint is intentional: authorization, audit, and transaction evidence on `on_update` is not automatically inherited by the later background execution.
+
+Frappe itself first checks for an inner method named `_<action>` before executing the requested action. AuditSpec mirrors that rule for app-local methods, so `_rebuild_index` takes precedence over `rebuild_index` when both are defined. Framework-inherited inner actions such as `_save`, `_submit`, `_cancel`, and `_rename` are not mapped to a same-named app method unless the effective inner method is explicitly defined in the controller.
+
+External receivers such as `doc.queue_action(...)`, dynamic action names, starred argument composition, custom/indirect controller inheritance, and targets requiring runtime type or import resolution fail closed.
+
 ### DocType controller lifecycle dispatch
 
 The v0.1 Assurance Graph also models documented Frappe `Document` controller lifecycle methods as framework entrypoint surfaces when the controller can be resolved conservatively.
