@@ -5,6 +5,7 @@ import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
 import { frappeDocumentControllerMethods, frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
+import { frappeStaticHookDispatches } from "./frappe-hooks.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { railsRouteDeclarations, type RailsRouteDeclaration } from "./rails-routes.js";
@@ -254,10 +255,6 @@ function camelizeController(value: string): string {
     .join("::") + "Controller";
 }
 
-function lineAt(source: string, offset: number): number {
-  return source.slice(0, offset).split("\n").length;
-}
-
 function routeDeclarations(source: string): RailsRouteDeclaration[] {
   return railsRouteDeclarations(source);
 }
@@ -418,46 +415,6 @@ function resolveFrappeDocumentMethod(
   }
 
   return candidates.length === 1 ? candidates[0] : undefined;
-}
-
-function assignmentBlock(source: string, name: string): { text: string; offset: number } | null {
-  const match = new RegExp(`\\b${name}\\s*=\\s*\\{`).exec(source);
-  if (!match || match.index === undefined) return null;
-  const open = source.indexOf("{", match.index);
-  if (open < 0) return null;
-  let depth = 0;
-  let quote: string | null = null;
-  let escaped = false;
-  for (let index = open; index < source.length; index += 1) {
-    const char = source[index]!;
-    if (quote) {
-      if (escaped) escaped = false;
-      else if (char === "\\") escaped = true;
-      else if (char === quote) quote = null;
-      continue;
-    }
-    if (char === "'" || char === '"') {
-      quote = char;
-      continue;
-    }
-    if (char === "{") depth += 1;
-    if (char === "}") {
-      depth -= 1;
-      if (depth === 0) return { text: source.slice(open, index + 1), offset: open };
-    }
-  }
-  return null;
-}
-
-function hookTargets(source: string, assignment: string): Array<{ target: string; line: number }> {
-  const block = assignmentBlock(source, assignment);
-  if (!block) return [];
-  const targets: Array<{ target: string; line: number }> = [];
-  const stringPattern = /["']([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*){2,})["']/g;
-  for (const match of block.text.matchAll(stringPattern)) {
-    targets.push({ target: match[1]!, line: lineAt(source, block.offset + (match.index ?? 0)) });
-  }
-  return targets;
 }
 
 function frameworkSurface(
@@ -692,21 +649,20 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
 
   for (const [path, source] of sourceByPath) {
     if (!path.endsWith("hooks.py")) continue;
-    for (const [assignment, surfaceKind] of [["doc_events", "frappe_doc_event"], ["scheduler_events", "frappe_scheduler"]] as const) {
-      for (const hook of hookTargets(source, assignment)) {
-        const target = resolvePythonDottedTarget(indexed, hook.target);
-        if (!target) continue;
-        const location: SourceLocation = { path, line: hook.line, column: 1 };
-        const surface = frameworkSurface("python", "frappe", surfaceKind, hook.target, location);
-        nodes.push(surface);
-        pushEdge({
-          from: surface.id,
-          to: target.node.id,
-          kind: "framework_dispatch",
-          confidence: "high",
-          framework: { kind: surfaceKind, detail: `${assignment} -> ${hook.target}`, location },
-        });
-      }
+    for (const hook of frappeStaticHookDispatches(source)) {
+      const target = resolvePythonDottedTarget(indexed, hook.target);
+      if (!target) continue;
+      const surfaceKind = hook.assignment === "doc_events" ? "frappe_doc_event" : "frappe_scheduler";
+      const location: SourceLocation = { path, line: hook.line, column: 1 };
+      const surface = frameworkSurface("python", "frappe", surfaceKind, hook.target, location);
+      nodes.push(surface);
+      pushEdge({
+        from: surface.id,
+        to: target.node.id,
+        kind: "framework_dispatch",
+        confidence: "high",
+        framework: { kind: surfaceKind, detail: `${hook.assignment} -> ${hook.target}`, location },
+      });
     }
   }
 
