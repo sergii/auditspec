@@ -725,7 +725,7 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
   return {
     graph_version: "0.1",
     generated_at: new Date().toISOString(),
-    subject: { kind: "repository"; path: root },
+    subject: { kind: "repository", path: root },
     nodes,
     edges,
     unresolved_calls: unresolved,
