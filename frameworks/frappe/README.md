@@ -33,6 +33,32 @@ Common mutation surfaces include:
 
 Static evidence remains conservative. A resolved call path is not runtime proof.
 
+### Static hook dispatch
+
+The v0.1 Assurance Graph parses `doc_events` and `scheduler_events` as literal Frappe hook structures rather than searching every string inside `hooks.py`.
+
+Supported examples include:
+
+```python
+doc_events = {
+    "Wiki Page": {
+        "on_update": "wiki.handlers.audit_wiki_update",
+        "on_submit": ["wiki.handlers.audit_wiki_submit"],
+    },
+}
+
+scheduler_events = {
+    "hourly": ["wiki.jobs.refresh_index"],
+    "cron": {
+        "*/15 * * * *": ["wiki.jobs.collect_metrics"],
+    },
+}
+```
+
+Only documented DocType event names and documented scheduler event names are accepted. Handler values must be literal dotted Python targets or literal lists of such targets. `cron` is modeled as a literal nested map whose keys are schedule expressions and whose values are handler lists.
+
+Dynamic composition such as `**shared_hooks`, later `.update(...)` mutation, reassignment, duplicate literal keys, unknown event keys, and non-literal handler expressions fail closed. Dotted DocType names, cron expressions, or unrelated metadata strings are never interpreted as callable targets merely because they contain dots.
+
 ### Background enqueue dispatch
 
 The v0.1 Assurance Graph resolves Frappe background dispatch only from an exact `frappe.enqueue(...)` call with a statically literal dotted target.
