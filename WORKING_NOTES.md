@@ -159,7 +159,7 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Rails and Frappe mutation discovery uses ast-grep/Tree-sitter call nodes instead of raw line regex, removing comment/string false positives.
 - Calls are attached to owning Ruby method/Python function scopes, so unrelated audit calls in the same file do not cover a mutation.
 - A conservative cross-file Assurance Graph resolves unambiguous calls and retains ambiguous calls as unresolved evidence.
-- Framework-aware graph surfaces/dispatch currently cover context-aware explicit Rails routes; conservative literal Rails `resources`/`resource` routes with namespace, nesting and supported `scope` composition; literal static constraint metadata; ActiveJob/Sidekiq dispatch; direct ActionCable RPC/lifecycle dispatch; Frappe whitelist functions, `doc_events`, `scheduler_events`; and dotted `frappe.enqueue` targets.
+- Framework-aware graph surfaces/dispatch currently cover context-aware explicit Rails routes; conservative literal Rails `resources`/`resource` routes with namespace, nesting and supported `scope` composition; literal static constraint metadata; ActiveJob/Sidekiq dispatch; direct ActionCable RPC/channel lifecycle plus conventional connection lifecycle dispatch; Frappe whitelist functions, `doc_events`, `scheduler_events`; and dotted `frappe.enqueue` targets.
 - Literal Rails `scope` supports a positional path plus literal `path`, `module`, and `as` options. Scope context is shared by resource expansion and explicit routes so scoped dispatch is not duplicated as an optimistic root route.
 - Literal `constraints ... do` blocks with simple scalar values are preserved in route-surface identity but never treated as authorization or proof of unreachability. Dynamic/complex constraints fail closed.
 - Routed Rails controller actions can inherit the `authorization` assurance role from literal `before_action` callbacks when the callback method contains authorization semantics recognized by the deterministic Ruby adapter.
@@ -167,14 +167,15 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Canonical `ActiveSupport::Concern` callback projection supports literal `include SomeConcern` and explicit qualified `include Admin::SomeConcern`, a unique matching concern module, a single literal `included do ... end` block, and callback methods defined by that concern.
 - Conditional or dynamic callbacks, dynamic concern inclusion, ambiguous sources, skipped callbacks, and namespace semantics requiring lexical Ruby constant lookup fail closed rather than strengthening assurance.
 - ActionCable projection covers direct public methods on explicit channel classes plus direct `subscribed`/`unsubscribed` lifecycle callbacks. Private/protected methods, indirect inheritance, lexical namespace lookup and inherited/concern-provided RPC actions fail closed.
-- ActionCable subscription authorization is kept separate from later RPC action assurance; a `subscribed` authorization node does not automatically strengthen every action path.
+- The conventional `ApplicationCable::Connection < ActionCable::Connection::Base` `connect`/`disconnect` lifecycle is modeled as separate entrypoint surfaces, including the standard lexical `module ApplicationCable; class Connection ...` form. Custom connection-class wiring and indirect connection inheritance fail closed.
+- ActionCable connection/subscription authorization is kept separate from later RPC action assurance; `connect` or `subscribed` authorization does not automatically strengthen every action path.
 - Stable boundary fingerprints permit line-independent base/head reachability comparison.
 - Assurance Graph topology diff tracks new/removed entrypoints, framework dispatches and entrypoint-to-mutation paths by semantic identity rather than source line.
 - Canonical all-path Inspector evaluates every resolved entrypoint path up to a bounded cap instead of trusting only the strongest path.
 - Mixed-path gaps produce `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002`.
 - Path enumeration is capped at 64 paths / depth 8; truncation downgrades the boundary to `unknown/low` rather than creating optimistic coverage.
 - Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
-- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable direct/lifecycle dispatch, non-public exclusions, namespaced channels and subscription/action auth separation.
+- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable direct/channel lifecycle dispatch, conventional connection lifecycle, non-public exclusions, namespaced channels and connection/subscription auth separation.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening status
@@ -190,10 +191,11 @@ Completed:
 - added conservative `ActiveSupport::Concern` callback authorization projection for literal concern inclusion and concern-defined authorization callback methods.
 - added explicit fully-qualified namespaced controller inheritance and concern identities while keeping lexical namespace lookup fail closed.
 - added conservative ActionCable Assurance Graph surfaces for direct public channel RPC actions and direct `subscribed`/`unsubscribed` lifecycle callbacks, including explicit fully-qualified namespaced channel classes.
+- added conventional `ApplicationCable::Connection` `connect`/`disconnect` lifecycle surfaces while keeping connection authorization separate from later channel actions.
 
 Remaining release backlog:
 
-- Expand Rails framework resolution for lexical/nested concern composition, ActionCable connection lifecycle and inherited/concern-provided actions, complex/callable route constraints, additional route DSL variants and additional framework-generated dispatch.
+- Expand Rails framework resolution for lexical/nested concern composition, ActionCable inherited/concern-provided actions and custom connection wiring, complex/callable route constraints, additional route DSL variants and additional framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
