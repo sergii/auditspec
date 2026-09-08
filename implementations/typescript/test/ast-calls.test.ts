@@ -29,6 +29,53 @@ test("Ruby AST attaches calls to the owning method scope", () => {
   assert.match(mutation.scope.qualified_name, /ApproveInvoice.*call/);
 });
 
+test("Ruby AST recognizes a standalone zero-argument send with a modifier", () => {
+  const source = [
+    "class ApplicationCable::Connection",
+    "  def connect",
+    "    reject_unauthorized_connection unless current_user",
+    "  end",
+    "end",
+  ].join("\n");
+  const scan = findAstCalls(source, "ruby");
+  const rejection = scan.calls.find((call) => call.method === "reject_unauthorized_connection");
+  assert.ok(rejection?.scope);
+  assert.equal(rejection.scope.qualified_name, "ApplicationCable::Connection#connect");
+});
+
+test("Ruby AST does not turn a bound local variable into a zero-argument send", () => {
+  const source = [
+    "class Example",
+    "  def call(reject_unauthorized_connection)",
+    "    reject_unauthorized_connection",
+    "  end",
+    "",
+    "  def other",
+    "    reject_unauthorized_connection = true",
+    "    reject_unauthorized_connection",
+    "  end",
+    "end",
+  ].join("\n");
+  const scan = findAstCalls(source, "ruby");
+  assert.equal(
+    scan.calls.some((call) => call.method === "reject_unauthorized_connection"),
+    false,
+  );
+});
+
+test("Ruby AST does not turn an identifier used as an argument into a zero-argument send", () => {
+  const source = [
+    "class Example",
+    "  def call",
+    "    log reject_unauthorized_connection",
+    "  end",
+    "end",
+  ].join("\n");
+  const scan = findAstCalls(source, "ruby");
+  const matching = scan.calls.filter((call) => call.method === "reject_unauthorized_connection");
+  assert.equal(matching.length, 0);
+});
+
 test("Python AST exposes full call targets", () => {
   const source = [
     "import frappe",
