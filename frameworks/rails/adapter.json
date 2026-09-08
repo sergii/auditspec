@@ -43,12 +43,14 @@
         "implementations/typescript/test/rails-action-cable.test.ts",
         "implementations/typescript/test/rails-action-cable-composed.test.ts",
         "implementations/typescript/test/rails-action-cable-composed-graph.test.ts",
+        "implementations/typescript/test/rails-action-cable-composed-lifecycle.test.ts",
         ".github/workflows/conformance.yml"
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
-        "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, the conventional ApplicationCable::Connection connect/disconnect lifecycle, unambiguous inherited public RPC actions, and direct ActiveSupport::Concern-provided public RPC actions.",
-        "Explicit fully-qualified channel superclass chains are supported; Ruby lexical constant lookup, concern dependencies, ambiguous concern method overlap, inherited/concern-provided lifecycle callbacks, and custom connection-class resolution are not statically proven.",
+        "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, the conventional ApplicationCable::Connection connect/disconnect lifecycle, unambiguous inherited public RPC actions, direct ActiveSupport::Concern-provided public RPC actions, and inherited/concern-provided subscribed/unsubscribed lifecycle callbacks.",
+        "Explicit fully-qualified channel superclass chains are supported; Ruby lexical constant lookup, concern dependencies, ambiguous concern method overlap, custom connection-class resolution, and dynamic channel composition are not statically proven.",
+        "Lifecycle callbacks are framework-dispatched and may be non-public Ruby methods; RPC action exposure still requires public visibility.",
         "reject_unauthorized_connection is recognized as connection-local authorization evidence, but authorization in ActionCable connect or subscribed is not projected onto later RPC actions without a stronger stateful proof."
       ]
     },
