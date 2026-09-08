@@ -33,6 +33,10 @@ const FRAPPE_DOCUMENT_HOOKS = new Set([
   "after_delete",
 ]);
 
+export function isFrappeDocumentHookName(name: string): boolean {
+  return FRAPPE_DOCUMENT_HOOKS.has(name);
+}
+
 function conventionalDocTypeControllerPath(path: string): boolean {
   const match = /(?:^|\/)doctype\/([^/]+)\/([^/]+)\.py$/.exec(path);
   return Boolean(match && match[1] === match[2]);
@@ -74,7 +78,7 @@ export function frappeDocumentHookDispatches(
   methods: readonly FrappeDocumentMethod[],
 ): FrappeDocumentHookDispatch[] {
   return frappeDocumentControllerMethods(source, path, methods)
-    .filter((method) => FRAPPE_DOCUMENT_HOOKS.has(method.name))
+    .filter((method) => isFrappeDocumentHookName(method.name))
     .map((method) => ({
       target_qualified_name: method.qualified_name,
       surface_kind: "frappe_document_hook" as const,
