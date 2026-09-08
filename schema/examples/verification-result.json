@@ -1,0 +1,32 @@
+{
+  "verification_version": "0.1",
+  "generated_at": "2026-08-24T17:22:00Z",
+  "status": "verified",
+  "base": {
+    "subject_path": "/workspace/example-app",
+    "revision": "git:abc123",
+    "generated_at": "2026-08-24T17:19:00Z"
+  },
+  "head": {
+    "subject_path": "/workspace/example-app",
+    "revision": "git:def456",
+    "generated_at": "2026-08-24T17:21:00Z"
+  },
+  "requested_fingerprints": ["fp_example_001"],
+  "resolved_fingerprints": ["fp_example_001"],
+  "still_open_fingerprints": [],
+  "new_findings": [],
+  "coverage": {
+    "base": 0,
+    "head": 1,
+    "delta": 1
+  },
+  "evidence_scope": {
+    "kind": "assessment_diff",
+    "statement": "The active Inspector adapters no longer report the requested fingerprint."
+  },
+  "metadata": {
+    "resolved_count": 1,
+    "still_open_count": 0
+  }
+}

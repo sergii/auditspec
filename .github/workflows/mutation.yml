@@ -1,0 +1,46 @@
+name: Mutation assurance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "implementations/typescript/src/assurance-evaluation.ts"
+      - "implementations/typescript/test/assurance-evaluation.test.ts"
+      - "implementations/typescript/test/all-path-model.test.ts"
+      - "implementations/typescript/test/assurance-invariants.test.ts"
+      - "implementations/typescript/test/depth-truncation-hardening.test.ts"
+      - "implementations/typescript/package.json"
+      - "implementations/typescript/stryker.config.json"
+      - ".github/workflows/mutation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  assurance-semantics:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript reference dependencies
+        working-directory: implementations/typescript
+        run: npm install --no-audit --no-fund
+
+      - name: Run focused mutation testing
+        working-directory: implementations/typescript
+        run: npm run test:mutation
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assurance-mutation-report
+          path: implementations/typescript/reports/mutation.json
+          if-no-files-found: warn

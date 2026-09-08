@@ -1,0 +1,174 @@
+name: Conformance
+
+on:
+  push:
+    branches:
+      - v0.1
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema-conformance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install conformance dependencies
+        run: pip install -r tools/conformance/requirements.txt
+
+      - name: Run AuditSpec conformance
+        run: python tools/conformance/run.py
+
+  typescript-reference:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript reference dependencies
+        working-directory: implementations/typescript
+        run: npm install --no-audit --no-fund
+
+      - name: Build and test TypeScript reference
+        working-directory: implementations/typescript
+        run: npm run check
+
+  oscal-official:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript dependencies
+        run: |
+          npm --prefix implementations/typescript install --no-audit --no-fund
+          npm --prefix implementations/typescript run build
+
+      - name: Generate AuditSpec OSCAL Assessment Results
+        run: |
+          node --input-type=module <<'NODE' > /tmp/auditspec-oscal.json
+          import { readFileSync } from "node:fs";
+          import { exportOscalAssessmentResults } from "./implementations/typescript/dist/oscal.js";
+          const assessment = JSON.parse(readFileSync("schema/examples/assessment-report.json", "utf8"));
+          const request = JSON.parse(readFileSync("schema/examples/oscal-export-request.json", "utf8"));
+          process.stdout.write(JSON.stringify(exportOscalAssessmentResults(assessment, request), null, 2));
+          NODE
+
+      - name: Fetch verified OSCAL v1.2.3 schema
+        run: |
+          curl -fsSL \
+            -o /tmp/oscal-1.2.3.zip \
+            https://github.com/usnistgov/OSCAL/releases/download/v1.2.3/oscal-1.2.3.zip
+          echo "eefb4ec5b1383d3b15fca27e0b63bc84b8661d6ee17e4f92acb437606e9ee982  /tmp/oscal-1.2.3.zip" | sha256sum -c -
+          SCHEMA_ENTRY="$(unzip -Z1 /tmp/oscal-1.2.3.zip | grep -E '(^|/)oscal_assessment-results_schema\.json$' | head -n 1)"
+          test -n "$SCHEMA_ENTRY"
+          unzip -p /tmp/oscal-1.2.3.zip "$SCHEMA_ENTRY" > /tmp/oscal_assessment-results_schema.json
+
+      - name: Validate generated OSCAL against NIST schema
+        run: |
+          node implementations/typescript/tools/validate-oscal-official.mjs \
+            /tmp/oscal_assessment-results_schema.json \
+            /tmp/auditspec-oscal.json
+
+  action-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run local AuditSpec Action
+        uses: ./
+        with:
+          baseline: auto
+
+  real-world-inspector-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout AuditSpec
+        uses: actions/checkout@v4
+        with:
+          path: auditspec
+
+      - name: Checkout pinned Rails reference repository
+        uses: actions/checkout@v4
+        with:
+          repository: lobsters/lobsters
+          ref: 2f385d149e67f5ff78643dcf6d3cab0b24c0117c
+          path: e2e/lobsters
+          persist-credentials: false
+
+      - name: Fetch pinned Frappe reference repository
+        run: |
+          mkdir -p e2e/frappe-wiki
+          git -C e2e/frappe-wiki init
+          git -C e2e/frappe-wiki remote add origin https://github.com/frappe/wiki.git
+          git -C e2e/frappe-wiki fetch --depth=1 origin 2e4e4f215368387c08553c3c59723c7a2e1bf306
+          git -C e2e/frappe-wiki checkout --detach FETCH_HEAD
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build Inspector
+        working-directory: auditspec/implementations/typescript
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Inspect pinned Rails and Frappe repositories
+        run: |
+          node auditspec/implementations/typescript/dist/cli.js inspect e2e/lobsters --json > rails-assessment.json
+          node auditspec/implementations/typescript/dist/cli.js inspect e2e/frappe-wiki --json > frappe-assessment.json
+
+      - name: Assert real-world assessment contracts
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const cases = [
+            ['rails-assessment.json', 'rails', 'rails-ast-assisted-v0.1'],
+            ['frappe-assessment.json', 'frappe', 'frappe-ast-assisted-v0.1'],
+          ];
+
+          for (const [path, framework, adapter] of cases) {
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            if (!report.frameworks.some((item) => item.name === framework)) {
+              throw new Error(`${path}: expected framework ${framework}`);
+            }
+            if (!report.inspector.adapters.includes(adapter)) {
+              throw new Error(`${path}: expected adapter ${adapter}`);
+            }
+            if (report.coverage.detected_boundaries < 1) {
+              throw new Error(`${path}: expected at least one detected boundary`);
+            }
+            if (!Array.isArray(report.findings)) {
+              throw new Error(`${path}: findings must be an array`);
+            }
+            console.log(`${framework}: ${report.coverage.detected_boundaries} boundaries, ${report.findings.length} findings`);
+          }
+          NODE

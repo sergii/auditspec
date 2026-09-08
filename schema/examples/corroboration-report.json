@@ -1,0 +1,59 @@
+{
+  "report_version": "0.1",
+  "assessment_subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app",
+    "revision": "git:abc123"
+  },
+  "generated_at": "2026-08-24T21:41:00Z",
+  "observation_scope": {
+    "scope_version": "0.1",
+    "basis": "declared",
+    "environment": "staging",
+    "window": {
+      "start": "2026-08-24T20:41:00Z",
+      "end": "2026-08-24T21:41:00Z"
+    },
+    "collection_policy": {
+      "id": "runtime-hourly-v1",
+      "version": "1.0",
+      "mode": "continuous"
+    },
+    "producers": [
+      {
+        "name": "postgres-audit-observer",
+        "type": "database",
+        "version": "0.1"
+      }
+    ]
+  },
+  "matches": [
+    {
+      "evidence_id": "rte_example_001",
+      "evidence_kind": "database_observation",
+      "producer": {
+        "name": "postgres-audit-observer",
+        "type": "database",
+        "version": "0.1"
+      },
+      "observed_at": "2026-08-24T21:40:30Z",
+      "boundary_fingerprint": "bfp_refund_update_001",
+      "relation": "supports",
+      "trust": "authoritative",
+      "coverage": "point",
+      "rationale": "The runtime producer reported the targeted fact as observed; trust and coverage remain explicit and are not converted into static coverage."
+    }
+  ],
+  "unmatched_evidence_ids": [],
+  "summary": {
+    "evidence_records": 1,
+    "matched": 1,
+    "supports": 1,
+    "contradicts": 0,
+    "inconclusive": 0,
+    "unmatched": 0
+  },
+  "limitations": [
+    "Runtime corroboration is reported separately and does not rewrite the source Assessment Report or its static coverage score."
+  ]
+}

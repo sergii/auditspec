@@ -1,0 +1,14 @@
+{
+  "diff_version": "0.1",
+  "generated_at": "2026-08-24T20:00:00Z",
+  "base": { "subject_path": "/repo", "generated_at": "2026-08-24T19:00:00Z" },
+  "head": { "subject_path": "/repo", "generated_at": "2026-08-24T20:00:00Z" },
+  "new_findings": [],
+  "resolved_findings": [],
+  "unchanged_findings": 0,
+  "coverage": {
+    "base": 0,
+    "head": 1.2,
+    "delta": 1.2
+  }
+}

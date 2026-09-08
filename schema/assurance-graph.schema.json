@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/assurance-graph.schema.json",
+  "title": "AuditSpec Assurance Graph v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["graph_version", "generated_at", "subject", "nodes", "edges", "unresolved_calls", "summary"],
+  "properties": {
+    "graph_version": { "const": "0.1" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "const": "repository" },
+        "path": { "type": "string", "minLength": 1 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "unresolved_calls": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/unresolved" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "entrypoints", "mutation_nodes", "audit_nodes", "unresolved_calls"],
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 },
+        "entrypoints": { "type": "integer", "minimum": 0 },
+        "mutation_nodes": { "type": "integer", "minimum": 0 },
+        "audit_nodes": { "type": "integer", "minimum": 0 },
+        "unresolved_calls": { "type": "integer", "minimum": 0 },
+        "surface_nodes": { "type": "integer", "minimum": 0 },
+        "framework_edges": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "role": {
+      "enum": ["entrypoint", "authorization", "transaction", "mutation", "audit"]
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "detail"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "language", "name", "qualified_name", "location", "range", "roles", "confidence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["scope", "surface"] },
+        "language": { "enum": ["ruby", "python"] },
+        "framework": { "enum": ["rails", "frappe"] },
+        "name": { "type": "string", "minLength": 1 },
+        "qualified_name": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" },
+        "range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start_line", "end_line"],
+          "properties": {
+            "start_line": { "type": "integer", "minimum": 1 },
+            "end_line": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/role" }
+        },
+        "confidence": { "enum": ["certain", "high", "medium", "low"] },
+        "surface": { "$ref": "#/$defs/surface" }
+      }
+    },
+    "callEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["callee", "location"],
+      "properties": {
+        "callee": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "frameworkEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "detail", "location"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "kind", "confidence"],
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["call", "framework_dispatch"] },
+        "confidence": { "enum": ["high", "medium"] },
+        "call": { "$ref": "#/$defs/callEvidence" },
+        "framework": { "$ref": "#/$defs/frameworkEvidence" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "call" } }, "required": ["kind"] },
+          "then": { "required": ["call"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "framework_dispatch" } }, "required": ["kind"] },
+          "then": { "required": ["framework"] }
+        }
+      ]
+    },
+    "unresolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "callee", "location", "reason"],
+      "properties": {
+        "from": { "type": "string", "minLength": 1 },
+        "callee": { "type": "string", "minLength": 1 },
+        "location": { "$ref": "#/$defs/location" },
+        "reason": { "enum": ["no_candidate", "ambiguous"] },
+        "candidates": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

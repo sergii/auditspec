@@ -1,0 +1,31 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_denied_001",
+  "source": "urn:example:authorization-service",
+  "tenant": { "type": "organization", "id": "org_123" },
+  "actor": { "type": "agent", "id": "agent_hanna" },
+  "action": "invoice.delete",
+  "action_version": 1,
+  "targets": [
+    { "type": "invoice", "id": "INV-0042", "role": "primary" }
+  ],
+  "authorization": {
+    "decision": "denied",
+    "reason": "missing_scope",
+    "scopes": ["invoice:delete"],
+    "policy": { "id": "invoice-delete", "version": 4 }
+  },
+  "result": {
+    "status": "not_executed",
+    "code": "authorization_denied"
+  },
+  "evidence": [
+    {
+      "kind": "authorization_decision",
+      "producer": { "name": "authorization-service", "version": "3.2.1" },
+      "trust": "authoritative"
+    }
+  ],
+  "occurred_at": "2026-08-24T15:02:00Z",
+  "recorded_at": "2026-08-24T15:02:00.002Z"
+}

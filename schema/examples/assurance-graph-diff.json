@@ -1,0 +1,70 @@
+{
+  "diff_version": "0.1",
+  "generated_at": "2026-08-24T19:45:00Z",
+  "base": {
+    "subject_path": "/workspace/example-app",
+    "generated_at": "2026-08-24T19:40:00Z"
+  },
+  "head": {
+    "subject_path": "/workspace/example-app",
+    "generated_at": "2026-08-24T19:44:00Z"
+  },
+  "new_entrypoints": [
+    {
+      "key": "entry_example_route",
+      "qualified_name": "rails.rails_route:POST /refunds/:id -> refunds#perform",
+      "framework": "rails",
+      "surface_kind": "rails_route",
+      "location": {
+        "path": "config/routes.rb",
+        "line": 1,
+        "column": 1
+      }
+    }
+  ],
+  "removed_entrypoints": [],
+  "new_framework_dispatches": [
+    {
+      "key": "dispatch_example_route",
+      "from": "rails.rails_route:POST /refunds/:id -> refunds#perform",
+      "to": "RefundsController#perform",
+      "framework_kind": "rails_route",
+      "detail": "POST /refunds/:id -> refunds#perform",
+      "confidence": "high",
+      "location": {
+        "path": "config/routes.rb",
+        "line": 1,
+        "column": 1
+      }
+    }
+  ],
+  "removed_framework_dispatches": [],
+  "new_mutation_paths": [
+    {
+      "fingerprint": "path_example_refund",
+      "entrypoint": "rails.rails_route:POST /refunds/:id -> refunds#perform",
+      "mutation": "RefundService#call",
+      "mutation_location": {
+        "path": "app/services/refund_service.rb",
+        "line": 4,
+        "column": 5
+      },
+      "path": [
+        "rails.rails_route:POST /refunds/:id -> refunds#perform",
+        "RefundsController#perform",
+        "RefundService#call"
+      ],
+      "roles": ["entrypoint", "mutation"],
+      "confidence": "medium"
+    }
+  ],
+  "removed_mutation_paths": [],
+  "unchanged_mutation_paths": 0,
+  "summary": {
+    "base_entrypoints": 0,
+    "head_entrypoints": 1,
+    "base_mutation_paths": 0,
+    "head_mutation_paths": 1,
+    "mutation_path_delta": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_move_001",
+  "source": "urn:example:documents",
+  "actor": { "type": "user", "id": "usr_7" },
+  "action": "document.move",
+  "targets": [
+    { "type": "document", "id": "doc_99", "role": "primary" },
+    { "type": "folder", "id": "folder_a", "role": "source" },
+    { "type": "folder", "id": "folder_b", "role": "destination" }
+  ],
+  "subjects": [
+    { "type": "user", "id": "usr_11", "role": "owner" }
+  ],
+  "authorization": { "decision": "allowed" },
+  "result": { "status": "succeeded" },
+  "occurred_at": "2026-08-24T15:04:00Z",
+  "recorded_at": "2026-08-24T15:04:00.003Z"
+}

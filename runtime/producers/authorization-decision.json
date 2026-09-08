@@ -1,0 +1,30 @@
+{
+  "manifest_version": "0.1",
+  "id": "authorization-decision",
+  "name": "Authorization decision producer",
+  "implementation": "implementations/typescript/src/authorization-runtime.ts",
+  "producer_type": "application",
+  "supported_kinds": ["authorization_decision"],
+  "default_trust": "attributed",
+  "default_coverage": "point",
+  "explicit_target_required": true,
+  "authority_scope": [
+    "An enforcement-boundary producer may be authoritative for the authorization decision it directly owns and enforces."
+  ],
+  "can_override": {
+    "trust": true,
+    "coverage": true,
+    "state": false,
+    "kind": false
+  },
+  "required_explicit_attributes": [
+    "boundary_fingerprint or finding_fingerprint",
+    "assessment_relation when finding_fingerprint is used",
+    "decision"
+  ],
+  "limitations": [
+    "An observed authorization decision does not prove that downstream business execution followed that decision.",
+    "The producer defaults to attributed trust; authoritative trust must be asserted explicitly at the decision-owning enforcement boundary.",
+    "A point decision does not establish that every alternate path is protected by the same policy boundary."
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "manifest_version": "0.1",
+  "id": "rails-v0.1",
+  "framework": "rails",
+  "language": "ruby",
+  "framework_versions": ["ActiveRecord 8.1"],
+  "language_versions": ["3.4.10", "4.0.6"],
+  "layers": {
+    "language_reference": {
+      "status": "implemented",
+      "proof": "contract",
+      "evidence": [
+        "implementations/ruby/",
+        ".github/workflows/ruby-reference.yml"
+      ]
+    },
+    "transaction_adapter": {
+      "status": "implemented",
+      "proof": "contract",
+      "evidence": [
+        "frameworks/rails/auditspec_rails.rb"
+      ]
+    },
+    "behavioral_runtime_lab": {
+      "status": "implemented",
+      "proof": "framework_runtime",
+      "evidence": [
+        "lab/rails-atomicity/",
+        ".github/workflows/rails-atomicity.yml"
+      ],
+      "limitations": [
+        "The v0.1 lab uses ActiveRecord with SQLite; production database-specific behavior still requires deployment-specific evidence."
+      ]
+    },
+    "inspector_adapter": {
+      "status": "implemented",
+      "proof": "pinned_real_world_static",
+      "adapter_id": "rails-ast-assisted-v0.1",
+      "evidence": [
+        "implementations/typescript/src/inspector-rails.ts",
+        "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/rails-action-cable.ts",
+        "implementations/typescript/test/rails-action-cable.test.ts",
+        "implementations/typescript/test/rails-action-cable-composed.test.ts",
+        "implementations/typescript/test/rails-action-cable-composed-graph.test.ts",
+        "implementations/typescript/test/rails-action-cable-composed-lifecycle.test.ts",
+        ".github/workflows/conformance.yml"
+      ],
+      "limitations": [
+        "Static reachability is not runtime execution proof.",
+        "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, the conventional ApplicationCable::Connection connect/disconnect lifecycle, unambiguous inherited public RPC actions, direct ActiveSupport::Concern-provided public RPC actions, and inherited/concern-provided subscribed/unsubscribed lifecycle callbacks.",
+        "Explicit fully-qualified channel superclass chains are supported; Ruby lexical constant lookup, concern dependencies, ambiguous concern method overlap, custom connection-class resolution, and dynamic channel composition are not statically proven.",
+        "Lifecycle callbacks are framework-dispatched and may be non-public Ruby methods; RPC action exposure still requires public visibility.",
+        "reject_unauthorized_connection is recognized as connection-local authorization evidence, but authorization in ActionCable connect or subscribed is not projected onto later RPC actions without a stronger stateful proof."
+      ]
+    },
+    "runtime_corroboration": {
+      "status": "planned",
+      "proof": "none",
+      "evidence": [],
+      "limitations": [
+        "No Rails production runtime corroboration profile is implemented in v0.1."
+      ]
+    }
+  },
+  "transaction": {
+    "ownership": "Application/ActiveRecord transaction boundary",
+    "hidden_commit": false,
+    "same_store_atomicity": "supported",
+    "durable_outbox": "supported",
+    "after_commit_wakeup": "supported",
+    "special_cases": [
+      {
+        "operation": "after_all_transactions_commit",
+        "semantics": "Publisher wake-up runs only after the outer transaction commits; it is not the durable delivery record."
+      }
+    ]
+  },
+  "references": [
+    "frameworks/README.md",
+    "frameworks/rails/README.md"
+  ]
+}

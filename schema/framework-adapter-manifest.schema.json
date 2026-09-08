@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/framework-adapter-manifest.schema.json",
+  "title": "AuditSpec Framework Adapter Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest_version", "id", "framework", "language", "layers", "transaction"],
+  "properties": {
+    "manifest_version": { "const": "0.1" },
+    "id": { "type": "string", "minLength": 1 },
+    "framework": { "type": "string", "minLength": 1 },
+    "language": { "type": "string", "minLength": 1 },
+    "framework_versions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "language_versions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language_reference", "transaction_adapter", "behavioral_runtime_lab", "inspector_adapter", "runtime_corroboration"],
+      "properties": {
+        "language_reference": { "$ref": "#/$defs/layer" },
+        "transaction_adapter": { "$ref": "#/$defs/layer" },
+        "behavioral_runtime_lab": { "$ref": "#/$defs/layer" },
+        "inspector_adapter": { "$ref": "#/$defs/layer" },
+        "runtime_corroboration": { "$ref": "#/$defs/layer" }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ownership", "hidden_commit", "same_store_atomicity", "durable_outbox", "after_commit_wakeup"],
+      "properties": {
+        "ownership": { "type": "string", "minLength": 1 },
+        "hidden_commit": { "type": "boolean" },
+        "same_store_atomicity": { "$ref": "#/$defs/capabilityStatus" },
+        "durable_outbox": { "$ref": "#/$defs/capabilityStatus" },
+        "after_commit_wakeup": { "$ref": "#/$defs/capabilityStatus" },
+        "special_cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["operation", "semantics"],
+            "properties": {
+              "operation": { "type": "string", "minLength": 1 },
+              "semantics": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "proof", "evidence"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["implemented", "partial", "planned", "not_applicable"]
+        },
+        "proof": {
+          "type": "string",
+          "enum": ["schema", "contract", "framework_runtime", "pinned_real_world_static", "runtime", "none"]
+        },
+        "adapter_id": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "capabilityStatus": {
+      "type": "string",
+      "enum": ["supported", "partial", "unsupported", "unknown"]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: auditspec
+      POSTGRES_PASSWORD: auditspec
+      POSTGRES_DB: auditspec
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auditspec -d auditspec"]
+      interval: 2s
+      timeout: 2s
+      retries: 20

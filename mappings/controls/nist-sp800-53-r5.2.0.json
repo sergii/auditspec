@@ -1,0 +1,61 @@
+{
+  "mapping_version": "0.1",
+  "framework": {
+    "id": "nist-sp800-53",
+    "version": "5.2.0",
+    "source": "https://csrc.nist.gov/projects/risk-management/sp800-53-controls/downloads"
+  },
+  "rules": [
+    {
+      "rule_id": "AS-AUDIT-001",
+      "controls": [
+        {
+          "id": "AU-2",
+          "relation": "potential_gap",
+          "rationale": "An undiscovered or unaudited accountable mutation may be relevant to whether appropriate event types are selected for logging."
+        },
+        {
+          "id": "AU-3",
+          "relation": "potential_gap",
+          "rationale": "Missing semantic audit evidence may be relevant to whether audit records contain sufficient event, actor, target, outcome, and context information."
+        },
+        {
+          "id": "AU-12",
+          "relation": "potential_gap",
+          "rationale": "A mutation path with no durable audit evidence may be relevant to audit record generation coverage."
+        }
+      ]
+    },
+    {
+      "rule_id": "AS-ATOMIC-001",
+      "controls": [
+        {
+          "id": "AU-12",
+          "relation": "potential_gap",
+          "rationale": "A mutation can commit while its audit record is lost when audit generation is not durably coupled to the mutation."
+        },
+        {
+          "id": "AU-9",
+          "relation": "relevant_evidence",
+          "rationale": "Durability and protection of audit information are related assurance concerns, though transaction atomicity alone does not establish AU-9 satisfaction."
+        }
+      ]
+    },
+    {
+      "rule_id": "AS-AUTH-001",
+      "controls": [
+        {
+          "id": "AC-3",
+          "relation": "potential_gap",
+          "rationale": "A privileged or permission-bypassing mutation without visible authorization evidence may be relevant to access enforcement."
+        },
+        {
+          "id": "AU-3",
+          "relation": "relevant_evidence",
+          "rationale": "When authorization decisions are accountability-relevant, AuditSpec can preserve the decision and its context in the audit record."
+        }
+      ]
+    }
+  ],
+  "caveat": "This profile is a relevance crosswalk only. AuditSpec findings and evidence are not control assessment determinations and do not establish NIST SP 800-53 compliance."
+}

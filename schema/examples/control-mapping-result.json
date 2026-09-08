@@ -1,0 +1,43 @@
+{
+  "result_version": "0.1",
+  "generated_at": "2026-08-24T17:30:00Z",
+  "framework": {
+    "id": "nist-sp800-53",
+    "version": "5.2.0",
+    "source": "https://csrc.nist.gov/projects/risk-management/sp800-53-controls/downloads"
+  },
+  "source_assessment": {
+    "subject_path": "/workspace/example-app",
+    "revision": "git:abc123",
+    "generated_at": "2026-08-24T16:45:00Z"
+  },
+  "controls": [
+    {
+      "control_id": "AU-2",
+      "relations": [
+        {
+          "rule_id": "AS-AUDIT-001",
+          "relation": "potential_gap",
+          "rationale": "An undiscovered or unaudited accountable mutation may be relevant to whether appropriate event types are selected for logging.",
+          "finding_fingerprints": ["fp_example_001"]
+        }
+      ]
+    },
+    {
+      "control_id": "AU-3",
+      "relations": [
+        {
+          "rule_id": "AS-AUDIT-001",
+          "relation": "potential_gap",
+          "rationale": "Missing semantic audit evidence may be relevant to audit record content.",
+          "finding_fingerprints": ["fp_example_001"]
+        }
+      ]
+    }
+  ],
+  "caveat": "This is a relevance crosswalk, not a control assessment determination or compliance claim.",
+  "metadata": {
+    "mapped_rules": 1,
+    "open_findings": 1
+  }
+}

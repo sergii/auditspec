@@ -1,0 +1,42 @@
+name: Frappe adapter
+
+on:
+  push:
+    branches:
+      - v0.1
+  pull_request:
+    paths:
+      - "frameworks/frappe/**"
+      - "implementations/python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/frappe-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frappe-adapter:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11.16"
+          - "3.14.7"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python reference dependencies
+        run: pip install -r implementations/python/requirements.txt
+
+      - name: Run Frappe adapter contract tests
+        run: python -m unittest frameworks/frappe/test_auditspec_frappe.py

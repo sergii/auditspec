@@ -1,0 +1,43 @@
+{
+  "name": "@auditspec/reference-typescript",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Executable TypeScript reference implementation for AuditSpec v0.1",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "auditspec": "./dist/cli.js",
+    "auditspec-mcp": "./dist/mcp-server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts",
+    "test:assurance-model": "tsx --test test/assurance-evaluation.test.ts test/all-path-model.test.ts test/assurance-invariants.test.ts test/depth-truncation-hardening.test.ts",
+    "test:mutation": "stryker run",
+    "check": "npm run build && npm test",
+    "mcp": "node dist/mcp-server.js"
+  },
+  "dependencies": {
+    "@ast-grep/lang-python": "0.0.6",
+    "@ast-grep/lang-ruby": "0.0.7",
+    "@ast-grep/napi": "0.45.2",
+    "@modelcontextprotocol/server": "2.0.0",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2"
+  }
+}

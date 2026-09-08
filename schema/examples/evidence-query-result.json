@@ -1,0 +1,32 @@
+{
+  "query_version": "0.1",
+  "generated_at": "2026-08-24T17:45:00Z",
+  "subject": {
+    "kind": "repository",
+    "path": "/workspace/example-app",
+    "revision": "git:abc123"
+  },
+  "filters": {
+    "rule_id": "AS-AUDIT-001",
+    "source": "finding"
+  },
+  "count": 1,
+  "items": [
+    {
+      "id": "evidence_example_001",
+      "source": "finding",
+      "boundary_id": "boundary_example_001",
+      "finding_id": "finding_example_001",
+      "rule_id": "AS-AUDIT-001",
+      "confidence": "medium",
+      "evidence": {
+        "kind": "source_match",
+        "detail": "No AuditSpec.emit!/record! marker found in app/services/refund_service.rb",
+        "location": {
+          "path": "app/services/refund_service.rb",
+          "line": 12
+        }
+      }
+    }
+  ]
+}

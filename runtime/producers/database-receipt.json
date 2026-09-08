@@ -1,0 +1,24 @@
+{
+  "manifest_version": "0.1",
+  "id": "database-receipt",
+  "name": "Database-owned receipt producer",
+  "implementation": "implementations/typescript/src/database-runtime.ts",
+  "producer_type": "database",
+  "supported_kinds": ["transaction_commit", "audit_persist", "outbox_persist"],
+  "default_trust": "authoritative",
+  "default_coverage": "point",
+  "explicit_target_required": true,
+  "authority_scope": [
+    "A database-owned observer may be authoritative for transaction commit and durable persistence facts it directly observes."
+  ],
+  "can_override": {
+    "trust": true,
+    "coverage": true,
+    "state": true,
+    "kind": false
+  },
+  "limitations": [
+    "Database authority applies only to database-visible facts and does not prove business intent, authorization policy, actor identity, or semantic correctness of an audit event.",
+    "A single receipt is point evidence and does not prove every execution uses the same persistence path."
+  ]
+}

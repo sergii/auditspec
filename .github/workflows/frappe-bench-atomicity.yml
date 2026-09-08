@@ -1,0 +1,124 @@
+name: Frappe Bench atomicity
+
+on:
+  push:
+    branches:
+      - v0.1
+    paths:
+      - "lab/frappe-bench-atomicity/**"
+      - "frameworks/frappe/**"
+      - "implementations/python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/frappe-bench-atomicity.yml"
+  pull_request:
+    paths:
+      - "lab/frappe-bench-atomicity/**"
+      - "frameworks/frappe/**"
+      - "implementations/python/**"
+      - "schema/**"
+      - "conformance/**"
+      - ".github/workflows/frappe-bench-atomicity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frappe-bench-atomicity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      redis-cache:
+        image: redis:alpine
+        ports:
+          - 13000:6379
+      redis-queue:
+        image: redis:alpine
+        ports:
+          - 11000:6379
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="mariadb-admin ping" --health-interval=5s --health-timeout=2s --health-retries=5
+
+    env:
+      FRAPPE_SHA: 70b411faae940dd888f92ac3f82fc8587742c203
+      BENCH_SHA: c9d12503d9d7fbfd94086c3de3cd4ac23dd44823
+      BENCH_DIR: /home/runner/frappe-bench
+      FRAPPE_SOURCE_DIR: /tmp/auditspec-frappe-pinned
+      SITE_NAME: auditspec.test
+
+    steps:
+      - name: Checkout AuditSpec
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install MariaDB client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mariadb-client
+
+      - name: Install pinned Bench
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "git+https://github.com/frappe/bench.git@${BENCH_SHA}"
+          bench --version
+
+      - name: Prepare pinned Frappe source
+        run: |
+          git init "$FRAPPE_SOURCE_DIR"
+          git -C "$FRAPPE_SOURCE_DIR" remote add origin https://github.com/frappe/frappe.git
+          git -C "$FRAPPE_SOURCE_DIR" fetch --depth=1 origin "$FRAPPE_SHA"
+          git -C "$FRAPPE_SOURCE_DIR" checkout --detach FETCH_HEAD
+          git -C "$FRAPPE_SOURCE_DIR" switch -c auditspec-pinned
+          test "$(git -C "$FRAPPE_SOURCE_DIR" rev-parse HEAD)" = "$FRAPPE_SHA"
+
+      - name: Initialize pinned Bench
+        run: |
+          bench init \
+            --skip-redis-config-generation \
+            --skip-assets \
+            --python "$(which python)" \
+            --frappe-path "$FRAPPE_SOURCE_DIR" \
+            --frappe-branch auditspec-pinned \
+            "$BENCH_DIR"
+          test "$(git -C "$BENCH_DIR/apps/frappe" rev-parse HEAD)" = "$FRAPPE_SHA"
+
+      - name: Configure services and create site
+        working-directory: /home/runner/frappe-bench
+        run: |
+          bench set-config -g redis_cache redis://127.0.0.1:13000
+          bench set-config -g redis_queue redis://127.0.0.1:11000
+          bench new-site \
+            --db-root-password root \
+            --admin-password admin \
+            "$SITE_NAME"
+        env:
+          CI: "Yes"
+
+      - name: Install AuditSpec Python dependencies
+        run: |
+          "$BENCH_DIR/env/bin/pip" install -r "$GITHUB_WORKSPACE/implementations/python/requirements.txt"
+
+      - name: Run Frappe Bench atomicity runtime lab
+        run: |
+          "$BENCH_DIR/env/bin/python" \
+            "$GITHUB_WORKSPACE/lab/frappe-bench-atomicity/runtime_test.py" \
+            --bench "$BENCH_DIR" \
+            --site "$SITE_NAME"
+        env:
+          CI: "Yes"

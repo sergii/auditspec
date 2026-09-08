@@ -1,0 +1,28 @@
+{
+  "manifest_version": "0.1",
+  "id": "opentelemetry",
+  "name": "OpenTelemetry explicit-target producer",
+  "implementation": "implementations/typescript/src/opentelemetry-runtime.ts",
+  "producer_type": "collector",
+  "supported_kinds": ["trace_span"],
+  "default_trust": "attributed",
+  "default_coverage": "point",
+  "explicit_target_required": true,
+  "authority_scope": [
+    "An explicitly targeted telemetry signal corroborates that the instrumented producer emitted the represented span or log observation."
+  ],
+  "can_override": {
+    "trust": true,
+    "coverage": true,
+    "state": true,
+    "kind": true
+  },
+  "required_explicit_attributes": [
+    "auditspec.boundary.fingerprint or auditspec.finding.fingerprint"
+  ],
+  "limitations": [
+    "Span or log names are never used to infer AuditSpec boundaries.",
+    "Telemetry is attributed by default and does not prove business intent or authorization semantics.",
+    "A single signal is point evidence and does not imply exhaustive runtime coverage."
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/corroboration-diff.schema.json",
+  "title": "AuditSpec Runtime Corroboration Diff v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "diff_version",
+    "subject",
+    "generated_at",
+    "base_generated_at",
+    "head_generated_at",
+    "comparability",
+    "summary",
+    "newly_reported_contradictions",
+    "no_longer_reported_contradictions",
+    "persisting_contradictions",
+    "limitations"
+  ],
+  "properties": {
+    "diff_version": { "const": "0.1" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "base_revision": { "type": "string", "minLength": 1 },
+        "head_revision": { "type": "string", "minLength": 1 }
+      }
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "base_generated_at": { "type": "string", "format": "date-time" },
+    "head_generated_at": { "type": "string", "format": "date-time" },
+    "comparability": { "$ref": "#/$defs/comparability" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_contradicted_targets",
+        "head_contradicted_targets",
+        "delta",
+        "newly_reported",
+        "no_longer_reported",
+        "persisting"
+      ],
+      "properties": {
+        "base_contradicted_targets": { "type": "integer", "minimum": 0 },
+        "head_contradicted_targets": { "type": "integer", "minimum": 0 },
+        "delta": { "type": "integer" },
+        "newly_reported": { "type": "integer", "minimum": 0 },
+        "no_longer_reported": { "type": "integer", "minimum": 0 },
+        "persisting": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "newly_reported_contradictions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contradiction" }
+    },
+    "no_longer_reported_contradictions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contradiction" }
+    },
+    "persisting_contradictions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contradiction" }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "comparability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "dimensions", "reasons"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["comparable", "partially_comparable", "not_comparable", "unknown"]
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["environment", "window", "collection_policy", "producers"],
+          "properties": {
+            "environment": { "$ref": "#/$defs/dimension_result" },
+            "window": { "$ref": "#/$defs/dimension_result" },
+            "collection_policy": { "$ref": "#/$defs/dimension_result" },
+            "producers": { "$ref": "#/$defs/dimension_result" }
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "dimension_result": {
+      "type": "string",
+      "enum": ["match", "mismatch", "unknown"]
+    },
+    "contradiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "evidence_ids", "trust_levels", "coverage_levels"],
+      "properties": {
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "fingerprint"],
+          "properties": {
+            "type": { "type": "string", "enum": ["boundary", "finding"] },
+            "fingerprint": { "type": "string", "minLength": 1 }
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "trust_levels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["authoritative", "attributed", "self_reported", "derived"]
+          }
+        },
+        "coverage_levels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["point", "sampled", "window", "exhaustive"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "manifest_version": "0.1",
+  "id": "frappe-v0.1",
+  "framework": "frappe",
+  "language": "python",
+  "framework_versions": ["v15+ transaction-hook semantics"],
+  "language_versions": ["3.11.16", "3.14.7"],
+  "layers": {
+    "language_reference": {
+      "status": "implemented",
+      "proof": "contract",
+      "evidence": [
+        "implementations/python/",
+        ".github/workflows/python-reference.yml"
+      ]
+    },
+    "transaction_adapter": {
+      "status": "implemented",
+      "proof": "contract",
+      "evidence": [
+        "frameworks/frappe/auditspec_frappe.py",
+        "frameworks/frappe/test_auditspec_frappe.py",
+        ".github/workflows/frappe-adapter.yml"
+      ],
+      "limitations": [
+        "The adapter is transaction-neutral and relies on the active Frappe request/job/application transaction boundary."
+      ]
+    },
+    "behavioral_runtime_lab": {
+      "status": "implemented",
+      "proof": "framework_runtime",
+      "evidence": [
+        "lab/frappe-bench-atomicity/",
+        ".github/workflows/frappe-bench-atomicity.yml"
+      ],
+      "limitations": [
+        "The v0.1 lab uses a pinned Frappe Bench site backed by MariaDB and exercises Frappe request and background-job transaction functions in-process; it does not start an external HTTP server or a separate Redis/RQ worker process.",
+        "The proof does not upgrade explicit frappe.db.commit(), frappe.db.truncate(), custom database backends, or arbitrary extension code to normal rollback-capable same-transaction atomicity."
+      ]
+    },
+    "inspector_adapter": {
+      "status": "implemented",
+      "proof": "pinned_real_world_static",
+      "adapter_id": "frappe-ast-assisted-v0.1",
+      "evidence": [
+        "implementations/typescript/src/inspector-frappe.ts",
+        "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/ast-calls.ts",
+        "implementations/typescript/src/frappe-hooks.ts",
+        "implementations/typescript/src/frappe-whitelist.ts",
+        "implementations/typescript/src/frappe-enqueue-local.ts",
+        "implementations/typescript/src/frappe-document-hooks.ts",
+        "implementations/typescript/test/framework-graph.test.ts",
+        "implementations/typescript/test/frappe-hooks.test.ts",
+        "implementations/typescript/test/frappe-hooks-graph.test.ts",
+        "implementations/typescript/test/frappe-whitelist.test.ts",
+        "implementations/typescript/test/frappe-whitelist-graph.test.ts",
+        "implementations/typescript/test/frappe-enqueue-local.test.ts",
+        "implementations/typescript/test/frappe-enqueue-graph.test.ts",
+        "implementations/typescript/test/frappe-enqueue-doc-graph.test.ts",
+        "implementations/typescript/test/frappe-queue-action.test.ts",
+        "implementations/typescript/test/frappe-queue-action-graph.test.ts",
+        "implementations/typescript/test/frappe-document-hooks.test.ts",
+        "implementations/typescript/test/frappe-document-hook-graph.test.ts",
+        ".github/workflows/conformance.yml"
+      ],
+      "limitations": [
+        "Static reachability is not runtime execution proof.",
+        "Frappe whitelist entrypoints are attributed from the Python decorated_definition AST node owned by the exact function; stacked and multiline @frappe.whitelist(...) decorator forms are supported and neighboring decorators never strengthen another function.",
+        "Aliased whitelist decorator names that require Python import/name resolution are not treated as proven @frappe.whitelist entrypoints in v0.1.",
+        "Frappe doc_events and scheduler_events are resolved only from one literal assignment with documented event keys and literal dotted handler strings/lists; scheduler cron maps are supported as literal nested maps.",
+        "Dynamic hook composition, later mutation/reassignment, duplicate literal keys, unknown event keys, and non-literal handler composition fail closed rather than producing optimistic hook dispatch edges.",
+        "Frappe enqueue resolution supports exact frappe.enqueue calls with a literal dotted positional or method= target, an unshadowed top-level function reference from the same Python module, or a direct exact-scope absolute from-import function reference including an as alias.",
+        "Conditional, relative, wildcard, duplicate, late, or rebound imports, module-level imported function references, attribute/module references, dynamic enqueue targets, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges.",
+        "frappe.enqueue_doc resolution supports exact calls with literal doctype and method identity; the document name may remain dynamic because it does not change the controller method target.",
+        "Dynamic enqueue_doc doctype/method identity, ambiguous conventional controllers, and custom or indirect controller resolution do not produce optimistic dispatch edges.",
+        "Document queue_action resolution supports AST-proven self.queue_action calls inside a conventional direct Document controller when the action is a literal identifier and the effective target method is defined by that controller.",
+        "External doc.queue_action receivers, dynamic action identity, starred argument composition, and framework-inherited inner actions without an app-local target fail closed; app-local _action methods take precedence exactly as Frappe queue_action does.",
+        "Document lifecycle dispatch is modeled only for conventional .../doctype/<name>/<name>.py controllers with exactly one explicit Document or frappe.model.document.Document subclass.",
+        "Indirect or aliased Document bases, multiple candidate controller classes, non-conventional controller paths, and storage primitives such as db_insert/db_update do not create optimistic lifecycle dispatch edges."
+      ]
+    },
+    "runtime_corroboration": {
+      "status": "planned",
+      "proof": "none",
+      "evidence": [],
+      "limitations": [
+        "No Frappe production runtime corroboration profile is implemented in v0.1."
+      ]
+    }
+  },
+  "transaction": {
+    "ownership": "Frappe request/job/application transaction boundary",
+    "hidden_commit": false,
+    "same_store_atomicity": "partial",
+    "durable_outbox": "supported",
+    "after_commit_wakeup": "supported",
+    "special_cases": [
+      {
+        "operation": "frappe.db.truncate",
+        "semantics": "Commits before TRUNCATE and cannot be represented as normal rollback-capable same-transaction atomicity."
+      },
+      {
+        "operation": "frappe.db.set_value / frappe.db.update / frappe.db.bulk_update",
+        "semantics": "Direct database mutation surfaces bypass normal Document events or validations and remain explicit audit boundaries."
+      }
+    ]
+  },
+  "references": [
+    "frameworks/README.md",
+    "frameworks/frappe/README.md"
+  ]
+}

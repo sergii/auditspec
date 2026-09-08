@@ -1,0 +1,31 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_redaction_001",
+  "source": "urn:example:identity-service",
+  "actor": { "type": "user", "id": "admin_1" },
+  "action": "user.credential_rotate",
+  "subjects": [
+    { "type": "user", "id": "usr_42", "role": "affected" }
+  ],
+  "authorization": { "decision": "allowed" },
+  "result": { "status": "succeeded" },
+  "changes": {
+    "fields": ["api_key"],
+    "before": {},
+    "after": {}
+  },
+  "redactions": [
+    {
+      "path": "/changes/before/api_key",
+      "method": "omitted",
+      "reason": "credential"
+    },
+    {
+      "path": "/changes/after/api_key",
+      "method": "omitted",
+      "reason": "credential"
+    }
+  ],
+  "occurred_at": "2026-08-24T15:07:00Z",
+  "recorded_at": "2026-08-24T15:07:00.003Z"
+}

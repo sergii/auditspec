@@ -1,0 +1,20 @@
+{
+  "assessment_plan_href": "./assessment-plan.json",
+  "reviewed_control_ids": ["au-2"],
+  "finding_targets": {
+    "fp_example_001": {
+      "type": "statement-id",
+      "target_id": "au-2_smt",
+      "status": {
+        "state": "not-satisfied",
+        "reason": "other",
+        "remarks": "Example caller-supplied assessor conclusion used for structural OSCAL conformance. AuditSpec does not infer this status."
+      }
+    }
+  },
+  "title": "AuditSpec example assessment",
+  "description": "Static source assessment exported to OSCAL using explicit caller-supplied assessment scope and finding targets.",
+  "version": "0.1",
+  "start": "2026-08-24T16:45:00Z",
+  "end": "2026-08-24T16:46:00Z"
+}

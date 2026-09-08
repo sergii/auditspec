@@ -1,0 +1,51 @@
+{
+  "graph_version": "0.1",
+  "generated_at": "2026-08-24T18:30:00Z",
+  "subject": {
+    "kind": "repository",
+    "path": "/workspace/example"
+  },
+  "nodes": [
+    {
+      "id": "node_controller",
+      "language": "ruby",
+      "name": "approve",
+      "qualified_name": "InvoicesController#approve",
+      "location": { "path": "app/controllers/invoices_controller.rb", "line": 10, "column": 3 },
+      "range": { "start_line": 10, "end_line": 14 },
+      "roles": ["entrypoint", "authorization"],
+      "confidence": "high"
+    },
+    {
+      "id": "node_service",
+      "language": "ruby",
+      "name": "call",
+      "qualified_name": "ApproveInvoice#call",
+      "location": { "path": "app/services/approve_invoice.rb", "line": 5, "column": 3 },
+      "range": { "start_line": 5, "end_line": 12 },
+      "roles": ["transaction", "mutation", "audit"],
+      "confidence": "high"
+    }
+  ],
+  "edges": [
+    {
+      "from": "node_controller",
+      "to": "node_service",
+      "kind": "call",
+      "confidence": "high",
+      "call": {
+        "callee": "ApproveInvoice.call",
+        "location": { "path": "app/controllers/invoices_controller.rb", "line": 12, "column": 5 }
+      }
+    }
+  ],
+  "unresolved_calls": [],
+  "summary": {
+    "nodes": 2,
+    "edges": 1,
+    "entrypoints": 1,
+    "mutation_nodes": 1,
+    "audit_nodes": 1,
+    "unresolved_calls": 0
+  }
+}

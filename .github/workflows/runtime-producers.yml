@@ -1,0 +1,40 @@
+name: Runtime producer manifests
+
+on:
+  push:
+    branches:
+      - v0.1
+    paths:
+      - "runtime/producers/*.json"
+      - "schema/runtime-producer-manifest.schema.json"
+      - "tools/conformance/validate_runtime_producers.py"
+      - ".github/workflows/runtime-producers.yml"
+  pull_request:
+    paths:
+      - "runtime/producers/*.json"
+      - "schema/runtime-producer-manifest.schema.json"
+      - "tools/conformance/validate_runtime_producers.py"
+      - ".github/workflows/runtime-producers.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install schema validator
+        run: pip install -r tools/conformance/requirements.txt
+
+      - name: Validate runtime producer manifests
+        run: python tools/conformance/validate_runtime_producers.py
