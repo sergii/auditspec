@@ -5,7 +5,7 @@ import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
 import { frappeDocumentControllerMethods, frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
-import { frappeLocalEnqueueReference } from "./frappe-enqueue-local.js";
+import { frappeImportedEnqueueTarget, frappeLocalEnqueueReference } from "./frappe-enqueue-local.js";
 import { frappeStaticHookDispatches } from "./frappe-hooks.js";
 import { isFrappeWhitelistedScope } from "./frappe-whitelist.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
@@ -698,6 +698,20 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
         let target = dottedTargetName ? resolvePythonDottedTarget(indexed, dottedTargetName) : undefined;
 
         if (!targetName) {
+          const importedTargetName = frappeImportedEnqueueTarget({
+            call_text: call.text,
+            source: sourceScope.source,
+            scope_start_line: sourceScope.node.range.start_line,
+            scope_end_line: sourceScope.node.range.end_line,
+            call_line: call.line,
+          });
+          if (importedTargetName) {
+            targetName = importedTargetName;
+            target = resolvePythonDottedTarget(indexed, importedTargetName);
+          }
+        }
+
+        if (!targetName) {
           targetName = frappeLocalEnqueueReference({
             call_text: call.text,
             source: sourceScope.source,
@@ -785,7 +799,7 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
   return {
     graph_version: "0.1",
     generated_at: new Date().toISOString(),
-    subject: { kind: "repository", path: root },
+    subject: { kind: "repository"; path: root },
     nodes,
     edges,
     unresolved_calls: unresolved,
