@@ -1,3 +1,5 @@
+import { isFrappeDocumentHookName } from "./frappe-document-hooks.js";
+
 export interface FrappeStaticHookDispatch {
   assignment: "doc_events" | "scheduler_events";
   target: string;
@@ -8,6 +10,18 @@ type LiteralValue =
   | { kind: "string"; value: string; offset: number }
   | { kind: "list"; values: LiteralValue[] }
   | { kind: "dict"; entries: Array<{ key: LiteralValue; value: LiteralValue }> };
+
+const FRAPPE_SCHEDULER_EVENTS = new Set([
+  "all",
+  "hourly",
+  "daily",
+  "weekly",
+  "monthly",
+  "hourly_long",
+  "daily_long",
+  "weekly_long",
+  "monthly_long",
+]);
 
 class LiteralParser {
   private index = 0;
@@ -203,6 +217,8 @@ function docEventTargets(value: LiteralValue): Extract<LiteralValue, { kind: "st
   for (const doctype of value.entries) {
     if (doctype.value.kind !== "dict") return null;
     for (const event of doctype.value.entries) {
+      if (event.key.kind !== "string") return null;
+      if (!isFrappeDocumentHookName(event.key.value)) continue;
       const eventTargets = targetStrings(event.value);
       if (!eventTargets) return null;
       targets.push(...eventTargets);
@@ -225,6 +241,7 @@ function schedulerTargets(value: LiteralValue): Extract<LiteralValue, { kind: "s
       }
       continue;
     }
+    if (!FRAPPE_SCHEDULER_EVENTS.has(event.key.value)) continue;
     const eventTargets = targetStrings(event.value);
     if (!eventTargets) return null;
     targets.push(...eventTargets);
