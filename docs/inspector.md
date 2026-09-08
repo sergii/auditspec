@@ -101,8 +101,8 @@ ActionCable is modeled as framework dispatch because Rails exposes channel behav
 The v0.1 resolver creates separate high-confidence framework surfaces for:
 
 - public channel RPC methods, represented as `rails_action_cable_action`;
-- a directly defined `subscribed` lifecycle callback, represented as `rails_action_cable_subscribe`;
-- a directly defined `unsubscribed` lifecycle callback, represented as `rails_action_cable_unsubscribe`;
+- resolved `subscribed` lifecycle callbacks, represented as `rails_action_cable_subscribe`;
+- resolved `unsubscribed` lifecycle callbacks, represented as `rails_action_cable_unsubscribe`;
 - the conventional `ApplicationCable::Connection#connect` lifecycle callback, represented as `rails_action_cable_connect`;
 - the conventional `ApplicationCable::Connection#disconnect` lifecycle callback, represented as `rails_action_cable_disconnect`.
 
@@ -110,9 +110,11 @@ Direct channel actions require an `app/channels/**/*.rb` method belonging to an 
 
 The resolver also follows an unambiguous literal channel superclass chain up to a direct ActionCable base, bounded to depth 8 with cycle detection. A child channel therefore inherits a public RPC surface only when every superclass source resolves uniquely. For explicit namespaced classes, superclass references must also be fully qualified; Ruby lexical constant lookup is not inferred. The framework surface retains the concrete child-channel identity while the edge targets the actual superclass method implementation.
 
-A direct literal concern include may provide RPC methods when the included module resolves uniquely, declares `extend ActiveSupport::Concern`, and exposes the method publicly. Private/protected methods are excluded. If multiple included concerns provide the same candidate method, the result is order-sensitive and AuditSpec fails closed rather than guessing Ruby include precedence. Concern dependencies and dynamic/metaprogrammed inclusion are not used to strengthen assurance.
+A direct literal concern include may provide RPC methods when the included module resolves uniquely, declares `extend ActiveSupport::Concern`, and exposes the method publicly. Private/protected methods are excluded from RPC exposure. If multiple included concerns provide the same candidate method, the result is order-sensitive and AuditSpec fails closed rather than guessing Ruby include precedence. Concern dependencies and dynamic/metaprogrammed inclusion are not used to strengthen assurance.
 
-Ruby method visibility and overrides remain part of the proof. A direct child definition shadows an inherited method even when the child definition is non-public, preventing an optimistic inherited RPC surface. Known ActionCable internal methods are excluded. `subscribed` and `unsubscribed` remain lifecycle surfaces rather than RPC actions.
+`subscribed` and `unsubscribed` use the same conservative method-composition model but are lifecycle callbacks, not client RPC actions. They may be defined directly on the channel, inherited through the proven superclass chain, or supplied by a uniquely resolved directly included `ActiveSupport::Concern`. The external surface keeps the concrete child-channel identity while the framework edge targets the actual class or concern implementation.
+
+Lifecycle visibility follows Rails framework dispatch rather than RPC exposure. A resolved `subscribed` or `unsubscribed` method may therefore be public, protected, or private. A direct child definition shadows concern/superclass lifecycle methods regardless of visibility. Multiple included concerns defining the same lifecycle method are treated as order-sensitive and fail closed rather than strengthening assurance.
 
 Connection lifecycle evidence is intentionally narrower. The resolver supports the conventional `ApplicationCable::Connection` identity when it directly inherits from `ActionCable::Connection::Base`, including both `class ApplicationCable::Connection < ...` and the Rails-generated lexical form `module ApplicationCable; class Connection < ...`. Custom connection-class configuration and indirect connection inheritance do not produce optimistic lifecycle edges.
 
@@ -120,7 +122,7 @@ Connection lifecycle evidence is intentionally narrower. The resolver supports t
 
 Authorization found in `connect` or `subscribed` is deliberately not projected onto later client-callable actions. Connection/subscription authorization may in practice guard later channel access, but proving that stateful guarantee for every later action requires a stronger framework/runtime model. The static graph therefore keeps `CONNECT -> ApplicationCable::Connection#connect`, `SUBSCRIBE -> Channel#subscribed`, and `ACTION -> Channel#method` as distinct paths.
 
-Inherited or concern-provided `subscribed`/`unsubscribed` lifecycle callbacks, Ruby lexical constant lookup for arbitrary namespaced inheritance, concern dependencies, dynamic visibility/metaprogramming, custom connection-class wiring, and runtime channel registration behavior remain fail-closed and do not strengthen static assurance.
+Ruby lexical constant lookup for arbitrary namespaced inheritance, concern dependencies/nested composition, dynamic visibility/metaprogramming, custom connection-class wiring, indirect connection inheritance, and runtime channel registration behavior remain fail-closed and do not strengthen static assurance.
 
 ## All-path assurance
 
@@ -173,7 +175,7 @@ CI runs the Inspector against pinned public revisions rather than copying third-
 
 The smoke contract verifies framework detection, adapter activation, at least one discovered boundary, and a parseable Assessment Report. It deliberately does not snapshot exact finding counts because the goal is implementation regression detection, not declaring those projects audit-compliant or deficient.
 
-Synthetic regression tests additionally cover explicit route exposure, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint surface identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable public/channel lifecycle dispatch, conventional connection `connect`/`disconnect`, inherited RPC implementations, direct concern-provided RPC implementations, public/non-public override behavior, ambiguous concern overlap, explicit namespaced channel inheritance, conservative zero-argument Ruby sends, and connection/subscription authorization separation from later actions.
+Synthetic regression tests additionally cover explicit route exposure, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint surface identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable public/channel lifecycle dispatch, conventional connection `connect`/`disconnect`, inherited RPC implementations, direct concern-provided RPC implementations, inherited/concern-provided `subscribed`/`unsubscribed` implementations including non-public lifecycle visibility, public/non-public override behavior, ambiguous concern overlap, explicit namespaced channel inheritance, conservative zero-argument Ruby sends, and connection/subscription authorization separation from later actions.
 
 ## Findings
 
