@@ -4,6 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
+import { frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { railsRouteDeclarations, type RailsRouteDeclaration } from "./rails-routes.js";
@@ -640,6 +641,34 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
     }
   }
 
+  for (const [path, source] of sourceByPath) {
+    if (!path.endsWith(".py")) continue;
+    const methods = indexed
+      .filter((item) => item.node.language === "python" && item.node.location.path === path && typeof item.node.location.line === "number")
+      .map((item) => ({
+        name: item.node.name,
+        qualified_name: item.node.qualified_name,
+        line: item.node.location.line!,
+      }));
+
+    for (const dispatch of frappeDocumentHookDispatches(source, path, methods)) {
+      const target = indexed.find(
+        (item) => item.node.location.path === path && item.node.qualified_name === dispatch.target_qualified_name,
+      );
+      if (!target) continue;
+      const location: SourceLocation = { path, line: dispatch.line, column: 1 };
+      const surface = frameworkSurface("python", "frappe", dispatch.surface_kind, dispatch.detail, location);
+      nodes.push(surface);
+      pushEdge({
+        from: surface.id,
+        to: target.node.id,
+        kind: "framework_dispatch",
+        confidence: "high",
+        framework: { kind: dispatch.surface_kind, detail: dispatch.detail, location },
+      });
+    }
+  }
+
   for (const sourceScope of indexed.filter((item) => item.node.language === "python")) {
     for (const call of sourceScope.calls) {
       if (call.callee !== "frappe.enqueue") continue;
@@ -696,7 +725,7 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
   return {
     graph_version: "0.1",
     generated_at: new Date().toISOString(),
-    subject: { kind: "repository", path: root },
+    subject: { kind: "repository"; path: root },
     nodes,
     edges,
     unresolved_calls: unresolved,
