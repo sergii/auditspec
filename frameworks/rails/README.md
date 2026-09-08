@@ -83,10 +83,16 @@ Literal `constraints ... do` blocks with simple scalar key/value pairs are prese
 
 For ActionCable, the v0.1 graph models direct public methods on explicitly declared channel classes as client-callable RPC surfaces, plus direct `subscribed` and `unsubscribed` lifecycle callbacks. It also models the conventional `ApplicationCable::Connection < ActionCable::Connection::Base` `connect` and `disconnect` lifecycle as separate framework entrypoints, including the standard lexical `module ApplicationCable; class Connection ...` form.
 
-Private/protected channel methods, indirect channel inheritance, lexical namespace resolution for arbitrary channel classes, inherited/concern-provided channel actions, custom connection-class configuration and indirect connection inheritance are not guessed.
+Public RPC actions inherited through an unambiguous literal channel superclass chain are also resolved. The external surface retains the concrete subscribed channel identity while the framework edge targets the actual method implementation. Explicit fully-qualified namespaced chains such as `Admin::EventsChannel < Admin::BaseChannel` are supported only when each superclass reference can be matched exactly.
+
+A direct literal `include SomeConcern` can expose public RPC methods defined by a uniquely resolved `ActiveSupport::Concern`. Private/protected concern methods are excluded. If multiple included concerns define the same candidate action, AuditSpec fails closed instead of guessing Ruby include precedence. Concern dependencies and dynamic concern composition remain unsupported.
+
+The Rails primitive `reject_unauthorized_connection` is recognized as authorization evidence in the connection path, including the common zero-argument Ruby command form. The AST layer treats a bare identifier as a zero-argument send only when it is a standalone expression or `if`/`unless` modifier and the method scope does not bind the same name as a parameter/local variable.
 
 Authorization observed in `connect` or `subscribed` is not automatically projected onto later RPC actions. Proving that connection/subscription state protects every subsequent channel action requires a stronger stateful framework/runtime model than the current static graph provides.
 
+Remaining ActionCable limits include Ruby lexical constant lookup for arbitrary namespaced inheritance, inherited/concern-provided `subscribed`/`unsubscribed` lifecycle callbacks, concern dependencies, custom connection-class configuration and indirect connection inheritance. These cases do not strengthen assurance when they cannot be resolved unambiguously.
+
 Model versioning libraries such as PaperTrail or Audited can coexist with AuditSpec. They answer lower-level history questions; AuditSpec focuses on semantic actions, responsibility/delegation, authorization, execution results, correlation, redaction and evidence.
 
-Further Rails work can deepen Pundit/CanCanCan decision evidence, ActiveJob/Sidekiq context propagation, ActionCable inheritance/concern semantics, lexical/nested concern composition, more complex route constraints/framework-generated dispatch and runtime corroboration without changing the Core event contract.
+Further Rails work can deepen Pundit/CanCanCan decision evidence, ActiveJob/Sidekiq context propagation, ActionCable lifecycle/composition semantics, lexical/nested concern composition, more complex route constraints/framework-generated dispatch and runtime corroboration without changing the Core event contract.
