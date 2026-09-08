@@ -49,10 +49,14 @@ function definitionName(text: string, language: AstLanguage, fieldName?: string)
   return text.match(/\bdef\s+([A-Za-z_][A-Za-z0-9_]*)/)?.[1] ?? "<anonymous>";
 }
 
-function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined {
+function definitionForNode(node: SgNode, language: AstLanguage): SgNode | undefined {
   const definitionKinds = language === "ruby" ? RUBY_DEFINITION_KINDS : PYTHON_DEFINITION_KINDS;
+  return node.ancestors().find((ancestor) => definitionKinds.has(String(ancestor.kind())));
+}
+
+function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined {
   const containerKinds = language === "ruby" ? RUBY_CONTAINER_KINDS : PYTHON_CONTAINER_KINDS;
-  const definition = node.ancestors().find((ancestor) => definitionKinds.has(String(ancestor.kind())));
+  const definition = definitionForNode(node, language);
   if (!definition) return undefined;
 
   const range = definition.range();
@@ -82,6 +86,65 @@ function scopeForCall(node: SgNode, language: AstLanguage): AstScope | undefined
   };
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function rubyScopeBindsName(definition: SgNode, name: string): boolean {
+  const escaped = escapeRegExp(name);
+  const text = definition.text();
+  const firstLine = text.split("\n", 1)[0] ?? "";
+
+  // Parameters and block variables make a bare identifier a local read rather than a method send.
+  if (new RegExp(`\\bdef\\b[^\\n]*(?:\\(|[,; ]+)${escaped}(?:[,;) =]|$)`).test(firstLine)) return true;
+  if (new RegExp(`\\|[^|]*\\b${escaped}\\b[^|]*\\|`).test(text)) return true;
+  if (new RegExp(`=>\\s*${escaped}\\b`).test(text)) return true;
+
+  // Any local assignment in the method causes Ruby to parse subsequent bare references as locals.
+  // Exclude comparison/hash-rocket syntax and fail closed on compound assignment as well.
+  return new RegExp(`(?:^|[^=!<>])\\b${escaped}\\s*(?:\\|\\|=|&&=|[+\\-*/%]?=)(?!=|>)`, "m").test(text);
+}
+
+function rubyBareZeroArgumentCalls(root: SgNode, source: string): AstCallCandidate[] {
+  const lines = source.split("\n");
+  const results: AstCallCandidate[] = [];
+
+  for (const node of root.findAll({ rule: { kind: "identifier" } })) {
+    // Identifiers nested in an explicit call are already represented by the call node.
+    if (node.ancestors().some((ancestor) => String(ancestor.kind()) === "call")) continue;
+
+    const scope = scopeForCall(node, "ruby");
+    const definition = definitionForNode(node, "ruby");
+    if (!scope || !definition) continue;
+
+    const name = node.text();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*[!?]?$/.test(name)) continue;
+    if (rubyScopeBindsName(definition, name)) continue;
+
+    const range = node.range();
+    const lineText = lines[range.start.line] ?? "";
+    const before = lineText.slice(0, range.start.column);
+    const after = lineText.slice(range.end.column);
+
+    // A conservative bare send must be the first expression on its line and may only
+    // be followed by an if/unless modifier or a comment. Receiver/argument/value uses
+    // therefore remain excluded instead of being guessed as calls.
+    if (before.trim() !== "") continue;
+    if (!/^\s*(?:(?:if|unless)\b[^#]*)?(?:#.*)?$/.test(after)) continue;
+
+    results.push({
+      text: lineText.trim(),
+      callee: name,
+      method: name,
+      line: range.start.line + 1,
+      column: range.start.column + 1,
+      scope,
+    });
+  }
+
+  return results;
+}
+
 export function findAstCalls(source: string, language: AstLanguage): AstCallScan {
   try {
     const root = parse(language, source).root();
@@ -106,6 +169,8 @@ export function findAstCalls(source: string, language: AstLanguage): AstCallScan
         ...(scope ? { scope } : {}),
       };
     });
+
+    if (language === "ruby") calls.push(...rubyBareZeroArgumentCalls(root, source));
 
     return { parsed: true, calls };
   } catch {
