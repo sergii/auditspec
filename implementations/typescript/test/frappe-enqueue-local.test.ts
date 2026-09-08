@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { frappeLocalEnqueueReference } from "../src/frappe-enqueue-local.js";
+import { frappeImportedEnqueueTarget, frappeLocalEnqueueReference } from "../src/frappe-enqueue-local.js";
 
 function reference(source: string, callText: string, startLine = 4, endLine = 5): string | undefined {
   return frappeLocalEnqueueReference({
@@ -8,6 +8,22 @@ function reference(source: string, callText: string, startLine = 4, endLine = 5)
     source,
     scope_start_line: startLine,
     scope_end_line: endLine,
+  });
+}
+
+function importedTarget(
+  source: string,
+  callText: string,
+  callLine: number,
+  startLine = 2,
+  endLine = callLine,
+): string | undefined {
+  return frappeImportedEnqueueTarget({
+    call_text: callText,
+    source,
+    scope_start_line: startLine,
+    scope_end_line: endLine,
+    call_line: callLine,
   });
 }
 
@@ -114,4 +130,80 @@ test("fails closed for dotted, called, and starred target expressions", () => {
   assert.equal(reference(source, "frappe.enqueue(jobs.rebuild_index)", 2, 3), undefined);
   assert.equal(reference(source, "frappe.enqueue(factory())", 2, 3), undefined);
   assert.equal(reference(source, "frappe.enqueue(*args)", 2, 3), undefined);
+});
+
+test("resolves a direct scope-local absolute from-import target", () => {
+  const source = [
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import rebuild_index",
+    "    frappe.enqueue(rebuild_index, queue='long')",
+  ].join("\n");
+
+  assert.equal(
+    importedTarget(source, "frappe.enqueue(rebuild_index, queue='long')", 4, 2, 4),
+    "wiki.jobs.rebuild_index",
+  );
+});
+
+test("resolves an imported alias through method=", () => {
+  const source = [
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import rebuild_index as job",
+    "    frappe.enqueue(method=job, queue='long')",
+  ].join("\n");
+
+  assert.equal(
+    importedTarget(source, "frappe.enqueue(method=job, queue='long')", 4, 2, 4),
+    "wiki.jobs.rebuild_index",
+  );
+});
+
+test("imported enqueue resolution fails closed for conditional, relative, duplicate, or late imports", () => {
+  const conditional = [
+    "import frappe",
+    "def schedule(enabled):",
+    "    if enabled:",
+    "        from wiki.jobs import rebuild_index",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+  assert.equal(importedTarget(conditional, "frappe.enqueue(rebuild_index)", 5, 2, 5), undefined);
+
+  const relative = [
+    "import frappe",
+    "def schedule():",
+    "    from .jobs import rebuild_index",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+  assert.equal(importedTarget(relative, "frappe.enqueue(rebuild_index)", 4, 2, 4), undefined);
+
+  const duplicate = [
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import rebuild_index",
+    "    from other.jobs import rebuild_index",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+  assert.equal(importedTarget(duplicate, "frappe.enqueue(rebuild_index)", 5, 2, 5), undefined);
+
+  const late = [
+    "import frappe",
+    "def schedule():",
+    "    frappe.enqueue(rebuild_index)",
+    "    from wiki.jobs import rebuild_index",
+  ].join("\n");
+  assert.equal(importedTarget(late, "frappe.enqueue(rebuild_index)", 3, 2, 4), undefined);
+});
+
+test("imported enqueue resolution fails closed when the imported name is otherwise rebound", () => {
+  const source = [
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import rebuild_index",
+    "    rebuild_index = choose_job()",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+
+  assert.equal(importedTarget(source, "frappe.enqueue(rebuild_index)", 5, 2, 5), undefined);
 });
