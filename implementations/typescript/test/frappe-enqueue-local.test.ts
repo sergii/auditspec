@@ -78,6 +78,32 @@ test("fails closed when the module name is rebound or imported", () => {
   assert.equal(reference(imported, "frappe.enqueue(rebuild_index)", 3, 4), undefined);
 });
 
+test("fails closed when an exact-scope import shadows a same-module function", () => {
+  const source = [
+    "import frappe",
+    "def rebuild_index():",
+    "    pass",
+    "def schedule():",
+    "    from wiki.jobs import rebuild_index",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+
+  assert.equal(reference(source, "frappe.enqueue(rebuild_index)", 4, 6), undefined);
+});
+
+test("fails closed when a wildcard import could bind the bare reference", () => {
+  const source = [
+    "import frappe",
+    "def rebuild_index():",
+    "    pass",
+    "def schedule():",
+    "    from wiki.jobs import *",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+
+  assert.equal(reference(source, "frappe.enqueue(rebuild_index)", 4, 6), undefined);
+});
+
 test("fails closed for dotted, called, and starred target expressions", () => {
   const source = [
     "import frappe",
