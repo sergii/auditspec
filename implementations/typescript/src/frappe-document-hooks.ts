@@ -53,11 +53,11 @@ function containerForQualifiedName(qualifiedName: string): string | undefined {
   return parts.length >= 2 ? parts.at(-2) : undefined;
 }
 
-export function frappeDocumentHookDispatches(
+export function frappeDocumentControllerMethods(
   source: string,
   path: string,
   methods: readonly FrappeDocumentMethod[],
-): FrappeDocumentHookDispatch[] {
+): FrappeDocumentMethod[] {
   if (!conventionalDocTypeControllerPath(path)) return [];
 
   const controller = explicitDocumentClass(source);
@@ -65,8 +65,16 @@ export function frappeDocumentHookDispatches(
 
   return methods
     .filter((method) => method.line > controller.line)
+    .filter((method) => containerForQualifiedName(method.qualified_name) === controller.name);
+}
+
+export function frappeDocumentHookDispatches(
+  source: string,
+  path: string,
+  methods: readonly FrappeDocumentMethod[],
+): FrappeDocumentHookDispatch[] {
+  return frappeDocumentControllerMethods(source, path, methods)
     .filter((method) => FRAPPE_DOCUMENT_HOOKS.has(method.name))
-    .filter((method) => containerForQualifiedName(method.qualified_name) === controller.name)
     .map((method) => ({
       target_qualified_name: method.qualified_name,
       surface_kind: "frappe_document_hook" as const,
