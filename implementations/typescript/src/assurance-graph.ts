@@ -6,6 +6,7 @@ import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } 
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
 import { frappeDocumentControllerMethods, frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
 import { frappeStaticHookDispatches } from "./frappe-hooks.js";
+import { isFrappeWhitelistedScope } from "./frappe-whitelist.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { railsRouteDeclarations, type RailsRouteDeclaration } from "./rails-routes.js";
@@ -197,12 +198,6 @@ function rolesForCalls(calls: AstCallCandidate[], language: AstLanguage): Assura
     }
   }
   return [...roles].sort();
-}
-
-function isWhitelistedFrappeScope(scope: AstScope, source: string): boolean {
-  const lines = source.split("\n");
-  const before = lines.slice(Math.max(0, scope.start_line - 5), scope.start_line - 1).join("\n");
-  return /@frappe\.whitelist(?:\([^)]*\))?/.test(before);
 }
 
 function scopeKey(path: string, scope: AstScope): string {
@@ -466,7 +461,7 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
 
     for (const { scope, calls } of scopes.values()) {
       const roles = rolesForCalls(calls, language);
-      if (language === "python" && isWhitelistedFrappeScope(scope, source)) roles.push("entrypoint");
+      if (language === "python" && isFrappeWhitelistedScope(source, scope)) roles.push("entrypoint");
       const normalizedRoles = [...new Set(roles)].sort() as AssuranceRole[];
       indexed.push({
         source,
