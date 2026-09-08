@@ -15,7 +15,7 @@ Examples:
 
 ## Inspector surface
 
-The current Inspector adapter is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, and the Assurance Graph.
+The current Inspector adapter is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, DocType controller lifecycle methods, and the Assurance Graph.
 
 Common mutation surfaces include:
 
@@ -49,6 +49,22 @@ The `method=` keyword is interpreted semantically rather than by taking the firs
 If `method=` is present but dynamic, AuditSpec fails closed even when another keyword contains a dotted string. Calls such as `queue.enqueue(...)`, imported aliases, direct function references, `*args`/`**kwargs`, and other forms requiring Python import/name resolution are not treated as proven Frappe dispatch in v0.1.
 
 A resolved target is linked to the actual Python function node and receives the `entrypoint` assurance role. This remains static framework evidence, not proof that the job executed.
+
+### DocType controller lifecycle dispatch
+
+The v0.1 Assurance Graph also models documented Frappe `Document` controller lifecycle methods as framework entrypoint surfaces when the controller can be resolved conservatively.
+
+The supported subset requires:
+
+- a conventional `.../doctype/<name>/<name>.py` controller path;
+- exactly one explicit class deriving directly from `Document` or `frappe.model.document.Document`;
+- a documented lifecycle method defined on that controller.
+
+The modeled lifecycle names include validation/save/submit/cancel/update hooks such as `before_validate`, `validate`, `before_save`, `on_update`, `before_submit`, `on_submit`, `before_cancel`, `on_cancel`, `on_change`, rename hooks, and delete/trash hooks.
+
+Each resolved lifecycle method gets a `frappe_document_hook` surface. The surface is the framework entrypoint; the edge targets the actual controller method. This distinction lets a mutation inside `on_update` or `on_submit` become statically reachable through the framework lifecycle without pretending the method was called directly by application code.
+
+Storage primitives such as `db_insert` and `db_update` are intentionally not treated as ordinary lifecycle entrypoints. Custom or indirect controller inheritance, aliased `Document` bases, multiple candidate controller classes, and non-conventional controller paths fail closed until stronger Python/Frappe name and controller resolution is implemented.
 
 ## Transaction model
 
