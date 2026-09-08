@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findAstCalls } from "../src/ast-calls.js";
+import { findAstCalls, pythonImportBindingsForScope } from "../src/ast-calls.js";
 
 test("Ruby AST returns real calls but ignores mutation-looking comments and strings", () => {
   const source = [
@@ -98,4 +98,94 @@ test("Python AST attaches calls to the owning function scope", () => {
   const mutation = scan.calls.find((call) => call.callee === "frappe.db.set_value");
   assert.ok(mutation?.scope);
   assert.equal(mutation.scope.name, "approve");
+});
+
+test("Python import scan distinguishes module and exact-scope from imports", () => {
+  const source = [
+    "from wiki.jobs import module_job as module_alias",
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import rebuild_index, cleanup as clean",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+  const calls = findAstCalls(source, "python");
+  const enqueue = calls.calls.find((call) => call.callee === "frappe.enqueue");
+  assert.ok(enqueue?.scope);
+
+  const imports = pythonImportBindingsForScope(source, enqueue.scope);
+  assert.equal(imports.parsed, true);
+  assert.equal(imports.complete, true);
+  assert.deepEqual(
+    imports.bindings.map((binding) => [binding.owner, binding.local_name, binding.target]),
+    [
+      ["scope", "rebuild_index", "wiki.jobs.rebuild_index"],
+      ["scope", "clean", "wiki.jobs.cleanup"],
+      ["module", "module_alias", "wiki.jobs.module_job"],
+      ["module", "frappe", undefined],
+    ],
+  );
+});
+
+test("Python import scan supports multiline aliases but keeps relative imports unresolved", () => {
+  const source = [
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import (",
+    "        rebuild_index,",
+    "        cleanup as clean,",
+    "    )",
+    "    from .local_jobs import relative_job",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+  const calls = findAstCalls(source, "python");
+  const enqueue = calls.calls.find((call) => call.callee === "frappe.enqueue");
+  assert.ok(enqueue?.scope);
+
+  const imports = pythonImportBindingsForScope(source, enqueue.scope);
+  assert.equal(imports.complete, true);
+  const rebuild = imports.bindings.find((binding) => binding.local_name === "rebuild_index");
+  const clean = imports.bindings.find((binding) => binding.local_name === "clean");
+  const relative = imports.bindings.find((binding) => binding.local_name === "relative_job");
+  assert.equal(rebuild?.target, "wiki.jobs.rebuild_index");
+  assert.equal(clean?.target, "wiki.jobs.cleanup");
+  assert.equal(relative?.target, undefined);
+});
+
+test("Python import scan excludes conditional and neighboring-scope imports", () => {
+  const source = [
+    "import frappe",
+    "def other():",
+    "    from wiki.jobs import neighboring_job",
+    "    return neighboring_job",
+    "",
+    "def schedule(enabled):",
+    "    if enabled:",
+    "        from wiki.jobs import conditional_job",
+    "    frappe.enqueue(conditional_job)",
+  ].join("\n");
+  const calls = findAstCalls(source, "python");
+  const enqueue = calls.calls.find((call) => call.callee === "frappe.enqueue");
+  assert.ok(enqueue?.scope);
+
+  const imports = pythonImportBindingsForScope(source, enqueue.scope);
+  assert.equal(imports.complete, true);
+  assert.equal(imports.bindings.some((binding) => binding.local_name === "conditional_job"), false);
+  assert.equal(imports.bindings.some((binding) => binding.local_name === "neighboring_job"), false);
+});
+
+test("Python import scan records wildcard imports without inventing a binding", () => {
+  const source = [
+    "import frappe",
+    "def schedule():",
+    "    from wiki.jobs import *",
+    "    frappe.enqueue(rebuild_index)",
+  ].join("\n");
+  const calls = findAstCalls(source, "python");
+  const enqueue = calls.calls.find((call) => call.callee === "frappe.enqueue");
+  assert.ok(enqueue?.scope);
+
+  const imports = pythonImportBindingsForScope(source, enqueue.scope);
+  assert.equal(imports.complete, true);
+  assert.equal(imports.wildcard_in_scope, true);
+  assert.equal(imports.bindings.some((binding) => binding.local_name === "rebuild_index"), false);
 });
