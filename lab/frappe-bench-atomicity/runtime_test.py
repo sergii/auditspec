@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -64,6 +65,8 @@ class FrappeBenchAtomicityTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         assert BENCH_PATH is not None
         assert SITE_NAME is not None
+
+        os.chdir(BENCH_PATH)
 
         with (ROOT / "conformance" / "valid" / "agent-action.json").open("r", encoding="utf-8") as handle:
             cls.base_event = json.load(handle)
