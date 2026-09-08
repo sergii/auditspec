@@ -5,6 +5,7 @@ export interface FrappeLocalEnqueueContext {
   source: string;
   scope_start_line: number;
   scope_end_line: number;
+  call_line?: number;
 }
 
 function splitTopLevelCallArguments(callText: string): string[] | null {
@@ -124,7 +125,7 @@ function scopeMayRebindName(source: string, startLine: number, endLine: number, 
   const body = scopeLines.slice(headerEnd + 1).join("\n");
   if (new RegExp(`\\b(?:global|nonlocal)\\b[^\\n#]*\\b${escaped}\\b`).test(body)) return true;
   if (new RegExp(`\\bfor\\s+${escaped}\\s+in\\b`).test(body)) return true;
-  if (new RegExp(`\\bas\\s+${escaped}\\b`).test(body)) return true;
+  if (new RegExp(`\\b(?:except|with)\\b[^\\n:]*\\bas\\s+${escaped}\\b`).test(body)) return true;
   if (new RegExp(`\\b${escaped}\\s*:=`).test(body)) return true;
   if (new RegExp(`^\\s*${escaped}\\s*(?::[^=\\n]+)?=(?!=)`, "m").test(body)) return true;
   if (new RegExp(`\\bdel\\s+${escaped}\\b`).test(body)) return true;
@@ -143,14 +144,36 @@ function moduleMayRebindName(source: string, name: string): boolean {
   return topLevelPatterns.some((pattern) => pattern.test(source));
 }
 
+function importScan(context: FrappeLocalEnqueueContext) {
+  return pythonImportBindingsForScope(context.source, {
+    start_line: context.scope_start_line,
+    end_line: context.scope_end_line,
+  });
+}
+
+export function frappeImportedEnqueueTarget(context: FrappeLocalEnqueueContext): string | undefined {
+  const reference = frappeEnqueueBareReference(context.call_text);
+  if (!reference || typeof context.call_line !== "number") return undefined;
+
+  const imports = importScan(context);
+  if (!imports.parsed || !imports.complete || imports.wildcard_in_scope) return undefined;
+
+  const matching = imports.bindings.filter(
+    (binding) => binding.owner === "scope" && binding.local_name === reference,
+  );
+  if (matching.length !== 1) return undefined;
+
+  const binding = matching[0]!;
+  if (!binding.direct || binding.kind !== "from" || !binding.target || binding.line >= context.call_line) return undefined;
+  if (scopeMayRebindName(context.source, context.scope_start_line, context.scope_end_line, reference)) return undefined;
+  return binding.target;
+}
+
 export function frappeLocalEnqueueReference(context: FrappeLocalEnqueueContext): string | undefined {
   const reference = frappeEnqueueBareReference(context.call_text);
   if (!reference) return undefined;
 
-  const imports = pythonImportBindingsForScope(context.source, {
-    start_line: context.scope_start_line,
-    end_line: context.scope_end_line,
-  });
+  const imports = importScan(context);
   if (!imports.parsed || !imports.complete || imports.wildcard_in_module || imports.wildcard_in_scope) return undefined;
   if (imports.bindings.some((binding) => binding.local_name === reference)) return undefined;
 
