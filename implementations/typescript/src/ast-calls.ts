@@ -33,6 +33,7 @@ export interface AstCallScan {
 
 export interface PythonImportBinding {
   owner: "module" | "scope";
+  direct: boolean;
   kind: "from" | "module";
   local_name: string;
   module: string;
@@ -137,7 +138,12 @@ export function pythonDecoratorsForScope(source: string, scope: AstScope): strin
   }
 }
 
-function pythonImportOwner(node: SgNode, scope: PythonScopeRange): "module" | "scope" | null {
+interface PythonImportOwnership {
+  owner: "module" | "scope";
+  direct: boolean;
+}
+
+function pythonImportOwnership(node: SgNode, scope: PythonScopeRange): PythonImportOwnership | null {
   const ancestors = node.ancestors();
   const functionIndex = ancestors.findIndex((ancestor) => String(ancestor.kind()) === "function_definition");
 
@@ -146,18 +152,20 @@ function pythonImportOwner(node: SgNode, scope: PythonScopeRange): "module" | "s
     const range = definition.range();
     if (range.start.line + 1 !== scope.start_line || range.end.line + 1 !== scope.end_line) return null;
 
-    // Only a statement directly owned by the function body is deterministic here.
-    // Imports nested under conditionals, try/except, loops, with blocks, or nested
-    // class bodies are intentionally excluded.
     const between = ancestors.slice(0, functionIndex).map((ancestor) => String(ancestor.kind()));
-    if (between.some((kind) => kind !== "block")) return null;
-    return "scope";
+    return {
+      owner: "scope",
+      direct: between.every((kind) => kind === "block"),
+    };
   }
 
-  // A module import must be a direct module statement, not a class or control-flow body.
-  const kinds = ancestors.map((ancestor) => String(ancestor.kind()));
-  if (kinds.some((kind) => kind !== "module")) return null;
-  return "module";
+  // Class-body imports bind class attributes rather than module globals.
+  if (ancestors.some((ancestor) => String(ancestor.kind()) === "class_definition")) return null;
+
+  return {
+    owner: "module",
+    direct: ancestors.every((ancestor) => String(ancestor.kind()) === "module"),
+  };
 }
 
 function normalizedPythonImportText(text: string): string {
@@ -185,7 +193,7 @@ function splitPythonImportNames(value: string): string[] | null {
 
 function parsePythonImportNode(
   node: SgNode,
-  owner: "module" | "scope",
+  ownership: PythonImportOwnership,
 ): { bindings: PythonImportBinding[]; wildcard: boolean; complete: boolean } {
   const kind = String(node.kind());
   const text = normalizedPythonImportText(node.text());
@@ -212,7 +220,7 @@ function parsePythonImportNode(
       const localName = nameMatch[2] ?? importedName;
       const absolute = !module.startsWith(".");
       bindings.push({
-        owner,
+        ...ownership,
         kind: "from",
         local_name: localName,
         module,
@@ -236,7 +244,7 @@ function parsePythonImportNode(
       if (!nameMatch) return { bindings: [], wildcard: false, complete: false };
       const module = nameMatch[1]!;
       const localName = nameMatch[2] ?? module.split(".")[0]!;
-      bindings.push({ owner, kind: "module", local_name: localName, module, ...location });
+      bindings.push({ ...ownership, kind: "module", local_name: localName, module, ...location });
     }
     return { bindings, wildcard: false, complete: true };
   }
@@ -257,13 +265,13 @@ export function pythonImportBindingsForScope(source: string, scope: PythonScopeR
     let wildcardInScope = false;
 
     for (const node of nodes) {
-      const owner = pythonImportOwner(node, scope);
-      if (!owner) continue;
-      const parsed = parsePythonImportNode(node, owner);
+      const ownership = pythonImportOwnership(node, scope);
+      if (!ownership) continue;
+      const parsed = parsePythonImportNode(node, ownership);
       if (!parsed.complete) complete = false;
       bindings.push(...parsed.bindings);
-      if (parsed.wildcard && owner === "module") wildcardInModule = true;
-      if (parsed.wildcard && owner === "scope") wildcardInScope = true;
+      if (parsed.wildcard && ownership.owner === "module") wildcardInModule = true;
+      if (parsed.wildcard && ownership.owner === "scope") wildcardInScope = true;
     }
 
     return {
