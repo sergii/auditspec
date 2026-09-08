@@ -43,6 +43,7 @@
       "evidence": [
         "implementations/typescript/src/inspector-frappe.ts",
         "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/ast-calls.ts",
         "implementations/typescript/src/frappe-hooks.ts",
         "implementations/typescript/src/frappe-whitelist.ts",
         "implementations/typescript/src/frappe-document-hooks.ts",
@@ -61,8 +62,8 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
-        "Frappe whitelist entrypoints are attributed only from a contiguous decorator block immediately attached to the concrete Python function; neighboring decorators never strengthen another function.",
-        "The v0.1 whitelist resolver supports single-line @frappe.whitelist and @frappe.whitelist(...) forms, including stacked decorators. Multiline/dynamic decorator expressions fail closed rather than creating optimistic entrypoints.",
+        "Frappe whitelist entrypoints are attributed from the Python decorated_definition AST node owned by the exact function; stacked and multiline @frappe.whitelist(...) decorator forms are supported and neighboring decorators never strengthen another function.",
+        "Aliased whitelist decorator names that require Python import/name resolution are not treated as proven @frappe.whitelist entrypoints in v0.1.",
         "Frappe doc_events and scheduler_events are resolved only from one literal assignment with documented event keys and literal dotted handler strings/lists; scheduler cron maps are supported as literal nested maps.",
         "Dynamic hook composition, later mutation/reassignment, duplicate literal keys, unknown event keys, and non-literal handler composition fail closed rather than producing optimistic hook dispatch edges.",
         "Frappe enqueue resolution supports exact frappe.enqueue calls whose target is a literal dotted positional string or literal dotted method= keyword value.",
