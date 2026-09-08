@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
-import { actionCableDispatches } from "./rails-action-cable.js";
+import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "./rails-callbacks.js";
 import { railsRouteDeclarations, type RailsRouteDeclaration } from "./rails-routes.js";
 
@@ -118,7 +118,13 @@ const RUBY_MUTATIONS = new Set([
   "insert_all",
   "upsert_all",
 ]);
-const RUBY_AUTHORIZATION = new Set(["authorize", "policy_scope", "allowed_to?", "can?"]);
+const RUBY_AUTHORIZATION = new Set([
+  "authorize",
+  "policy_scope",
+  "allowed_to?",
+  "can?",
+  "reject_unauthorized_connection",
+]);
 const PYTHON_AUTHORIZATION = new Set(["has_permission", "only_for", "check_permission", "get_roles"]);
 const PYTHON_DOCUMENT_MUTATIONS = new Set(["save", "insert", "submit", "cancel", "delete", "db_set", "db_insert", "db_update"]);
 const RAILS_JOB_DISPATCH = new Set(["perform_later", "perform_now", "perform_async", "perform_in", "perform_at"]);
@@ -466,16 +472,21 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
     }
   }
 
-  for (const [path, source] of sourceByPath) {
-    if (!path.startsWith("app/channels/") || !path.endsWith(".rb")) continue;
-    const methods = indexed
-      .filter((item) => item.node.language === "ruby" && item.node.location.path === path && typeof item.node.location.line === "number")
-      .map((item) => ({
-        name: item.node.name,
-        qualified_name: item.node.qualified_name,
-        line: item.node.location.line!,
-      }));
+  const actionCableSources = [...sourceByPath.entries()]
+    .filter(([path]) => path.startsWith("app/channels/") && path.endsWith(".rb"))
+    .map(([path, source]) => ({
+      path,
+      source,
+      methods: indexed
+        .filter((item) => item.node.language === "ruby" && item.node.location.path === path && typeof item.node.location.line === "number")
+        .map((item) => ({
+          name: item.node.name,
+          qualified_name: item.node.qualified_name,
+          line: item.node.location.line!,
+        })),
+    }));
 
+  for (const { path, source, methods } of actionCableSources) {
     for (const dispatch of actionCableDispatches(source, path, methods)) {
       const target = indexed.find(
         (item) => item.node.location.path === path && item.node.qualified_name === dispatch.target_qualified_name,
@@ -492,6 +503,25 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
         framework: { kind: dispatch.surface_kind, detail: dispatch.detail, location },
       });
     }
+  }
+
+  for (const dispatch of composedActionCableActionDispatches(actionCableSources)) {
+    if (!dispatch.source_path || !dispatch.target_path) continue;
+    const target = indexed.find(
+      (item) => item.node.location.path === dispatch.target_path
+        && item.node.qualified_name === dispatch.target_qualified_name,
+    );
+    if (!target) continue;
+    const location: SourceLocation = { path: dispatch.source_path, line: dispatch.line, column: 1 };
+    const surface = frameworkSurface("ruby", "rails", dispatch.surface_kind, dispatch.detail, location);
+    nodes.push(surface);
+    pushEdge({
+      from: surface.id,
+      to: target.node.id,
+      kind: "framework_dispatch",
+      confidence: "high",
+      framework: { kind: dispatch.surface_kind, detail: dispatch.detail, location },
+    });
   }
 
   for (const sourceScope of indexed.filter((item) => item.node.language === "ruby")) {
