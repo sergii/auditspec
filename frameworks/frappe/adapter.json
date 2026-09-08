@@ -42,10 +42,15 @@
       "adapter_id": "frappe-ast-assisted-v0.1",
       "evidence": [
         "implementations/typescript/src/inspector-frappe.ts",
+        "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/test/framework-graph.test.ts",
+        "implementations/typescript/test/frappe-enqueue-graph.test.ts",
         ".github/workflows/conformance.yml"
       ],
       "limitations": [
-        "Static reachability is not runtime execution proof."
+        "Static reachability is not runtime execution proof.",
+        "Frappe enqueue resolution supports exact frappe.enqueue calls whose target is a literal dotted positional string or literal dotted method= keyword value.",
+        "Dynamic enqueue targets, imported aliases, direct function references, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges."
       ]
     },
     "runtime_corroboration": {
