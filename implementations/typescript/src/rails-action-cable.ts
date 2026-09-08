@@ -165,6 +165,18 @@ function isPublicChannelAction(source: string, method: RailsActionCableMethod, c
   return isPublicMethod(source, method, classLine, ACTION_CABLE_INTERNAL_METHODS);
 }
 
+function channelLifecycle(
+  methodName: string,
+): { surface_kind: "rails_action_cable_subscribe" | "rails_action_cable_unsubscribe"; verb: "SUBSCRIBE" | "UNSUBSCRIBE" } | undefined {
+  if (methodName === "subscribed") {
+    return { surface_kind: "rails_action_cable_subscribe", verb: "SUBSCRIBE" };
+  }
+  if (methodName === "unsubscribed") {
+    return { surface_kind: "rails_action_cable_unsubscribe", verb: "UNSUBSCRIBE" };
+  }
+  return undefined;
+}
+
 function methodsForContainer(source: RailsActionCableSource, container: string): RailsActionCableMethod[] {
   return source.methods.filter((method) => classNameFor(method.qualified_name) === container);
 }
@@ -238,11 +250,43 @@ function composedConcernCandidates(
     if (!declaration || declaration.declared_name !== include.name) continue;
 
     for (const method of methodsForContainer(concernSource, include.name)) {
-      if (!isPublicMethod(concernSource.source, method, declaration.line, ACTION_CABLE_INTERNAL_METHODS)) continue;
+      if (method.line <= declaration.line) continue;
+      if (!channelLifecycle(method.name)
+        && !isPublicMethod(concernSource.source, method, declaration.line, ACTION_CABLE_INTERNAL_METHODS)) continue;
       results.push({ method, source: concernSource, include });
     }
   }
   return results;
+}
+
+function composedMethodDispatch(
+  child: ChannelDeclaration,
+  childSource: RailsActionCableSource,
+  method: RailsActionCableMethod,
+  targetSource: RailsActionCableSource,
+  line: number,
+  provenance: string,
+): RailsActionCableDispatch {
+  const lifecycle = channelLifecycle(method.name);
+  if (lifecycle) {
+    return {
+      target_qualified_name: method.qualified_name,
+      surface_kind: lifecycle.surface_kind,
+      detail: `${lifecycle.verb} -> ${child.declared_name}#${method.name}${provenance}`,
+      line,
+      source_path: childSource.path,
+      target_path: targetSource.path,
+    };
+  }
+
+  return {
+    target_qualified_name: method.qualified_name,
+    surface_kind: "rails_action_cable_action",
+    detail: `ACTION -> ${child.declared_name}#${method.name}${provenance}`,
+    line,
+    source_path: childSource.path,
+    target_path: targetSource.path,
+  };
 }
 
 export function composedActionCableActionDispatches(
@@ -261,37 +305,25 @@ export function composedActionCableActionDispatches(
       const owner = chain[index]!;
       const ownerMethods = methodsForContainer(owner.source, owner.declaration.declared_name);
 
-      // Direct methods on directly-rooted channels are already emitted by actionCableDispatches.
-      // For indirect channels, emit their own public RPC methods once the superclass chain is proven.
-      if (index === 0 && chain.length > 1) {
-        for (const method of ownerMethods) {
-          if (shadowed.has(method.name)) continue;
-          shadowed.add(method.name);
-          if (!isPublicMethod(owner.source.source, method, owner.declaration.line, ACTION_CABLE_INTERNAL_METHODS)) continue;
-          dispatches.push({
-            target_qualified_name: method.qualified_name,
-            surface_kind: "rails_action_cable_action",
-            detail: `ACTION -> ${child.declared_name}#${method.name}`,
-            line: child.line,
-            source_path: childSource.path,
-            target_path: owner.source.path,
-          });
-        }
-      } else {
-        for (const method of ownerMethods) {
-          if (shadowed.has(method.name)) continue;
-          shadowed.add(method.name);
-          if (index === 0) continue;
-          if (!isPublicMethod(owner.source.source, method, owner.declaration.line, ACTION_CABLE_INTERNAL_METHODS)) continue;
-          dispatches.push({
-            target_qualified_name: method.qualified_name,
-            surface_kind: "rails_action_cable_action",
-            detail: `ACTION -> ${child.declared_name}#${method.name} [inherited: ${method.qualified_name}]`,
-            line: child.line,
-            source_path: childSource.path,
-            target_path: owner.source.path,
-          });
-        }
+      for (const method of ownerMethods) {
+        if (shadowed.has(method.name)) continue;
+        shadowed.add(method.name);
+
+        // Direct methods on directly-rooted channels are already emitted by actionCableDispatches.
+        if (index === 0 && chain.length === 1) continue;
+
+        const lifecycle = channelLifecycle(method.name);
+        if (!lifecycle
+          && !isPublicMethod(owner.source.source, method, owner.declaration.line, ACTION_CABLE_INTERNAL_METHODS)) continue;
+
+        dispatches.push(composedMethodDispatch(
+          child,
+          childSource,
+          method,
+          owner.source,
+          child.line,
+          index === 0 ? "" : ` [inherited: ${method.qualified_name}]`,
+        ));
       }
 
       const concernCandidates = composedConcernCandidates(owner, sources);
@@ -304,7 +336,7 @@ export function composedActionCableActionDispatches(
 
       for (const [name, candidates] of byName) {
         if (shadowed.has(name)) continue;
-        // Multiple included concerns defining the same action are order-sensitive in Ruby.
+        // Multiple included concerns defining the same method are order-sensitive in Ruby.
         // Fail closed instead of guessing which implementation wins.
         if (candidates.length !== 1) {
           shadowed.add(name);
@@ -312,14 +344,14 @@ export function composedActionCableActionDispatches(
         }
         const candidate = candidates[0]!;
         shadowed.add(name);
-        dispatches.push({
-          target_qualified_name: candidate.method.qualified_name,
-          surface_kind: "rails_action_cable_action",
-          detail: `ACTION -> ${child.declared_name}#${name} [concern: ${candidate.method.qualified_name}]`,
-          line: candidate.include.line,
-          source_path: childSource.path,
-          target_path: candidate.source.path,
-        });
+        dispatches.push(composedMethodDispatch(
+          child,
+          childSource,
+          candidate.method,
+          candidate.source,
+          candidate.include.line,
+          ` [concern: ${candidate.method.qualified_name}]`,
+        ));
       }
 
       // Any method definition, including a non-public one, shadows a superclass method of the same name.
