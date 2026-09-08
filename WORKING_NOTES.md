@@ -214,12 +214,12 @@ Completed:
 - added conservative Frappe DocType controller lifecycle surfaces for documented direct `Document` hooks on conventional controller paths, including graph-level reachability tests from lifecycle entrypoint to mutation.
 - added conservative `frappe.enqueue_doc(...)` dispatch to a unique conventional direct `Document` controller method, with literal DocType/method identity, dynamic document-instance names, and ambiguity-safe failure semantics.
 - added conservative `Document.queue_action(...)` background surfaces for literal self-dispatch inside conventional direct controllers, with app-local inner-method precedence and async assurance separation.
+- added a pinned Frappe Bench + MariaDB behavioral runtime lab covering real request/job commit/rollback, same-store audit, durable outbox, after-commit wake-up, and real storage constraint failures; promoted the Frappe behavioral runtime layer to `framework_runtime` proof.
 
 Remaining release backlog:
 
 - Expand Rails framework resolution for lexical/nested concern composition, custom ActionCable connection wiring, complex/callable route constraints, additional route DSL variants and additional framework-generated dispatch.
 - Expand Frappe framework resolution for aliased whitelist decorators, module-level imported enqueue function references, `import module`/attribute-reference enqueue targets, relative imports that can be resolved from repository/package context, custom or indirect DocType controller resolution and other dynamic composition that can be proven without optimistic inference.
-- Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
 - Review every current `future`/`planned` statement in README/docs against implementation before release.
 - Remove/promote this working notes file before the first release.
