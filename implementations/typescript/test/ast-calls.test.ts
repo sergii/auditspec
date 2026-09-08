@@ -152,7 +152,7 @@ test("Python import scan supports multiline aliases but keeps relative imports u
   assert.equal(relative?.target, undefined);
 });
 
-test("Python import scan excludes conditional and neighboring-scope imports", () => {
+test("Python import scan preserves conditional bindings as indirect but excludes neighboring scopes", () => {
   const source = [
     "import frappe",
     "def other():",
@@ -170,7 +170,10 @@ test("Python import scan excludes conditional and neighboring-scope imports", ()
 
   const imports = pythonImportBindingsForScope(source, enqueue.scope);
   assert.equal(imports.complete, true);
-  assert.equal(imports.bindings.some((binding) => binding.local_name === "conditional_job"), false);
+  const conditional = imports.bindings.find((binding) => binding.local_name === "conditional_job");
+  assert.equal(conditional?.owner, "scope");
+  assert.equal(conditional?.direct, false);
+  assert.equal(conditional?.target, "wiki.jobs.conditional_job");
   assert.equal(imports.bindings.some((binding) => binding.local_name === "neighboring_job"), false);
 });
 
