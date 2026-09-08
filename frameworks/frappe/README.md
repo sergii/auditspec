@@ -232,7 +232,15 @@ python -m unittest frameworks/frappe/test_auditspec_frappe.py
 
 CI runs this contract on Python 3.11 and 3.14.
 
-These tests prove the AuditSpec adapter contract and transaction neutrality. They are not yet a full Frappe Bench runtime proof. A future heavier integration lab should run against a pinned Frappe site and verify actual request/job rollback/commit behavior end to end.
+These tests prove the AuditSpec adapter contract and transaction neutrality. Framework-runtime behavior is verified separately against a pinned real Bench site.
+
+## Pinned Frappe Bench runtime lab
+
+`lab/frappe-bench-atomicity/` provisions a pinned Frappe Bench site backed by MariaDB and runs AuditSpec against Frappe's real database, callback manager, request transaction policy, and background-job executor. CI runs it through `.github/workflows/frappe-bench-atomicity.yml`.
+
+The lab verifies real same-store commit/rollback behavior, real database constraint-failure rollback for audit/outbox persistence, `frappe.db.after_commit` commit-vs-rollback semantics, `frappe.app.sync_database()` request commit/rollback policy, and `frappe.utils.background_jobs.execute_job()` success/failure transaction behavior.
+
+This is framework-runtime evidence, not production certification. The v0.1 lab invokes request/job boundaries in-process; it does not start an external HTTP server or a separate Redis/RQ worker process, and it does not strengthen explicit commits, `frappe.db.truncate()`, custom database backends, or arbitrary extension code. See `lab/frappe-bench-atomicity/README.md` for the exact pinned stack and claim boundary.
 
 ## Native history still matters
 
