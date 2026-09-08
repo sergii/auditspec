@@ -218,3 +218,108 @@ test("fails closed when a same-module function name is shadowed locally or by im
     },
   );
 });
+
+test("resolves a direct scope-local imported function reference", async () => {
+  await withRepo(
+    {
+      "wiki/api.py": [
+        "import frappe",
+        "def schedule_rebuild():",
+        "    from wiki.jobs import rebuild_index",
+        "    frappe.enqueue(rebuild_index, queue='long')",
+      ].join("\n"),
+      "wiki/jobs.py": [
+        "def rebuild_index():",
+        "    frappe.db.set_value('Wiki Page', 'Home', 'status', 'Indexed')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), ["rebuild_index"]);
+      const target = graph.nodes.find(
+        (node) => node.location.path === "wiki/jobs.py" && node.qualified_name === "rebuild_index",
+      );
+      assert.ok(target?.roles.includes("entrypoint"));
+      assert.ok(target?.roles.includes("mutation"));
+    },
+  );
+});
+
+test("resolves an exact-scope imported alias passed through method=", async () => {
+  await withRepo(
+    {
+      "wiki/api.py": [
+        "import frappe",
+        "def schedule_rebuild():",
+        "    from wiki.jobs import rebuild_index as job",
+        "    frappe.enqueue(method=job, queue='long')",
+      ].join("\n"),
+      "wiki/jobs.py": [
+        "def rebuild_index():",
+        "    print('rebuild')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), ["rebuild_index"]);
+    },
+  );
+});
+
+test("fails closed for conditional and relative imported enqueue targets", async () => {
+  await withRepo(
+    {
+      "wiki/conditional.py": [
+        "import frappe",
+        "def schedule(enabled):",
+        "    if enabled:",
+        "        from wiki.jobs import rebuild_index",
+        "    frappe.enqueue(rebuild_index)",
+      ].join("\n"),
+      "wiki/relative.py": [
+        "import frappe",
+        "def schedule():",
+        "    from .jobs import rebuild_index",
+        "    frappe.enqueue(rebuild_index)",
+      ].join("\n"),
+      "wiki/jobs.py": [
+        "def rebuild_index():",
+        "    print('rebuild')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), []);
+      const target = graph.nodes.find(
+        (node) => node.location.path === "wiki/jobs.py" && node.qualified_name === "rebuild_index",
+      );
+      assert.ok(target);
+      assert.equal(target.roles.includes("entrypoint"), false);
+    },
+  );
+});
+
+test("does not fall back to a same-name local function when an imported target is missing", async () => {
+  await withRepo(
+    {
+      "wiki/api.py": [
+        "import frappe",
+        "def schedule_rebuild():",
+        "    from external.jobs import rebuild_index",
+        "    frappe.enqueue(rebuild_index)",
+        "",
+        "def rebuild_index():",
+        "    print('must not become the imported target')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), []);
+      const local = graph.nodes.find(
+        (node) => node.location.path === "wiki/api.py" && node.qualified_name === "rebuild_index",
+      );
+      assert.ok(local);
+      assert.equal(local.roles.includes("entrypoint"), false);
+    },
+  );
+});
