@@ -5,6 +5,7 @@ import { relative, resolve, sep } from "node:path";
 import { findAstCalls, type AstCallCandidate, type AstLanguage, type AstScope } from "./ast-calls.js";
 import type { AssessmentConfidence, SourceLocation } from "./assessment-types.js";
 import { frappeDocumentControllerMethods, frappeDocumentHookDispatches } from "./frappe-document-hooks.js";
+import { frappeLocalEnqueueReference } from "./frappe-enqueue-local.js";
 import { frappeStaticHookDispatches } from "./frappe-hooks.js";
 import { isFrappeWhitelistedScope } from "./frappe-whitelist.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "./rails-action-cable.js";
@@ -692,9 +693,26 @@ export async function buildAssuranceGraph(inputPath: string): Promise<AssuranceG
   for (const sourceScope of indexed.filter((item) => item.node.language === "python")) {
     for (const call of sourceScope.calls) {
       if (call.callee === "frappe.enqueue") {
-        const targetName = frappeEnqueueTarget(call.text);
-        if (!targetName) continue;
-        const target = resolvePythonDottedTarget(indexed, targetName);
+        const dottedTargetName = frappeEnqueueTarget(call.text);
+        let targetName = dottedTargetName;
+        let target = dottedTargetName ? resolvePythonDottedTarget(indexed, dottedTargetName) : undefined;
+
+        if (!targetName) {
+          targetName = frappeLocalEnqueueReference({
+            call_text: call.text,
+            source: sourceScope.source,
+            scope_start_line: sourceScope.node.range.start_line,
+            scope_end_line: sourceScope.node.range.end_line,
+          });
+          if (!targetName) continue;
+          const candidates = indexed.filter(
+            (item) => item.node.language === "python"
+              && item.node.location.path === sourceScope.node.location.path
+              && item.node.qualified_name === targetName,
+          );
+          target = candidates.length === 1 ? candidates[0] : undefined;
+        }
+
         if (!target) continue;
         addRole(target.node, "entrypoint");
         const location: SourceLocation = { path: sourceScope.node.location.path, line: call.line, column: call.column };
