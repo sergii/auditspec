@@ -168,9 +168,10 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Canonical `ActiveSupport::Concern` callback projection supports literal `include SomeConcern` and explicit qualified `include Admin::SomeConcern`, a unique matching concern module, a single literal `included do ... end` block, and callback methods defined by that concern.
 - Conditional or dynamic callbacks, dynamic concern inclusion, ambiguous sources, skipped callbacks, and namespace semantics requiring lexical Ruby constant lookup fail closed rather than strengthening assurance.
 - ActionCable projection covers direct public methods on explicit channel classes plus direct `subscribed`/`unsubscribed` lifecycle callbacks.
-- ActionCable RPC projection now follows unambiguous bounded superclass chains and exposes public inherited methods under the concrete child-channel surface while targeting the actual implementation node. Explicit fully-qualified namespaced superclass chains are supported; lexical constant lookup fails closed.
-- Direct literal `ActiveSupport::Concern` includes can provide public ActionCable RPC methods when the concern resolves uniquely. Non-public concern methods, concern dependencies, dynamic composition and ambiguous same-name concern overlap do not produce optimistic surfaces.
-- Child method definitions shadow inherited ActionCable methods even when non-public, preventing a hidden override from leaving a false inherited RPC surface.
+- ActionCable RPC projection follows unambiguous bounded superclass chains and exposes public inherited methods under the concrete child-channel surface while targeting the actual implementation node. Explicit fully-qualified namespaced superclass chains are supported; lexical constant lookup fails closed.
+- Direct literal `ActiveSupport::Concern` includes can provide public ActionCable RPC methods when the concern resolves uniquely. Non-public concern methods, concern dependencies, dynamic composition and ambiguous same-name concern overlap do not produce optimistic RPC surfaces.
+- ActionCable `subscribed`/`unsubscribed` lifecycle projection now follows the same proven superclass chain and direct concern composition. Lifecycle methods may be public, protected or private because they are framework-dispatched rather than client RPC surfaces.
+- Child method definitions shadow inherited ActionCable methods regardless of visibility. Ambiguous same-name concern overlap fails closed for both RPC and lifecycle dispatch.
 - The conventional `ApplicationCable::Connection < ActionCable::Connection::Base` `connect`/`disconnect` lifecycle is modeled as separate entrypoint surfaces, including the standard lexical `module ApplicationCable; class Connection ...` form. Custom connection-class wiring and indirect connection inheritance fail closed.
 - `reject_unauthorized_connection` is recognized as connection-local authorization evidence, including its common zero-argument command form.
 - ActionCable connection/subscription authorization is kept separate from later RPC action assurance; `connect` or `subscribed` authorization does not automatically strengthen every action path.
@@ -180,7 +181,7 @@ Therefore eBPF remains an evidence producer beneath semantic application auditin
 - Mixed-path gaps produce `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002`.
 - Path enumeration is capped at 64 paths / depth 8; truncation downgrades the boundary to `unknown/low` rather than creating optimistic coverage.
 - Pinned public Rails and Frappe repositories are exercised by real-world Inspector smoke tests in CI.
-- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable direct/channel lifecycle dispatch, conventional connection lifecycle, inherited and concern-provided RPC actions, non-public override behavior, ambiguous concern overlap, namespaced channel inheritance, conservative zero-argument Ruby sends and connection/subscription auth separation.
+- Synthetic PR tests cover new route exposure, graph topology change, authorization bypass through an alternate route, namespaced/nested/scoped resource dispatch, context-aware scoped explicit routes, static constraint identity, local/inherited/concern-derived/explicit-namespaced callback authorization, ActionCable direct/channel lifecycle dispatch, conventional connection lifecycle, inherited and concern-provided RPC actions, inherited and concern-provided `subscribed`/`unsubscribed` lifecycle callbacks including non-public lifecycle methods, non-public override behavior, ambiguous concern overlap, namespaced channel inheritance, conservative zero-argument Ruby sends and connection/subscription auth separation.
 - Draft PR CI is the review/verification surface while v0.1 remains unmerged.
 
 ## Release hardening status
@@ -198,10 +199,11 @@ Completed:
 - added conservative ActionCable Assurance Graph surfaces for direct public channel RPC actions and direct `subscribed`/`unsubscribed` lifecycle callbacks, including explicit fully-qualified namespaced channel classes.
 - added conventional `ApplicationCable::Connection` `connect`/`disconnect` lifecycle surfaces while keeping connection authorization separate from later channel actions.
 - added unambiguous inherited and direct `ActiveSupport::Concern`-provided ActionCable RPC resolution, explicit fully-qualified namespaced channel inheritance, override/visibility handling, and connection-local `reject_unauthorized_connection` evidence.
+- added inherited and direct `ActiveSupport::Concern`-provided ActionCable `subscribed`/`unsubscribed` lifecycle resolution with framework visibility semantics and ambiguity-safe shadowing.
 
 Remaining release backlog:
 
-- Expand Rails framework resolution for lexical/nested concern composition, ActionCable inherited/concern-provided lifecycle callbacks and custom connection wiring, complex/callable route constraints, additional route DSL variants and additional framework-generated dispatch.
+- Expand Rails framework resolution for lexical/nested concern composition, custom ActionCable connection wiring, complex/callable route constraints, additional route DSL variants and additional framework-generated dispatch.
 - Expand Frappe framework resolution for dynamic hook composition, `frappe.enqueue(method=...)`, document controller hooks and additional worker surfaces.
 - Add full pinned Frappe Bench behavioral runtime lab before claiming L2 framework-runtime proof.
 - Add message-bus/RPC edges and runtime trace correlation without treating them as semantic truth.
