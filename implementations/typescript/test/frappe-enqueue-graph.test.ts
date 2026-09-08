@@ -41,11 +41,11 @@ test("resolves a literal Frappe enqueue method keyword instead of unrelated dott
       ].join("\n"),
       "reports.py": [
         "def high():",
-        "    return 'not a job target'",
+        "    print('not a job target')",
       ].join("\n"),
       "jobs.py": [
         "def rebuild():",
-        "    return 'also not a job target'",
+        "    print('also not a job target')",
       ].join("\n"),
     },
     async (root) => {
@@ -55,7 +55,8 @@ test("resolves a literal Frappe enqueue method keyword instead of unrelated dott
       const rebuild = graph.nodes.find((node) => node.name === "rebuild_index");
       const high = graph.nodes.find((node) => node.name === "high");
       assert.ok(rebuild?.roles.includes("entrypoint"));
-      assert.equal(high?.roles.includes("entrypoint"), false);
+      assert.ok(high);
+      assert.equal(high.roles.includes("entrypoint"), false);
     },
   );
 });
@@ -70,7 +71,7 @@ test("preserves literal positional Frappe enqueue targets", async () => {
       ].join("\n"),
       "wiki/jobs.py": [
         "def rebuild_index():",
-        "    return None",
+        "    print('rebuild')",
       ].join("\n"),
     },
     async (root) => {
@@ -90,14 +91,15 @@ test("fails closed when the Frappe enqueue method target is dynamic", async () =
       ].join("\n"),
       "reports.py": [
         "def high():",
-        "    return None",
+        "    print('not a target')",
       ].join("\n"),
     },
     async (root) => {
       const graph = await buildAssuranceGraph(root);
       assert.deepEqual(enqueueTargets(graph), []);
       const high = graph.nodes.find((node) => node.name === "high");
-      assert.equal(high?.roles.includes("entrypoint"), false);
+      assert.ok(high);
+      assert.equal(high.roles.includes("entrypoint"), false);
     },
   );
 });
@@ -111,14 +113,15 @@ test("does not treat unrelated enqueue methods as Frappe dispatch", async () => 
       ].join("\n"),
       "wiki/jobs.py": [
         "def rebuild_index():",
-        "    return None",
+        "    print('rebuild')",
       ].join("\n"),
     },
     async (root) => {
       const graph = await buildAssuranceGraph(root);
       assert.deepEqual(enqueueTargets(graph), []);
       const target = graph.nodes.find((node) => node.name === "rebuild_index");
-      assert.equal(target?.roles.includes("entrypoint"), false);
+      assert.ok(target);
+      assert.equal(target.roles.includes("entrypoint"), false);
     },
   );
 });
@@ -133,7 +136,7 @@ test("fails closed for starred argument composition", async () => {
       ].join("\n"),
       "reports.py": [
         "def high():",
-        "    return None",
+        "    print('not a target')",
       ].join("\n"),
     },
     async (root) => {
