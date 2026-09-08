@@ -145,3 +145,76 @@ test("fails closed for starred argument composition", async () => {
     },
   );
 });
+
+test("resolves a same-module positional function reference as a Frappe enqueue entrypoint", async () => {
+  await withRepo(
+    {
+      "wiki/jobs.py": [
+        "import frappe",
+        "def schedule_rebuild():",
+        "    frappe.enqueue(rebuild_index, queue='long')",
+        "",
+        "def rebuild_index():",
+        "    frappe.db.set_value('Wiki Page', 'Home', 'status', 'Indexed')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), ["rebuild_index"]);
+      const target = graph.nodes.find((node) => node.qualified_name === "rebuild_index");
+      assert.ok(target?.roles.includes("entrypoint"));
+      assert.ok(target?.roles.includes("mutation"));
+    },
+  );
+});
+
+test("resolves a same-module method keyword function reference", async () => {
+  await withRepo(
+    {
+      "wiki/jobs.py": [
+        "import frappe",
+        "def schedule_rebuild():",
+        "    frappe.enqueue(method=rebuild_index, queue='long')",
+        "",
+        "def rebuild_index():",
+        "    print('rebuild')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), ["rebuild_index"]);
+    },
+  );
+});
+
+test("fails closed when a same-module function name is shadowed locally or by import", async () => {
+  await withRepo(
+    {
+      "wiki/local_shadow.py": [
+        "import frappe",
+        "def rebuild_index():",
+        "    print('real local target')",
+        "",
+        "def schedule_rebuild():",
+        "    rebuild_index = choose_target()",
+        "    frappe.enqueue(rebuild_index)",
+      ].join("\n"),
+      "wiki/import_shadow.py": [
+        "import frappe",
+        "from elsewhere import rebuild_index",
+        "def schedule_imported():",
+        "    frappe.enqueue(rebuild_index)",
+        "",
+        "def rebuild_index():",
+        "    print('same-name local definition')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      assert.deepEqual(enqueueTargets(graph), []);
+      const localTargets = graph.nodes.filter((node) => node.qualified_name === "rebuild_index");
+      assert.ok(localTargets.length >= 1);
+      assert.equal(localTargets.some((node) => node.roles.includes("entrypoint")), false);
+    },
+  );
+});
