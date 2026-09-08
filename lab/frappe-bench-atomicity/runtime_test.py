@@ -66,7 +66,7 @@ class FrappeBenchAtomicityTest(unittest.TestCase):
         assert BENCH_PATH is not None
         assert SITE_NAME is not None
 
-        os.chdir(BENCH_PATH)
+        os.chdir(BENCH_PATH / "sites")
 
         with (ROOT / "conformance" / "valid" / "agent-action.json").open("r", encoding="utf-8") as handle:
             cls.base_event = json.load(handle)
