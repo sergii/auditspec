@@ -35,9 +35,9 @@ Static evidence remains conservative. A resolved call path is not runtime proof.
 
 ### Whitelisted RPC entrypoints
 
-A Frappe function receives the `entrypoint` assurance role only when `@frappe.whitelist` is attributed to that exact Python function. AuditSpec no longer searches a loose window of preceding source lines.
+A Frappe function receives the `entrypoint` assurance role only when the Python AST says that its exact `function_definition` belongs to a `decorated_definition` containing `@frappe.whitelist`. AuditSpec no longer searches a loose window of preceding source lines.
 
-Supported forms include:
+Supported forms include direct, stacked, and multiline decorators:
 
 ```python
 @frappe.whitelist()
@@ -48,11 +48,18 @@ def update_project(name):
 @validate_request
 def public_update(name):
     ...
+
+@frappe.whitelist(
+    allow_guest=True,
+    methods=["POST"],
+)
+def public_submit(name):
+    ...
 ```
 
-The decorator block must be contiguous with the decorated `def`. A whitelist decorator on a neighboring function cannot strengthen a later function, even when it is only a few lines away.
+A whitelist decorator on a neighboring function cannot strengthen a later function, even when it is only a few lines away. Decorator arguments may span multiple lines because attribution comes from the owned AST node rather than source-line proximity.
 
-The v0.1 resolver deliberately supports single-line `@frappe.whitelist` and `@frappe.whitelist(...)` expressions. Multiline or otherwise dynamic decorator expressions fail closed until decorator AST attribution is expanded. This may produce `unknown`/missing static entrypoint evidence for an unusual valid decorator form, but it cannot create a false positive entrypoint from unrelated source text.
+Aliased decorator names such as `@whitelist()` are intentionally not treated as proven Frappe whitelist entrypoints until Python import/name resolution establishes that the alias refers to `frappe.whitelist`.
 
 ### Static hook dispatch
 
