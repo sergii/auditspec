@@ -45,8 +45,8 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
-        "ActionCable v0.1 support covers direct public channel actions plus direct subscribed/unsubscribed lifecycle callbacks; inherited/concern-provided actions and connection-level lifecycle are not statically proven.",
-        "Authorization in ActionCable subscribed is not projected onto later RPC actions without a stronger stateful proof."
+        "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, and the conventional ApplicationCable::Connection connect/disconnect lifecycle; inherited/concern-provided channel actions and custom connection-class resolution are not statically proven.",
+        "Authorization in ActionCable connect or subscribed is not projected onto later RPC actions without a stronger stateful proof."
       ]
     },
     "runtime_corroboration": {
