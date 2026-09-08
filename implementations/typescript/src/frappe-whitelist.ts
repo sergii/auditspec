@@ -1,19 +1,14 @@
-import type { AstScope } from "./ast-calls.js";
+import { pythonDecoratorsForScope, type AstScope } from "./ast-calls.js";
 
-const FRAPPE_WHITELIST_DECORATOR = /^@frappe\.whitelist(?:\([^()\n]*\))?$/;
+const FRAPPE_WHITELIST_DECORATOR = /^@frappe\.whitelist(?:\(.*\))?$/;
 
 export function isFrappeWhitelistedScope(source: string, scope: AstScope): boolean {
-  if (scope.kind !== "function" || scope.start_line <= 1) return false;
+  if (scope.kind !== "function") return false;
 
-  const lines = source.split("\n");
-  let index = scope.start_line - 2;
+  const decorators = pythonDecoratorsForScope(source, scope);
+  if (!decorators) return false;
 
-  while (index >= 0) {
-    const trimmed = (lines[index] ?? "").trim();
-    if (!trimmed.startsWith("@")) break;
-    if (FRAPPE_WHITELIST_DECORATOR.test(trimmed)) return true;
-    index -= 1;
-  }
-
-  return false;
+  return decorators.some((decorator) =>
+    FRAPPE_WHITELIST_DECORATOR.test(decorator.replace(/\s+/g, "")),
+  );
 }
