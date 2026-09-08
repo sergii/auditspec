@@ -23,11 +23,26 @@ test("attributes a direct frappe.whitelist decorator to its function", () => {
   assert.equal(isFrappeWhitelistedScope(source, scope), true);
 });
 
-test("attributes frappe.whitelist through a contiguous stacked decorator block", () => {
+test("attributes frappe.whitelist through a stacked decorator block", () => {
   const source = [
     "import frappe",
     "@frappe.whitelist()",
     "@validate_request",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), true);
+});
+
+test("attributes multiline frappe.whitelist arguments through the decorated AST node", () => {
+  const source = [
+    "import frappe",
+    "@frappe.whitelist(",
+    "    allow_guest=True,",
+    "    methods=['POST'],",
+    ")",
     "def update_project(name):",
     "    frappe.db.set_value('Project', name, 'status', 'Active')",
   ].join("\n");
@@ -51,12 +66,10 @@ test("does not inherit a whitelist decorator from a neighboring function", () =>
   assert.equal(isFrappeWhitelistedScope(source, scope), false);
 });
 
-test("fails closed when decorator attribution requires multiline parsing", () => {
+test("does not treat a different decorator as a Frappe whitelist", () => {
   const source = [
     "import frappe",
-    "@frappe.whitelist(",
-    "    allow_guest=True,",
-    ")",
+    "@custom.whitelist()",
     "def update_project(name):",
     "    frappe.db.set_value('Project', name, 'status', 'Active')",
   ].join("\n");
