@@ -27,18 +27,19 @@ function aliasIsStableUntilDefinition(
   localName: string,
   importLine: number,
   definitionLine: number,
+  allowedDecoratorCallable: string,
 ): boolean {
   const escaped = escapeRegExp(localName);
   const mention = new RegExp(`\\b${escaped}\\b`);
   const lines = source.split("\n");
 
   // Be deliberately conservative: after the proven import, any additional textual
-  // use of the alias before the definition is ambiguous unless it is the decorator
-  // itself. This rejects rebinding, duplicate imports, globals tricks, and unusual
-  // control-flow without trying to interpret Python execution order.
+  // use of the alias before the definition is ambiguous unless it is the exact
+  // decorator callable being resolved. This rejects rebinding, duplicate imports,
+  // globals tricks, and unusual control-flow without interpreting execution order.
   for (const line of lines.slice(importLine, Math.max(importLine, definitionLine - 1))) {
     if (!mention.test(line)) continue;
-    if (line.trimStart().startsWith("@")) continue;
+    if (normalizedDecoratorCallable(line.trim()) === allowedDecoratorCallable) continue;
     return false;
   }
   return true;
@@ -89,7 +90,13 @@ function importedWhitelistDecorator(source: string, scope: AstScope, decorator: 
   }
 
   if (!binding) return false;
-  return aliasIsStableUntilDefinition(source, binding.local_name, binding.line, scope.start_line);
+  return aliasIsStableUntilDefinition(
+    source,
+    binding.local_name,
+    binding.line,
+    scope.start_line,
+    callable,
+  );
 }
 
 export function isFrappeWhitelistedScope(source: string, scope: AstScope): boolean {
