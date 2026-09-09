@@ -1,4 +1,3 @@
-import type { AstCallCandidate } from "../../ast-calls.js";
 import { frappeDocumentControllerMethods, frappeDocumentHookDispatches } from "../../frappe-document-hooks.js";
 import { frappeImportedEnqueueTarget, frappeLocalEnqueueReference } from "../../frappe-enqueue-local.js";
 import { frappeStaticHookDispatches } from "../../frappe-hooks.js";
@@ -9,6 +8,7 @@ import type {
   AssuranceGraphPlugin,
   AssuranceGraphPluginContext,
 } from "../assurance-graph/plugin.js";
+import type { AssuranceSourceCall } from "../source-language/plugin.js";
 
 const PYTHON_AUTHORIZATION = new Set(["has_permission", "only_for", "check_permission", "get_roles"]);
 const PYTHON_DOCUMENT_MUTATIONS = new Set([
@@ -22,7 +22,7 @@ const PYTHON_DOCUMENT_MUTATIONS = new Set([
   "db_update",
 ]);
 
-function isFrappeMutation(call: AstCallCandidate): boolean {
+function isFrappeMutation(call: AssuranceSourceCall): boolean {
   return /^frappe\.db\.(set_value|update|bulk_update|delete|truncate)$/.test(call.callee)
     || call.callee === "frappe.delete_doc"
     || PYTHON_DOCUMENT_MUTATIONS.has(call.method);
@@ -40,7 +40,7 @@ function rolesForFrappeScope(item: AssuranceGraphIndexedScope): AssuranceRole[] 
   return [...roles].sort();
 }
 
-function consumesFrappeCall(call: AstCallCandidate, item: AssuranceGraphIndexedScope): boolean {
+function consumesFrappeCall(call: AssuranceSourceCall, item: AssuranceGraphIndexedScope): boolean {
   if (item.node.language !== "python") return false;
   return isFrappeMutation(call) || PYTHON_AUTHORIZATION.has(call.method);
 }
