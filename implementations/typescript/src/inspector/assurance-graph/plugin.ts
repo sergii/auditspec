@@ -1,5 +1,8 @@
-import type { AstCallCandidate, AstLanguage, AstScope } from "../../ast-calls.js";
 import type { SourceLocation } from "../../assessment-types.js";
+import type {
+  AssuranceSourceCall,
+  AssuranceSourceScope,
+} from "../source-language/plugin.js";
 import type {
   AssuranceGraphEdge,
   AssuranceGraphNode,
@@ -8,9 +11,9 @@ import type {
 
 export interface AssuranceGraphIndexedScope {
   node: AssuranceGraphNode;
-  calls: AstCallCandidate[];
+  calls: AssuranceSourceCall[];
   source: string;
-  scope: AstScope;
+  scope: AssuranceSourceScope;
 }
 
 export interface AssuranceGraphPluginContext {
@@ -22,7 +25,7 @@ export interface AssuranceGraphPluginContext {
 
   addRole(node: AssuranceGraphNode, role: AssuranceRole): void;
   addSurface(
-    language: AstLanguage,
+    language: string,
     framework: string,
     surfaceKind: string,
     detail: string,
@@ -44,7 +47,7 @@ export interface AssuranceGraphPlugin {
   ): Iterable<AssuranceRole>;
 
   consumesCall?(
-    call: AstCallCandidate,
+    call: AssuranceSourceCall,
     item: AssuranceGraphIndexedScope,
     context: AssuranceGraphPluginContext,
   ): boolean;
