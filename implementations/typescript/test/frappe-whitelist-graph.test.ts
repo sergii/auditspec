@@ -74,3 +74,70 @@ test("marks multiline frappe.whitelist decorator arguments on the exact function
     },
   );
 });
+
+test("marks a proven imported whitelist alias as a Frappe entrypoint", async () => {
+  await withRepo(
+    {
+      "wiki/api.py": [
+        "import frappe",
+        "from frappe import whitelist as api",
+        "",
+        "@api(allow_guest=True)",
+        "def public_update(name):",
+        "    frappe.db.set_value('Project', name, 'status', 'Public')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const publicUpdate = graph.nodes.find((node) => node.qualified_name === "public_update");
+      assert.ok(publicUpdate);
+      assert.equal(publicUpdate.roles.includes("entrypoint"), true);
+      assert.equal(publicUpdate.roles.includes("mutation"), true);
+    },
+  );
+});
+
+test("marks a proven frappe module alias as a Frappe entrypoint", async () => {
+  await withRepo(
+    {
+      "wiki/api.py": [
+        "import frappe",
+        "import frappe as f",
+        "",
+        "@f.whitelist()",
+        "def public_update(name):",
+        "    frappe.db.set_value('Project', name, 'status', 'Public')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const publicUpdate = graph.nodes.find((node) => node.qualified_name === "public_update");
+      assert.ok(publicUpdate);
+      assert.equal(publicUpdate.roles.includes("entrypoint"), true);
+      assert.equal(publicUpdate.roles.includes("mutation"), true);
+    },
+  );
+});
+
+test("does not strengthen a mutation when the whitelist alias is rebound", async () => {
+  await withRepo(
+    {
+      "wiki/api.py": [
+        "import frappe",
+        "from frappe import whitelist as api",
+        "api = custom_decorator",
+        "",
+        "@api()",
+        "def internal_update(name):",
+        "    frappe.db.set_value('Project', name, 'status', 'Internal')",
+      ].join("\n"),
+    },
+    async (root) => {
+      const graph = await buildAssuranceGraph(root);
+      const internalUpdate = graph.nodes.find((node) => node.qualified_name === "internal_update");
+      assert.ok(internalUpdate);
+      assert.equal(internalUpdate.roles.includes("entrypoint"), false);
+      assert.equal(internalUpdate.roles.includes("mutation"), true);
+    },
+  );
+});
