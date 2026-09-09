@@ -3,7 +3,9 @@ name: Frappe adapter
 on:
   push:
     branches:
-      - v0.1
+      - main
+    tags:
+      - "v*"
   pull_request:
     paths:
       - "frameworks/frappe/**"
