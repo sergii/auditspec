@@ -48,12 +48,18 @@
         "implementations/typescript/src/inspector/plugins/frappe.ts",
         "implementations/typescript/src/frappe-inspect.ts",
         "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/inspector/assurance-graph/core.ts",
+        "implementations/typescript/src/inspector/assurance-graph/plugin.ts",
+        "implementations/typescript/src/inspector/assurance-graph/default-plugins.ts",
+        "implementations/typescript/src/inspector/plugins/frappe-assurance-graph.ts",
         "implementations/typescript/src/ast-calls.ts",
         "implementations/typescript/src/frappe-hooks.ts",
         "implementations/typescript/src/frappe-whitelist.ts",
         "implementations/typescript/src/frappe-enqueue-local.ts",
         "implementations/typescript/src/frappe-document-hooks.ts",
         "implementations/typescript/test/inspector-plugin.test.ts",
+        "implementations/typescript/test/assurance-graph-plugin.test.ts",
+        "implementations/typescript/test/architecture-boundaries.test.ts",
         "implementations/typescript/test/framework-graph.test.ts",
         "implementations/typescript/test/frappe-hooks.test.ts",
         "implementations/typescript/test/frappe-hooks-graph.test.ts",
@@ -71,7 +77,8 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
-        "The repository Inspector composes Frappe inspection through a framework plugin; Assurance Graph framework construction is still being extracted from the shared graph implementation during v0.2.",
+        "Frappe assessment and Assurance Graph construction are composed through framework plugins; the shared Inspector/graph cores remain framework-neutral and the default CLI registers the Frappe plugin at the composition boundary.",
+        "The current graph source scanner is limited to Ruby and Python inputs; this does not restrict the framework identity contract but additional source languages require a separate scanner extension boundary.",
         "Frappe whitelist entrypoints are attributed from the Python decorated_definition AST node owned by the exact function; stacked and multiline @frappe.whitelist(...) decorator forms are supported and neighboring decorators never strengthen another function.",
         "Frappe whitelist decorator aliases are supported when one direct module-level import proves either from frappe import whitelist [as alias] or import frappe as alias before the decorated definition and the alias has no intervening ambiguous use or rebinding; conditional, wildcard, duplicate, different-module, late, or rebound aliases fail closed.",
         "Frappe doc_events and scheduler_events are resolved only from one literal assignment with documented event keys and literal dotted handler strings/lists; scheduler cron maps are supported as literal nested maps.",
@@ -114,6 +121,7 @@
   },
   "references": [
     "adapters/README.md",
-    "adapters/frappe/README.md"
+    "adapters/frappe/README.md",
+    "docs/architecture.md"
   ]
 }

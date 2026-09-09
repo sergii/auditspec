@@ -41,10 +41,16 @@
         "implementations/typescript/src/inspector/core.ts",
         "implementations/typescript/src/inspector/plugins/rails.ts",
         "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/inspector/assurance-graph/core.ts",
+        "implementations/typescript/src/inspector/assurance-graph/plugin.ts",
+        "implementations/typescript/src/inspector/assurance-graph/default-plugins.ts",
+        "implementations/typescript/src/inspector/plugins/rails-assurance-graph.ts",
         "implementations/typescript/src/rails-action-cable.ts",
         "implementations/typescript/src/rails-callbacks.ts",
         "implementations/typescript/src/rails-routes.ts",
         "implementations/typescript/test/inspector-plugin.test.ts",
+        "implementations/typescript/test/assurance-graph-plugin.test.ts",
+        "implementations/typescript/test/architecture-boundaries.test.ts",
         "implementations/typescript/test/rails-action-cable.test.ts",
         "implementations/typescript/test/rails-action-cable-composed.test.ts",
         "implementations/typescript/test/rails-action-cable-composed-graph.test.ts",
@@ -53,7 +59,8 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
-        "The repository Inspector composes Rails inspection through a framework plugin; Assurance Graph framework construction is still being extracted from the shared graph implementation during v0.2.",
+        "Rails assessment and Assurance Graph construction are composed through framework plugins; the shared Inspector/graph cores remain framework-neutral and the default CLI registers the Rails plugin at the composition boundary.",
+        "The current graph source scanner is limited to Ruby and Python inputs; this does not restrict the framework identity contract but additional source languages require a separate scanner extension boundary.",
         "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, the conventional ApplicationCable::Connection connect/disconnect lifecycle, unambiguous inherited public RPC actions, direct ActiveSupport::Concern-provided public RPC actions, and inherited/concern-provided subscribed/unsubscribed lifecycle callbacks.",
         "Explicit fully-qualified channel superclass chains are supported; Ruby lexical constant lookup, concern dependencies, ambiguous concern method overlap, custom connection-class resolution, and dynamic channel composition are not statically proven.",
         "Lifecycle callbacks are framework-dispatched and may be non-public Ruby methods; RPC action exposure still requires public visibility.",
@@ -84,6 +91,7 @@
   },
   "references": [
     "adapters/README.md",
-    "adapters/rails/README.md"
+    "adapters/rails/README.md",
+    "docs/architecture.md"
   ]
 }
