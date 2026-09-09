@@ -2,6 +2,8 @@
 
 Frappe's native Version, Track Changes, and Access Log remain the low-level document/access history mechanisms. AuditSpec complements them with semantic business, authorization, security, delegation, agent, correlation, and evidence semantics.
 
+Frappe is an AuditSpec extension target, not part of AuditSpec Core. Runtime integration and static inspection are separate capabilities.
+
 ## Semantic boundary
 
 Prefer emitting AuditSpec at a controller/service boundary that knows business intent rather than treating every database write as a product audit event.
@@ -13,9 +15,9 @@ Examples:
 - `agent.project_update`
 - `export.denied`
 
-## Inspector surface
+## Inspector plugin surface
 
-The current Inspector adapter is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, DocType controller lifecycle methods, and the Assurance Graph.
+The current static Inspector plugin is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, DocType controller lifecycle methods, and the Assurance Graph. The plugin projects those Frappe-specific facts into generic AuditSpec Assessment / Assurance contracts; it does not redefine Core semantics.
 
 Common mutation surfaces include:
 
@@ -35,9 +37,9 @@ Static evidence remains conservative. A resolved call path is not runtime proof.
 
 ### Whitelisted RPC entrypoints
 
-A Frappe function receives the `entrypoint` assurance role only when the Python AST says that its exact `function_definition` belongs to a `decorated_definition` containing `@frappe.whitelist`. AuditSpec no longer searches a loose window of preceding source lines.
+A Frappe function receives the `entrypoint` assurance role only when the Python AST says that its exact `function_definition` belongs to a `decorated_definition` containing a direct `@frappe.whitelist` decorator or a conservatively proven imported alias of that decorator. AuditSpec does not search a loose window of preceding source lines.
 
-Supported forms include direct, stacked, and multiline decorators:
+Supported direct forms include stacked and multiline decorators:
 
 ```python
 @frappe.whitelist()
@@ -57,9 +59,31 @@ def public_submit(name):
     ...
 ```
 
+The v0.2 development line also supports module-level import aliases when import identity is statically proven before the decorated definition:
+
+```python
+from frappe import whitelist as api
+
+@api(allow_guest=True)
+def public_update(name):
+    ...
+
+from frappe import whitelist
+
+@whitelist()
+def public_submit(name):
+    ...
+
+import frappe as f
+
+@f.whitelist()
+def public_cancel(name):
+    ...
+```
+
 A whitelist decorator on a neighboring function cannot strengthen a later function, even when it is only a few lines away. Decorator arguments may span multiple lines because attribution comes from the owned AST node rather than source-line proximity.
 
-Aliased decorator names such as `@whitelist()` are intentionally not treated as proven Frappe whitelist entrypoints until Python import/name resolution establishes that the alias refers to `frappe.whitelist`.
+Alias resolution remains deliberately narrow. The import must be a direct module-level `from frappe import whitelist [as alias]` or `import frappe as alias` binding that occurs before the function definition. Conditional or wildcard imports, different-module lookalikes, duplicate/ambiguous bindings, imports after the definition, and aliases with intervening ambiguous use or rebinding fail closed rather than creating an entrypoint.
 
 ### Static hook dispatch
 
@@ -89,9 +113,9 @@ Dynamic composition such as `**shared_hooks`, later `.update(...)` mutation, rea
 
 ### Background enqueue dispatch
 
-The v0.1 Assurance Graph resolves Frappe background dispatch from an exact `frappe.enqueue(...)` call when callable identity can be proven conservatively.
+The Assurance Graph resolves Frappe background dispatch from an exact `frappe.enqueue(...)` call when callable identity can be proven conservatively.
 
-Supported forms include literal dotted targets, unshadowed top-level function references from the same Python module, and direct absolute `from ... import ...` references owned by the exact caller scope:
+Supported forms include literal dotted targets, unshadowed top-level function references from the same Python module, direct absolute `from ... import ...` references owned by the exact caller scope, and v0.2 direct absolute module-level `from ... import ...` references:
 
 ```python
 frappe.enqueue("wiki.jobs.rebuild_index")
@@ -104,7 +128,7 @@ def rebuild_index():
     ...
 ```
 
-A common Frappe local-import pattern is also supported:
+A common Frappe local-import pattern is supported:
 
 ```python
 def update_search_index():
@@ -117,13 +141,30 @@ def update_search_index_with_alias():
     frappe.enqueue(method=job, queue="long")
 ```
 
+The v0.2 development line also resolves conventional module-level imports:
+
+```python
+from wiki.jobs import rebuild_index
+from wiki.jobs import refresh_index as refresh_job
+
+
+def update_search_index():
+    frappe.enqueue(rebuild_index, queue="long")
+
+
+def schedule_refresh():
+    frappe.enqueue(method=refresh_job, queue="long")
+```
+
 The `method=` keyword is interpreted semantically rather than by taking the first dotted string from the call. For example, `queue="reports.high", method="wiki.jobs.rebuild_index"` resolves `wiki.jobs.rebuild_index`; the queue name cannot become a false job target.
 
 For a same-module function reference, AuditSpec requires exactly one top-level function with that name in the caller's `.py` file and rejects cases where the identifier may instead denote a parameter, local assignment, `global`/`nonlocal` binding, import, loop/exception binding, walrus assignment, or deleted/rebound name. This allows common Frappe forms such as `frappe.enqueue(rebuild_index)` without general Python dataflow inference.
 
-For an imported function reference, AuditSpec requires one exact-scope, direct, absolute `from module import function` binding, optionally with an `as` alias, that appears before the enqueue call and resolves to one function in the inspected repository. The import is discovered from the Python AST and must belong to the same caller scope. Conditional or otherwise nested imports are retained as bindings for shadowing safety but do not create dispatch edges.
+For an exact-scope imported function reference, AuditSpec requires one direct absolute `from module import function` binding, optionally with an `as` alias, that appears before the enqueue call and resolves to one function in the inspected repository. The import is discovered from the Python AST and must belong to the same caller scope. Conditional or otherwise nested imports are retained as bindings for shadowing safety but do not create dispatch edges.
 
-Relative imports, wildcard imports, duplicate imports of the same local name, imports after the enqueue call, rebound imported names, module-level imported function references, attribute references such as `tasks.rebuild_index`, `import module` references, dynamic expressions, `*args`/`**kwargs`, unrelated `.enqueue` methods, and other targets requiring broader Python import/name resolution fail closed rather than producing optimistic dispatch edges. If a proven import binding points to a target that is absent from the inspected repository, AuditSpec does not fall back to a same-named local function.
+For a module-level imported function reference, AuditSpec likewise requires one direct absolute `from module import function` binding, optionally with an `as` alias. The import must appear before the caller definition, resolve to a concrete repository function, remain unrebound at module level, and not be shadowed by a parameter, local assignment, exact-scope import, or other local binding in the caller. A later top-level rebinding also fails closed because the caller would observe the rebound global when it executes.
+
+Relative imports, wildcard imports, duplicate imports of the same local name, late or rebound imported names, attribute references such as `tasks.rebuild_index`, `import module` references, dynamic expressions, `*args`/`**kwargs`, unrelated `.enqueue` methods, and other targets requiring broader Python import/name resolution fail closed rather than producing optimistic dispatch edges. If a proven import binding points to a target that is absent from the inspected repository, AuditSpec does not fall back to a same-named local function.
 
 A resolved target is linked to the actual Python function node and receives the `entrypoint` assurance role. This remains static framework evidence, not proof that the job executed.
 
@@ -196,9 +237,9 @@ Frappe owns the normal request/job transaction lifecycle:
 
 `frappe.db.set_value()` / `frappe.db.update()` and `frappe.db.bulk_update()` are direct DB mutation surfaces that bypass normal Document events/validations. They remain auditable mutation boundaries even when no DocType lifecycle hook fires.
 
-## Reference adapter contract
+## Runtime adapter contract
 
-`frameworks/frappe/auditspec_frappe.py` provides transaction-neutral primitives on top of the Python AuditSpec reference implementation.
+`adapters/frappe/auditspec_frappe.py` provides transaction-neutral primitives on top of the Python AuditSpec reference implementation. This runtime adapter is independent from the static Frappe Inspector plugin.
 
 ### Same-store audit
 
@@ -227,12 +268,12 @@ Run the adapter tests with the Python reference implementation available:
 
 ```bash
 pip install -r implementations/python/requirements.txt
-python -m unittest frameworks/frappe/test_auditspec_frappe.py
+python -m unittest adapters/frappe/test_auditspec_frappe.py
 ```
 
 CI runs this contract on Python 3.11 and 3.14.
 
-These tests prove the AuditSpec adapter contract and transaction neutrality. Framework-runtime behavior is verified separately against a pinned real Bench site.
+These tests prove the AuditSpec runtime adapter contract and transaction neutrality. Framework-runtime behavior is verified separately against a pinned real Bench site.
 
 ## Pinned Frappe Bench runtime lab
 

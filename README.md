@@ -8,6 +8,8 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 This repository contains AuditSpec `v0.1`, the first public specification line. The Core event contract and executable assurance surfaces are versioned as v0.1; later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit.
 
+The `v0.2` development line is formalizing a strict extension boundary: AuditSpec Core remains framework-neutral, language references/SDKs implement shared Core contracts, runtime framework integrations live under `adapters/`, and framework-specific static analysis is provided through Inspector plugins.
+
 ## AuditSpec is
 
 - A semantic specification for auditable actions and evidence.
@@ -15,7 +17,7 @@ This repository contains AuditSpec `v0.1`, the first public specification line. 
 - A model for humans, services, API keys, automation, and AI agents.
 - A model for delegation, impersonation, authorization, execution results, correlation, redaction, evidence trust, ordering, and extensions.
 - An executable Inspector and assessment model for finding auditability gaps.
-- A foundation for framework adapters, agent/MCP inspection, CI assessment, runtime evidence, provenance, and compliance evidence mappings.
+- A foundation for framework adapters, Inspector plugins, agent/MCP inspection, CI assessment, runtime evidence, provenance, and compliance evidence mappings.
 
 ## AuditSpec is not
 
@@ -95,8 +97,9 @@ This repository contains AuditSpec `v0.1`, the first public specification line. 
 - `profiles/` - optional semantic/behavioral profiles such as agent and atomicity.
 - `conformance/` - valid and invalid vectors shared by implementations.
 - `tools/conformance/` - executable schema/capability validators and container runner.
-- `implementations/` - TypeScript, Ruby, and Python executable reference implementations.
-- `frameworks/` - framework adapters, machine-readable capability manifests, and integration guidance.
+- `implementations/` - TypeScript, Ruby, and Python executable language reference implementations.
+- `adapters/` - runtime framework adapters, machine-readable capability manifests, and framework integration guidance. These extensions depend on AuditSpec contracts; Core does not depend on them.
+- `implementations/typescript/src/inspector/` - framework-neutral Inspector composition plus framework plugins in `inspector/plugins/`.
 - `runtime/producers/` - machine-readable OpenTelemetry, authorization-decision, database-receipt, and delivery-receipt producer capabilities.
 - `mappings/` - CloudEvents, OpenTelemetry, W3C PROV, OSCAL guidance, and control mapping profiles.
 - `lab/postgres-atomicity/` - storage-neutral PostgreSQL failure-injection reference for transactional audit intent.
@@ -162,7 +165,7 @@ See `docs/testing.md` for scope and limitations.
 
 ## Inspector
 
-The TypeScript reference includes the first executable Inspector. Current adapters are deliberately conservative and preserve uncertainty rather than claiming full program understanding.
+The TypeScript reference includes the first executable Inspector. Inspector Core consumes extension plugins and should remain framework-neutral; framework-specific source semantics belong in those plugins and must preserve uncertainty rather than claiming full program understanding.
 
 ```bash
 cd implementations/typescript
@@ -171,7 +174,7 @@ npm run build
 node dist/cli.js inspect ../.. --json
 ```
 
-Initial adapters:
+Current default plugins:
 
 - Rails
 - Frappe / ERPNext
@@ -202,7 +205,7 @@ inspect
   -> map controls / export evidence
 ```
 
-Verification is scoped to the evidence available to the active Inspector adapters. It is not a runtime proof or compliance verdict.
+Verification is scoped to the evidence available to the active Inspector plugins. It is not a runtime proof or compliance verdict.
 
 ## GitHub Action
 
@@ -312,7 +315,7 @@ When a business mutation and durable audit record share a transactional store, t
 
 The storage-neutral PostgreSQL lab verifies rollback on audit/outbox failure and stable retry identity. Rails and Frappe add separate framework-runtime labs that test their actual transaction/after-commit boundaries under the explicitly documented configurations. None of these scoped labs is a production-wide certification.
 
-See `spec/delivery.md`, `profiles/atomicity/README.md`, and `frameworks/README.md`.
+See `spec/delivery.md`, `profiles/atomicity/README.md`, and `adapters/README.md`.
 
 ## Design principles
 
@@ -332,10 +335,12 @@ See `spec/delivery.md`, `profiles/atomicity/README.md`, and `frameworks/README.m
 14. External control mappings express relevance, never certification by implication.
 15. Incomplete graph/path analysis must fail toward `unknown`, never optimistic proof.
 16. Delivery retries preserve logical event identity and remain separate from semantic action result.
+17. Core MUST NOT depend on a framework adapter or Inspector plugin; extensions may depend on Core contracts.
+18. Runtime adapters and static Inspector plugins are independently versioned capabilities.
 
 ## Direction
 
-The v0.1 repository already includes executable framework adapters, PR assessment, agent/MCP remediation surfaces, provenance/observability mappings, runtime corroboration with reference producers, control/OSCAL evidence bridges, and framework transaction labs. Remaining direction focuses on deeper framework resolution, cross-service/message-bus graph edges, evidence-backed correlation, stronger runtime policy and producer coverage, integrity/tamper-evidence profiles, additional language/framework conformance, and eventually optional continuous-assurance cloud services. The Core specification remains useful independently of any cloud service.
+The v0.1 repository already includes executable framework adapters, PR assessment, agent/MCP remediation surfaces, provenance/observability mappings, runtime corroboration with reference producers, control/OSCAL evidence bridges, and framework transaction labs. The v0.2 development line is making the extension architecture explicit so Rails, Frappe, NestJS, Next.js, Go, and future ecosystems can evolve without becoming Core dependencies. Remaining direction focuses on Assurance Graph plugin extraction, deeper framework resolution, cross-service/message-bus graph edges, evidence-backed correlation, stronger runtime policy and producer coverage, integrity/tamper-evidence profiles, additional language/framework conformance, and eventually optional continuous-assurance cloud services. The Core specification remains useful independently of any framework or cloud service.
 
 See `docs/roadmap.md` for the non-normative work queue and the guardrails that future capabilities must preserve.
 

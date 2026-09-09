@@ -4,7 +4,7 @@ This document is a non-normative work queue for AuditSpec. It does not change th
 
 Current behavior is documented by the specification, schemas, framework/runtime manifests, reference implementations, and focused documents under `docs/`. Items below are directions and candidates until they are implemented, tested, and reflected in those executable surfaces.
 
-## v0.1 release hardening
+## v0.2 development candidates
 
 ### Deeper Rails framework resolution
 
@@ -22,22 +22,18 @@ Unsupported or ambiguous constructs should continue to fail toward unresolved/un
 
 Candidate gaps include:
 
-- aliased whitelist decorators whose import identity can be proven;
-- module-level imported enqueue function references;
 - `import module` / attribute-reference enqueue targets;
 - relative imports resolvable from repository/package context;
 - custom or indirect DocType controller resolution;
 - other dynamic composition only when the target can be established conservatively.
+
+The v0.2 development line already resolves Frappe whitelist decorator aliases when a direct module-level import proves that the decorator is `frappe.whitelist` and the alias remains unambiguous until the decorated definition. It also resolves direct absolute module-level `from module import function [as alias]` references passed to `frappe.enqueue(...)` when the binding is unique, precedes the caller, is not shadowed by caller-local state, remains unrebound at module level, and resolves to a concrete repository target.
 
 ### Cross-service topology
 
 Add message-bus and RPC edges plus runtime trace correlation without treating correlation as semantic truth.
 
 A trace/request/session/tool-call identifier may support correlation, but coincidence of identifiers must not create a semantic call edge, authorization edge, or business-action assertion by itself.
-
-### Release packaging
-
-Before publishing the first v0.1 release, collapse the working development history into a clean release commit/tag and keep release-facing documentation free of temporary brainstorming artifacts.
 
 ## Runtime assurance
 

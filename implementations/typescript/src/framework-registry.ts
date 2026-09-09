@@ -41,7 +41,7 @@ export interface FrameworkAdapterManifest {
 
 const base = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(base, "../../..");
-const frameworkRoot = join(repoRoot, "frameworks");
+const adapterRoot = join(repoRoot, "adapters");
 const schema = JSON.parse(
   readFileSync(join(repoRoot, "schema/framework-adapter-manifest.schema.json"), "utf8"),
 ) as object;
@@ -59,9 +59,9 @@ function readManifest(path: string): FrameworkAdapterManifest {
 }
 
 export function listFrameworkAdapters(): FrameworkAdapterManifest[] {
-  return readdirSync(frameworkRoot, { withFileTypes: true })
+  return readdirSync(adapterRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => join(frameworkRoot, entry.name, "adapter.json"))
+    .map((entry) => join(adapterRoot, entry.name, "adapter.json"))
     .filter((path) => {
       try {
         readFileSync(path, "utf8");

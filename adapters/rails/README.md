@@ -51,9 +51,9 @@ end
 
 A real adapter should avoid duplicating authorization evaluation merely for audit. Capture the decision produced by the application's real authorization boundary.
 
-## Reference adapter
+## Runtime adapter
 
-`frameworks/rails/auditspec_rails.rb` provides transaction-neutral primitives on top of the Ruby AuditSpec reference implementation.
+`adapters/rails/auditspec_rails.rb` provides transaction-neutral primitives on top of the Ruby AuditSpec reference implementation. Rails is an extension runtime; none of these primitives redefine AuditSpec Core semantics.
 
 - `AuditSpec::Rails::Adapter#emit_same_store` validates and persists through an injected sink inside the caller's active transaction.
 - `AuditSpec::Rails::Adapter#stage_outbox` persists a durable outbox intent before registering an optional publisher wake-up.
@@ -73,9 +73,9 @@ The after-commit callback is not delivery durability. If it fails, the database 
 - rollback suppresses the wake-up and removes the transactional outbox row;
 - publisher wake-up failure after commit cannot roll back the already durable outbox.
 
-## Inspector
+## Inspector plugin
 
-The current Inspector adapter is `rails-ast-assisted-v0.1`. It combines AST mutation discovery with Rails routes, controllers, jobs, ActionCable dispatch and Assurance Graph paths. Static evidence remains conservative and is not runtime proof.
+Static Rails inspection is a separate capability from the runtime adapter. The current plugin is `rails-ast-assisted-v0.1`. It projects Rails routes, controllers, jobs, ActionCable dispatch and framework-specific source evidence into generic AuditSpec Assessment / Assurance contracts. Static evidence remains conservative and is not runtime proof.
 
 The route graph supports conservative literal `resources`/`resource`, namespaces, nesting, and literal `scope` composition. Supported `scope` forms may provide a positional path or literal `path`, `module`, and `as` options. Context is applied to both resource expansion and explicit `get`/`post`/`put`/`patch`/`delete` dispatch, so a scoped explicit route is not also treated as an unscoped root route.
 

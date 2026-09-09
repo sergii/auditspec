@@ -56,7 +56,9 @@ Identical retries can be classified as duplicates. Reusing the same identity for
 
 ## Frappe integration
 
-The Python reference deliberately does not depend on Frappe. The repository's transaction-neutral Frappe adapter in `frameworks/frappe/auditspec_frappe.py` composes these primitives with caller-supplied persistence and Frappe's `after_commit` hook without owning commit/rollback.
+The Python reference deliberately does not depend on Frappe. The repository's transaction-neutral Frappe runtime adapter in `adapters/frappe/auditspec_frappe.py` composes these primitives with caller-supplied persistence and Frappe's `after_commit` hook without owning commit/rollback.
+
+The static Frappe Inspector integration is a separate plugin capability. It projects Frappe source/runtime conventions into generic AuditSpec Assessment and Assurance evidence without changing Python reference semantics.
 
 A separate pinned Frappe Bench + MariaDB runtime lab verifies selected real request/job transaction boundaries, same-store audit/outbox rollback behavior, and after-commit semantics. This framework-runtime proof remains separate from the framework-neutral Python package and does not upgrade explicit commits, `frappe.db.truncate()`, custom database backends, or arbitrary extension code.
 
@@ -64,7 +66,7 @@ Frappe's native Version and Access Log mechanisms should remain enabled for thei
 
 See:
 
-- `frameworks/frappe/README.md`
+- `adapters/frappe/README.md`
 - `lab/frappe-bench-atomicity/`
 - `profiles/atomicity/README.md`
 - `lab/postgres-atomicity/`

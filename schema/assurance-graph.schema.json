@@ -76,7 +76,7 @@
         "id": { "type": "string", "minLength": 1 },
         "kind": { "enum": ["scope", "surface"] },
         "language": { "enum": ["ruby", "python"] },
-        "framework": { "enum": ["rails", "frappe"] },
+        "framework": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
         "qualified_name": { "type": "string", "minLength": 1 },
         "location": { "$ref": "#/$defs/location" },

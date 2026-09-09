@@ -28,7 +28,15 @@ export * from "./delivery-runtime.js";
 export * from "./authorization-runtime.js";
 export * from "./w3c-prov.js";
 export * from "./inspector.js";
-export { inspectRepository as inspectRepositoryBase } from "./inspect.js";
+export {
+  inspectRepository as inspectRepositoryBase,
+  inspectRepositoryWithPlugins,
+} from "./inspect.js";
+export type {
+  InspectorAssurancePolicy,
+  InspectorFrameworkPlugin,
+  InspectorPluginInspection,
+} from "./inspector/plugin.js";
 export * from "./frappe-inspect.js";
 export * from "./mcp.js";
 export * from "./runtime-producer-mcp.js";

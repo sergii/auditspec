@@ -130,19 +130,27 @@ agent
 
 ## Framework capability boundary
 
-`auditspec.list_framework_adapters` reads `frameworks/*/adapter.json`, validated against `schema/framework-adapter-manifest.schema.json`.
+`auditspec.list_framework_adapters` reads `adapters/*/adapter.json`, validated against `schema/framework-adapter-manifest.schema.json`.
 
 The manifests separate five proof layers:
 
 1. language reference implementation;
-2. transaction adapter;
+2. runtime transaction adapter;
 3. behavioral framework runtime lab;
-4. Inspector adapter;
+4. static Inspector plugin;
 5. runtime corroboration.
+
+The first layer is a dependency reused by a framework integration, not a framework-specific fork of Core. Runtime adapters live under `adapters/`; Inspector plugins are separate static-analysis extensions and may evolve independently.
 
 Rails and Frappe both currently expose implemented `framework_runtime` behavioral transaction labs, but their proof boundaries differ. Rails uses the ActiveRecord runtime lab; Frappe uses a pinned Bench + MariaDB lab that exercises real request/job transaction functions in-process. Neither framework manifest claims a production runtime corroboration profile, and Frappe keeps explicit commits, `truncate`, custom database backends, and arbitrary extension code outside the normal rollback-capable claim.
 
 An agent can therefore distinguish contract, pinned framework-runtime, pinned real-world static, and planned runtime-corroboration layers instead of silently upgrading one proof class into another.
+
+## Inspector extension boundary
+
+Inspector Core consumes generic framework plugins. A plugin may identify framework entrypoints, mutations, authorization evidence, transactions, or dispatch surfaces, but it must project them into generic Assessment / Assurance contracts and preserve uncertainty. AuditSpec Core does not gain Rails- or Frappe-specific semantics merely because the reference Inspector ships those plugins.
+
+The v0.2 development line is also extracting framework-specific Assurance Graph construction behind plugin boundaries. Until that extraction is complete, the existing graph implementation remains a compatibility surface rather than proof that every internal graph dependency is already framework-neutral.
 
 ## Assurance Graph boundary
 
@@ -220,6 +228,7 @@ The MCP server deliberately does not modify source code in v0.1. Assessment/evid
 
 Remaining MCP/assurance expansion candidates include:
 
+- framework-neutral Assurance Graph plugin composition and removal of direct framework imports from graph core;
 - deeper Rails lexical/nested concern resolution, custom ActionCable connection wiring, complex/callable constraints, and additional generated dispatch;
 - deeper Frappe import/name/controller resolution where it can be proven without optimistic inference;
 - message-bus and cross-service RPC edges;

@@ -7,7 +7,7 @@ on:
     tags:
       - "v*"
     paths:
-      - "frameworks/rails/**"
+      - "adapters/rails/**"
       - "lab/rails-atomicity/**"
       - "implementations/ruby/**"
       - "schema/audit-event.schema.json"
@@ -16,7 +16,7 @@ on:
       - ".github/workflows/rails-atomicity.yml"
   pull_request:
     paths:
-      - "frameworks/rails/**"
+      - "adapters/rails/**"
       - "lab/rails-atomicity/**"
       - "implementations/ruby/**"
       - "schema/audit-event.schema.json"

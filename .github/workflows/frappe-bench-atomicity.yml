@@ -6,7 +6,7 @@ on:
       - v0.1
     paths:
       - "lab/frappe-bench-atomicity/**"
-      - "frameworks/frappe/**"
+      - "adapters/frappe/**"
       - "implementations/python/**"
       - "schema/**"
       - "conformance/**"
@@ -14,7 +14,7 @@ on:
   pull_request:
     paths:
       - "lab/frappe-bench-atomicity/**"
-      - "frameworks/frappe/**"
+      - "adapters/frappe/**"
       - "implementations/python/**"
       - "schema/**"
       - "conformance/**"

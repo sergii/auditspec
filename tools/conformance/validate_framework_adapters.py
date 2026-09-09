@@ -20,7 +20,7 @@ def main() -> int:
     schema = load(SCHEMA_PATH)
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
-    manifests = sorted((ROOT / "frameworks").glob("*/adapter.json"))
+    manifests = sorted((ROOT / "adapters").glob("*/adapter.json"))
     if not manifests:
         print("No framework adapter manifests found.", file=sys.stderr)
         return 1
