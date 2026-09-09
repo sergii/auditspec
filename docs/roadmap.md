@@ -22,13 +22,12 @@ Unsupported or ambiguous constructs should continue to fail toward unresolved/un
 
 Candidate gaps include:
 
-- module-level imported enqueue function references;
 - `import module` / attribute-reference enqueue targets;
 - relative imports resolvable from repository/package context;
 - custom or indirect DocType controller resolution;
 - other dynamic composition only when the target can be established conservatively.
 
-The v0.2 development line already resolves Frappe whitelist decorator aliases when a direct module-level import proves that the decorator is `frappe.whitelist` and the alias remains unambiguous until the decorated definition.
+The v0.2 development line already resolves Frappe whitelist decorator aliases when a direct module-level import proves that the decorator is `frappe.whitelist` and the alias remains unambiguous until the decorated definition. It also resolves direct absolute module-level `from module import function [as alias]` references passed to `frappe.enqueue(...)` when the binding is unique, precedes the caller, is not shadowed by caller-local state, remains unrebound at module level, and resolves to a concrete repository target.
 
 ### Cross-service topology
 
