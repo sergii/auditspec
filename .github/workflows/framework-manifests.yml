@@ -7,13 +7,13 @@ on:
     tags:
       - "v*"
     paths:
-      - "frameworks/**/adapter.json"
+      - "adapters/**/adapter.json"
       - "schema/framework-adapter-manifest.schema.json"
       - "tools/conformance/validate_framework_adapters.py"
       - ".github/workflows/framework-manifests.yml"
   pull_request:
     paths:
-      - "frameworks/**/adapter.json"
+      - "adapters/**/adapter.json"
       - "schema/framework-adapter-manifest.schema.json"
       - "tools/conformance/validate_framework_adapters.py"
       - ".github/workflows/framework-manifests.yml"
