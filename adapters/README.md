@@ -1,10 +1,21 @@
-# AuditSpec framework adapter contract
+# AuditSpec adapters
 
-Framework integrations are projections of AuditSpec Core into a concrete application runtime. They must not redefine event semantics or create framework-specific versions of the Core schema.
+AuditSpec adapters are extensions that project AuditSpec Core into a concrete framework or application runtime. They are not part of Core semantics and MUST NOT redefine the AuditSpec event model.
 
-## Layers
+The dependency direction is intentional:
 
-A framework integration can implement the following layers independently.
+```text
+AuditSpec Core <- language reference / SDK <- runtime adapter
+AuditSpec Core <- Inspector Core <- Inspector plugin
+```
+
+Core MUST NOT depend on a framework adapter or Inspector plugin. An adapter or plugin MAY depend on Core contracts and shared reference tooling.
+
+Runtime integration and static inspection are separate capabilities. A framework may implement either one without implementing the other.
+
+## Capability layers
+
+A framework integration can describe the following proof layers independently in `adapters/<framework>/adapter.json`.
 
 ### L0 - language reference
 
@@ -15,9 +26,11 @@ Requirements:
 - no forked event schema;
 - shared valid/invalid conformance corpus;
 - validation before persistence;
-- the framework may add helpers, not new Core meanings.
+- framework helpers may add ergonomics, not new Core meanings.
 
-### L1 - transaction adapter
+Language references live under `implementations/`, not under `adapters/`.
+
+### L1 - runtime transaction adapter
 
 Provides same-store and/or durable-outbox primitives that join the transaction owned by the framework/application.
 
@@ -29,10 +42,10 @@ Requirements:
 - after-commit callbacks are wake-up optimizations, not delivery durability;
 - special non-rollbackable operations MUST be represented explicitly rather than upgraded to atomic assurance.
 
-Current implementations:
+Current runtime adapters:
 
-- Rails: `frameworks/rails/auditspec_rails.rb`
-- Frappe: `frameworks/frappe/auditspec_frappe.py`
+- Rails: `adapters/rails/auditspec_rails.rb`
+- Frappe: `adapters/frappe/auditspec_frappe.py`
 
 ### L2 - behavioral transaction lab
 
@@ -53,11 +66,13 @@ Current labs:
 - Rails / ActiveRecord: `lab/rails-atomicity/`
 - Frappe / Bench + MariaDB: `lab/frappe-bench-atomicity/`
 
-The Frappe lab is a pinned framework-runtime proof for real database, after-commit, request, and background-job transaction semantics. Its request/job executors run in-process; external HTTP transport, Redis/RQ enqueue/worker process behavior, and production deployment specifics remain outside the v0.1 lab boundary. The adapter contract and shared language conformance tests cover validation and logical-event identity separately from the heavier Bench runtime proof.
+The Frappe lab is a pinned framework-runtime proof for real database, after-commit, request, and background-job transaction semantics. Its request/job executors run in-process; external HTTP transport, Redis/RQ enqueue/worker process behavior, and production deployment specifics remain outside the current lab boundary. The adapter contract and shared language conformance tests cover validation and logical-event identity separately from the heavier Bench runtime proof.
 
-### L3 - Inspector adapter
+### L3 - Inspector plugin
 
-Discovers mutation and framework entrypoint evidence without changing Core semantics.
+Discovers framework-specific mutation, authorization, transaction, and entrypoint evidence and projects it into generic AuditSpec Assessment / Assurance contracts.
+
+Inspector plugins are not runtime adapters. They belong to the Inspector extension layer and MUST preserve uncertainty instead of inventing framework-independent certainty from framework-specific syntax.
 
 Requirements:
 
@@ -65,22 +80,25 @@ Requirements:
 - unresolved dispatch must not become positive evidence;
 - static reachability must not be described as runtime execution;
 - alternate weaker paths must not be hidden by one stronger path;
-- framework-specific special cases should lower confidence rather than be guessed away.
+- framework-specific special cases should lower confidence or fail closed rather than be guessed away;
+- Inspector Core MUST NOT import framework-specific semantics directly once a plugin boundary exists for them.
 
-Current adapters:
+Current Inspector plugins:
 
 - `rails-ast-assisted-v0.1`
 - `frappe-ast-assisted-v0.1`
 
+The TypeScript reference currently hosts these plugins under `implementations/typescript/src/inspector/plugins/`. Further Assurance Graph extraction is part of the v0.2 architecture work.
+
 ### L4 - runtime corroboration
 
-Optional future evidence from the running application, database, message bus, kernel/runtime probes, or signed producer receipts can corroborate static assurance paths.
+Optional evidence from the running application, database, message bus, kernel/runtime probes, or signed producer receipts can corroborate static assurance paths.
 
 Runtime evidence must retain provenance and trust. It supplements static analysis; it does not retroactively change what the source analysis actually proved.
 
-## Cross-framework invariants
+## Cross-adapter invariants
 
-All framework adapters should preserve these invariants:
+All adapters and plugins should preserve these invariants:
 
 - Core JSON remains portable between implementations.
 - Immediate actor and delegation are never collapsed.
@@ -94,14 +112,14 @@ All framework adapters should preserve these invariants:
 
 ## Adding another framework
 
-A new adapter should normally arrive in this order:
+A new framework extension should normally arrive in independently reviewable pieces:
 
-1. reuse a language reference implementation;
+1. reuse an existing language reference implementation, or add a new conforming language implementation;
 2. document the framework's transaction and request/job lifecycle from primary sources;
-3. implement L1 without hidden commits;
-4. add failure-injection tests;
-5. add Inspector entrypoint/mutation surfaces;
-6. add a pinned real-world smoke repository;
+3. add an L1 runtime adapter only when transaction semantics can be stated conservatively;
+4. add failure-injection tests for runtime claims;
+5. add an Inspector plugin for source/framework semantics when useful;
+6. add a pinned real-world smoke repository for static claims;
 7. only then consider runtime corroboration.
 
-This sequencing keeps AuditSpec useful from day one while preventing framework convenience APIs from weakening the semantic or assurance model.
+A framework version change should normally release or update that framework extension. It should not require a new AuditSpec Core version unless the universal semantic contract itself changes.
