@@ -1,0 +1,26 @@
+name: Frappe Bench release trigger
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch pinned Frappe Bench atomicity workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run frappe-bench-atomicity.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$GITHUB_REF_NAME"
