@@ -1,4 +1,3 @@
-import type { AstCallCandidate } from "../../ast-calls.js";
 import { actionCableDispatches, composedActionCableActionDispatches } from "../../rails-action-cable.js";
 import { hasAuthorizationBeforeAction } from "../../rails-callbacks.js";
 import { railsRouteDeclarations } from "../../rails-routes.js";
@@ -8,6 +7,7 @@ import type {
   AssuranceGraphPlugin,
   AssuranceGraphPluginContext,
 } from "../assurance-graph/plugin.js";
+import type { AssuranceSourceCall } from "../source-language/plugin.js";
 
 const RUBY_MUTATIONS = new Set([
   "save!",
@@ -73,7 +73,7 @@ function rolesForRailsScope(
   return [...roles].sort();
 }
 
-function consumesRailsCall(call: AstCallCandidate, item: AssuranceGraphIndexedScope): boolean {
+function consumesRailsCall(call: AssuranceSourceCall, item: AssuranceGraphIndexedScope): boolean {
   if (item.node.language !== "ruby") return false;
   return RUBY_MUTATIONS.has(call.method)
     || call.method === "transaction"
