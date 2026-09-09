@@ -35,9 +35,9 @@ Static evidence remains conservative. A resolved call path is not runtime proof.
 
 ### Whitelisted RPC entrypoints
 
-A Frappe function receives the `entrypoint` assurance role only when the Python AST says that its exact `function_definition` belongs to a `decorated_definition` containing `@frappe.whitelist`. AuditSpec no longer searches a loose window of preceding source lines.
+A Frappe function receives the `entrypoint` assurance role only when the Python AST says that its exact `function_definition` belongs to a `decorated_definition` containing a direct `@frappe.whitelist` decorator or a conservatively proven imported alias of that decorator. AuditSpec does not search a loose window of preceding source lines.
 
-Supported forms include direct, stacked, and multiline decorators:
+Supported direct forms include stacked and multiline decorators:
 
 ```python
 @frappe.whitelist()
@@ -57,9 +57,31 @@ def public_submit(name):
     ...
 ```
 
+The v0.2 development line also supports module-level import aliases when import identity is statically proven before the decorated definition:
+
+```python
+from frappe import whitelist as api
+
+@api(allow_guest=True)
+def public_update(name):
+    ...
+
+from frappe import whitelist
+
+@whitelist()
+def public_submit(name):
+    ...
+
+import frappe as f
+
+@f.whitelist()
+def public_cancel(name):
+    ...
+```
+
 A whitelist decorator on a neighboring function cannot strengthen a later function, even when it is only a few lines away. Decorator arguments may span multiple lines because attribution comes from the owned AST node rather than source-line proximity.
 
-Aliased decorator names such as `@whitelist()` are intentionally not treated as proven Frappe whitelist entrypoints until Python import/name resolution establishes that the alias refers to `frappe.whitelist`.
+Alias resolution remains deliberately narrow. The import must be a direct module-level `from frappe import whitelist [as alias]` or `import frappe as alias` binding that occurs before the function definition. Conditional or wildcard imports, different-module lookalikes, duplicate/ambiguous bindings, imports after the definition, and aliases with intervening ambiguous use or rebinding fail closed rather than creating an entrypoint.
 
 ### Static hook dispatch
 
