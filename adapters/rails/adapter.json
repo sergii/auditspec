@@ -18,7 +18,7 @@
       "status": "implemented",
       "proof": "contract",
       "evidence": [
-        "frameworks/rails/auditspec_rails.rb"
+        "adapters/rails/auditspec_rails.rb"
       ]
     },
     "behavioral_runtime_lab": {
@@ -37,9 +37,14 @@
       "proof": "pinned_real_world_static",
       "adapter_id": "rails-ast-assisted-v0.1",
       "evidence": [
-        "implementations/typescript/src/inspector-rails.ts",
+        "implementations/typescript/src/inspector/plugin.ts",
+        "implementations/typescript/src/inspector/core.ts",
+        "implementations/typescript/src/inspector/plugins/rails.ts",
         "implementations/typescript/src/assurance-graph.ts",
         "implementations/typescript/src/rails-action-cable.ts",
+        "implementations/typescript/src/rails-callbacks.ts",
+        "implementations/typescript/src/rails-routes.ts",
+        "implementations/typescript/test/inspector-plugin.test.ts",
         "implementations/typescript/test/rails-action-cable.test.ts",
         "implementations/typescript/test/rails-action-cable-composed.test.ts",
         "implementations/typescript/test/rails-action-cable-composed-graph.test.ts",
@@ -48,6 +53,7 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
+        "The repository Inspector composes Rails inspection through a framework plugin; Assurance Graph framework construction is still being extracted from the shared graph implementation during v0.2.",
         "ActionCable v0.1 support covers direct public channel actions, direct subscribed/unsubscribed lifecycle callbacks, the conventional ApplicationCable::Connection connect/disconnect lifecycle, unambiguous inherited public RPC actions, direct ActiveSupport::Concern-provided public RPC actions, and inherited/concern-provided subscribed/unsubscribed lifecycle callbacks.",
         "Explicit fully-qualified channel superclass chains are supported; Ruby lexical constant lookup, concern dependencies, ambiguous concern method overlap, custom connection-class resolution, and dynamic channel composition are not statically proven.",
         "Lifecycle callbacks are framework-dispatched and may be non-public Ruby methods; RPC action exposure still requires public visibility.",
@@ -77,7 +83,7 @@
     ]
   },
   "references": [
-    "frameworks/README.md",
-    "frameworks/rails/README.md"
+    "adapters/README.md",
+    "adapters/rails/README.md"
   ]
 }
