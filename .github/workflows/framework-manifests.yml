@@ -7,15 +7,17 @@ on:
     tags:
       - "v*"
     paths:
-      - "adapters/**/adapter.json"
+      - "adapters/**"
       - "schema/framework-adapter-manifest.schema.json"
       - "tools/conformance/validate_framework_adapters.py"
+      - "tools/conformance/validate_extension_layout.py"
       - ".github/workflows/framework-manifests.yml"
   pull_request:
     paths:
-      - "adapters/**/adapter.json"
+      - "adapters/**"
       - "schema/framework-adapter-manifest.schema.json"
       - "tools/conformance/validate_framework_adapters.py"
+      - "tools/conformance/validate_extension_layout.py"
       - ".github/workflows/framework-manifests.yml"
   workflow_dispatch:
 
@@ -37,6 +39,9 @@ jobs:
 
       - name: Install schema validator
         run: pip install -r tools/conformance/requirements.txt
+
+      - name: Validate extension layout
+        run: python tools/conformance/validate_extension_layout.py
 
       - name: Validate framework adapter manifests
         run: python tools/conformance/validate_framework_adapters.py
