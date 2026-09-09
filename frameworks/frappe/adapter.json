@@ -67,7 +67,7 @@
       "limitations": [
         "Static reachability is not runtime execution proof.",
         "Frappe whitelist entrypoints are attributed from the Python decorated_definition AST node owned by the exact function; stacked and multiline @frappe.whitelist(...) decorator forms are supported and neighboring decorators never strengthen another function.",
-        "Aliased whitelist decorator names that require Python import/name resolution are not treated as proven @frappe.whitelist entrypoints in v0.1.",
+        "Frappe whitelist decorator aliases are supported when one direct module-level import proves either from frappe import whitelist [as alias] or import frappe as alias before the decorated definition and the alias has no intervening ambiguous use or rebinding; conditional, wildcard, duplicate, different-module, late, or rebound aliases fail closed.",
         "Frappe doc_events and scheduler_events are resolved only from one literal assignment with documented event keys and literal dotted handler strings/lists; scheduler cron maps are supported as literal nested maps.",
         "Dynamic hook composition, later mutation/reassignment, duplicate literal keys, unknown event keys, and non-literal handler composition fail closed rather than producing optimistic hook dispatch edges.",
         "Frappe enqueue resolution supports exact frappe.enqueue calls with a literal dotted positional or method= target, an unshadowed top-level function reference from the same Python module, or a direct exact-scope absolute from-import function reference including an as alias.",
