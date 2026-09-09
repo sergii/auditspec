@@ -3,7 +3,9 @@ name: Rails atomicity
 on:
   push:
     branches:
-      - v0.1
+      - main
+    tags:
+      - "v*"
     paths:
       - "frameworks/rails/**"
       - "lab/rails-atomicity/**"
