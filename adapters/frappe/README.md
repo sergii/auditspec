@@ -2,6 +2,8 @@
 
 Frappe's native Version, Track Changes, and Access Log remain the low-level document/access history mechanisms. AuditSpec complements them with semantic business, authorization, security, delegation, agent, correlation, and evidence semantics.
 
+Frappe is an AuditSpec extension target, not part of AuditSpec Core. Runtime integration and static inspection are separate capabilities.
+
 ## Semantic boundary
 
 Prefer emitting AuditSpec at a controller/service boundary that knows business intent rather than treating every database write as a product audit event.
@@ -13,9 +15,9 @@ Examples:
 - `agent.project_update`
 - `export.denied`
 
-## Inspector surface
+## Inspector plugin surface
 
-The current Inspector adapter is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, DocType controller lifecycle methods, and the Assurance Graph.
+The current static Inspector plugin is `frappe-ast-assisted-v0.1`. It recognizes Python/Frappe mutation calls structurally and combines them with framework-aware surfaces such as whitelisted functions, hooks, scheduler/background dispatch, DocType controller lifecycle methods, and the Assurance Graph. The plugin projects those Frappe-specific facts into generic AuditSpec Assessment / Assurance contracts; it does not redefine Core semantics.
 
 Common mutation surfaces include:
 
@@ -235,9 +237,9 @@ Frappe owns the normal request/job transaction lifecycle:
 
 `frappe.db.set_value()` / `frappe.db.update()` and `frappe.db.bulk_update()` are direct DB mutation surfaces that bypass normal Document events/validations. They remain auditable mutation boundaries even when no DocType lifecycle hook fires.
 
-## Reference adapter contract
+## Runtime adapter contract
 
-`frameworks/frappe/auditspec_frappe.py` provides transaction-neutral primitives on top of the Python AuditSpec reference implementation.
+`adapters/frappe/auditspec_frappe.py` provides transaction-neutral primitives on top of the Python AuditSpec reference implementation. This runtime adapter is independent from the static Frappe Inspector plugin.
 
 ### Same-store audit
 
@@ -266,12 +268,12 @@ Run the adapter tests with the Python reference implementation available:
 
 ```bash
 pip install -r implementations/python/requirements.txt
-python -m unittest frameworks/frappe/test_auditspec_frappe.py
+python -m unittest adapters/frappe/test_auditspec_frappe.py
 ```
 
 CI runs this contract on Python 3.11 and 3.14.
 
-These tests prove the AuditSpec adapter contract and transaction neutrality. Framework-runtime behavior is verified separately against a pinned real Bench site.
+These tests prove the AuditSpec runtime adapter contract and transaction neutrality. Framework-runtime behavior is verified separately against a pinned real Bench site.
 
 ## Pinned Frappe Bench runtime lab
 
