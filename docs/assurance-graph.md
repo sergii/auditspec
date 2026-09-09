@@ -98,6 +98,7 @@ Background dispatch:
 - literal dotted `frappe.enqueue(...)` positional and `method=` targets;
 - unshadowed same-module top-level function references passed to `frappe.enqueue`;
 - direct exact-scope absolute `from ... import ...` function references, including aliases, when the import and repository target can be proven;
+- v0.2 direct module-level absolute `from ... import ...` function references, including aliases, when the binding precedes the caller, remains unrebound, is not caller-shadowed, and resolves to a repository target;
 - `frappe.enqueue_doc(...)` with literal DocType/method identity resolving to a unique conventional direct `Document` controller method;
 - `Document.queue_action(...)` for literal self-dispatch inside a conventional direct controller, preserving Frappe's app-local `_<action>` precedence and the asynchronous assurance boundary.
 
@@ -180,7 +181,7 @@ Runtime Corroboration is implemented as a separate evidence layer with explicit 
 Remaining graph/framework work includes:
 
 - Rails lexical/nested concern composition, custom ActionCable connection wiring, more complex/callable route constraints, additional route DSL variants, and additional framework-generated dispatch;
-- Frappe module-level imported enqueue references, module/attribute targets, resolvable relative imports, custom/indirect DocType controllers, and other dynamic composition that can be proven without optimistic inference;
+- Frappe module/attribute enqueue targets, resolvable relative imports, custom/indirect DocType controllers, and other dynamic composition that can be proven without optimistic inference;
 - message-bus and cross-service RPC edges;
 - evidence-backed trace/request/session/tool-call correlation that never invents semantic graph edges from correlation coincidence.
 
