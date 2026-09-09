@@ -144,6 +144,27 @@ function moduleMayRebindName(source: string, name: string): boolean {
   return topLevelPatterns.some((pattern) => pattern.test(source));
 }
 
+function moduleImportMayBeReboundAfter(
+  source: string,
+  name: string,
+  importLine: number,
+): boolean {
+  const escaped = escapeRegExp(name);
+  const afterImport = source.split("\n").slice(importLine).join("\n");
+  const topLevelPatterns = [
+    new RegExp(`^${escaped}\\s*(?:\\|=|&=|\\^=|<<=|>>=|\\*\\*=|//=|[+\\-*/%@]?=)(?!=)`, "m"),
+    new RegExp(`^${escaped}\\s*:=`, "m"),
+    new RegExp(`^del\\s+${escaped}\\b`, "m"),
+    new RegExp(`^(?:async\\s+)?def\\s+${escaped}\\b`, "m"),
+    new RegExp(`^class\\s+${escaped}\\b`, "m"),
+    new RegExp(`^for\\s+${escaped}\\s+in\\b`, "m"),
+    new RegExp(`^with\\s+[^\\n:]*\\bas\\s+${escaped}\\b`, "m"),
+    new RegExp(`^import\\s+[^\\n]+\\bas\\s+${escaped}\\b`, "m"),
+    new RegExp(`^from\\s+[^\\n]+\\s+import\\s+[^\\n]*\\b${escaped}\\b`, "m"),
+  ];
+  return topLevelPatterns.some((pattern) => pattern.test(afterImport));
+}
+
 function importScan(context: FrappeLocalEnqueueContext) {
   return pythonImportBindingsForScope(context.source, {
     start_line: context.scope_start_line,
@@ -156,16 +177,31 @@ export function frappeImportedEnqueueTarget(context: FrappeLocalEnqueueContext):
   if (!reference || typeof context.call_line !== "number") return undefined;
 
   const imports = importScan(context);
-  if (!imports.parsed || !imports.complete || imports.wildcard_in_scope) return undefined;
+  if (!imports.parsed || !imports.complete || imports.wildcard_in_module || imports.wildcard_in_scope) return undefined;
 
-  const matching = imports.bindings.filter(
+  // Any binding owned by the caller function makes this name local in Python. Resolve
+  // only that exact-scope binding and never fall back to a module binding in this case.
+  const scopeMatching = imports.bindings.filter(
     (binding) => binding.owner === "scope" && binding.local_name === reference,
   );
-  if (matching.length !== 1) return undefined;
+  if (scopeMatching.length > 0) {
+    if (scopeMatching.length !== 1) return undefined;
+    const binding = scopeMatching[0]!;
+    if (!binding.direct || binding.kind !== "from" || !binding.target || binding.line >= context.call_line) return undefined;
+    if (scopeMayRebindName(context.source, context.scope_start_line, context.scope_end_line, reference)) return undefined;
+    return binding.target;
+  }
 
-  const binding = matching[0]!;
-  if (!binding.direct || binding.kind !== "from" || !binding.target || binding.line >= context.call_line) return undefined;
+  const moduleMatching = imports.bindings.filter(
+    (binding) => binding.owner === "module" && binding.local_name === reference,
+  );
+  if (moduleMatching.length !== 1) return undefined;
+
+  const binding = moduleMatching[0]!;
+  if (!binding.direct || binding.kind !== "from" || !binding.target) return undefined;
+  if (binding.line >= context.scope_start_line) return undefined;
   if (scopeMayRebindName(context.source, context.scope_start_line, context.scope_end_line, reference)) return undefined;
+  if (moduleImportMayBeReboundAfter(context.source, reference, binding.line)) return undefined;
   return binding.target;
 }
 
