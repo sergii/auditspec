@@ -1,7 +1,20 @@
 name: Mutation assurance
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths:
+      - "implementations/typescript/src/assurance-evaluation.ts"
+      - "implementations/typescript/test/assurance-evaluation.test.ts"
+      - "implementations/typescript/test/all-path-model.test.ts"
+      - "implementations/typescript/test/assurance-invariants.test.ts"
+      - "implementations/typescript/test/depth-truncation-hardening.test.ts"
+      - "implementations/typescript/package.json"
+      - "implementations/typescript/stryker.config.json"
+      - ".github/workflows/mutation.yml"
   pull_request:
     paths:
       - "implementations/typescript/src/assurance-evaluation.ts"
@@ -12,6 +25,7 @@ on:
       - "implementations/typescript/package.json"
       - "implementations/typescript/stryker.config.json"
       - ".github/workflows/mutation.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read

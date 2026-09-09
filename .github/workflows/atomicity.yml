@@ -3,7 +3,9 @@ name: Atomicity profile
 on:
   push:
     branches:
-      - v0.1
+      - main
+    tags:
+      - "v*"
   pull_request:
   workflow_dispatch:
 

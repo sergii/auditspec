@@ -3,7 +3,9 @@ name: Runtime producer manifests
 on:
   push:
     branches:
-      - v0.1
+      - main
+    tags:
+      - "v*"
     paths:
       - "runtime/producers/*.json"
       - "schema/runtime-producer-manifest.schema.json"

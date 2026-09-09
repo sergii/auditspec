@@ -3,7 +3,9 @@ name: Python reference
 on:
   push:
     branches:
-      - v0.1
+      - main
+    tags:
+      - "v*"
     paths:
       - "implementations/python/**"
       - "schema/**"
