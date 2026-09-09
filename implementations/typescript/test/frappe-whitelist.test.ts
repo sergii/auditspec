@@ -104,6 +104,20 @@ test("fails closed when a whitelist alias is rebound before the definition", () 
   assert.equal(isFrappeWhitelistedScope(source, scope), false);
 });
 
+test("fails closed when another decorator mutates the whitelist alias", () => {
+  const source = [
+    "from frappe import whitelist as api",
+    "",
+    "@wrapper(api := custom_decorator)",
+    "@api()",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), false);
+});
+
 test("fails closed for a conditional whitelist alias import", () => {
   const source = [
     "if FEATURE_ENABLED:",
