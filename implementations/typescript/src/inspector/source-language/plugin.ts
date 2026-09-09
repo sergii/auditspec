@@ -7,6 +7,7 @@ export interface AssuranceSourceScope {
   start_column: number;
   end_line: number;
   end_column: number;
+  container_name?: string;
 }
 
 export interface AssuranceSourceCall {
