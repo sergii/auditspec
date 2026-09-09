@@ -3,7 +3,9 @@ name: Framework manifests
 on:
   push:
     branches:
-      - v0.1
+      - main
+    tags:
+      - "v*"
     paths:
       - "frameworks/**/adapter.json"
       - "schema/framework-adapter-manifest.schema.json"
