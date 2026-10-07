@@ -26,6 +26,7 @@ CORROBORATION_DIFF_SCHEMA_PATH = ROOT / "schema" / "corroboration-diff.schema.js
 CORROBORATION_QUERY_RESULT_SCHEMA_PATH = ROOT / "schema" / "corroboration-query-result.schema.json"
 AGENT_PROFILE_SCHEMA_PATH = ROOT / "profiles" / "agent" / "agent-profile.schema.json"
 HUMAN_MANDATE_PROOF_SCHEMA_PATH = ROOT / "schema" / "human-mandate-proof.schema.json"
+CONFORMANCE_CORPUS_REPORT_SCHEMA_PATH = ROOT / "schema" / "conformance-corpus-report.schema.json"
 VALID_DIR = ROOT / "conformance" / "valid"
 INVALID_DIR = ROOT / "conformance" / "invalid"
 EVENT_EXAMPLES = [
@@ -50,6 +51,7 @@ CORROBORATION_DIFF_EXAMPLES = [ROOT / "schema" / "examples" / "corroboration-dif
 CORROBORATION_QUERY_RESULT_EXAMPLES = [ROOT / "schema" / "examples" / "corroboration-query-result.json"]
 AGENT_PROFILE_EXAMPLES = [ROOT / "profiles" / "agent" / "examples" / "tool-call.json"]
 HUMAN_MANDATE_PROOF_EXAMPLES = [ROOT / "schema" / "examples" / "human-mandate-proof.json"]
+CONFORMANCE_CORPUS_REPORT_EXAMPLES = [ROOT / "schema" / "examples" / "conformance-corpus-report.json"]
 
 
 def load_json(path: Path):
@@ -116,6 +118,7 @@ def main() -> int:
     corroboration_query_result_validator = make_validator(CORROBORATION_QUERY_RESULT_SCHEMA_PATH)
     agent_validator = make_validator(AGENT_PROFILE_SCHEMA_PATH)
     mandate_proof_validator = make_validator(HUMAN_MANDATE_PROOF_SCHEMA_PATH)
+    conformance_corpus_report_validator = make_validator(CONFORMANCE_CORPUS_REPORT_SCHEMA_PATH)
 
     failures = []
     valid_event_paths = sorted(VALID_DIR.glob("*.json")) + EVENT_EXAMPLES
@@ -139,6 +142,7 @@ def main() -> int:
     expect_valid(corroboration_query_result_validator, CORROBORATION_QUERY_RESULT_EXAMPLES, "corrob-query", failures)
     expect_valid(agent_validator, AGENT_PROFILE_EXAMPLES, "agent", failures)
     expect_valid(mandate_proof_validator, HUMAN_MANDATE_PROOF_EXAMPLES, "mandate-proof", failures)
+    expect_valid(conformance_corpus_report_validator, CONFORMANCE_CORPUS_REPORT_EXAMPLES, "corpus-report", failures)
 
     expect_invalid(event_validator, invalid_event_paths, "event", failures)
 
@@ -160,6 +164,7 @@ def main() -> int:
         (corroboration_query_result_validator, invalid_contract_paths("corroboration-query-result"), "corrob-query"),
         (agent_validator, invalid_contract_paths("agent-profile"), "agent"),
         (mandate_proof_validator, invalid_contract_paths("human-mandate-proof"), "mandate-proof"),
+        (conformance_corpus_report_validator, invalid_contract_paths("conformance-corpus-report"), "corpus-report"),
     ]
 
     for validator, paths, label in invalid_suites:
@@ -189,7 +194,8 @@ def main() -> int:
         f"{len(CORROBORATION_DIFF_EXAMPLES)} corroboration diff example(s), "
         f"{len(CORROBORATION_QUERY_RESULT_EXAMPLES)} corroboration query example(s), "
         f"{len(AGENT_PROFILE_EXAMPLES)} agent profile example(s), "
-        f"{len(HUMAN_MANDATE_PROOF_EXAMPLES)} mandate proof example(s)"
+        f"{len(HUMAN_MANDATE_PROOF_EXAMPLES)} mandate proof example(s), "
+        f"{len(CONFORMANCE_CORPUS_REPORT_EXAMPLES)} corpus report example(s)"
     )
 
     if failures:
