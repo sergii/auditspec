@@ -15,6 +15,10 @@ AuditSpec is independently implemented and informed by established work in audit
 - OWASP Logging Cheat Sheet - application-level event context, results, interaction identifiers, sensitive-data handling and log protection.
 - OWASP ASVS logging requirements - event metadata, timestamps and security logging expectations.
 
+## Identity, authorization, and delegation
+
+- OAuth 2.0 Token Exchange (RFC 8693) - standardized token exchange for impersonation and delegation, including the `act` current-actor claim, nested actor history, `may_act` authorized-actor claim, and scope/audience constraints. AuditSpec treats this as prior art and mapping input rather than copying OAuth token semantics into Core.
+
 ## Event and observability standards
 
 - CloudEvents - portable event envelope and `(source, id)` event identity model.
