@@ -123,7 +123,7 @@ The surrounding standards solve different parts of the problem. AuditSpec should
 | Who is the current delegated actor and who came before? | RFC 8693 | `sub`, `act`, nested actor history, `may_act` | Direct mapping input for actor/delegation semantics. |
 | How does identity/authorization survive trust-domain crossings? | OAuth Identity and Authorization Chaining draft | Cross-domain identity and authorization propagation | Relevant to multi-domain delegation provenance and chain boundaries. |
 | How is immutable transaction context propagated inside a trust domain? | Transaction Tokens draft | User/workload identity plus transaction authorization context | Relevant to call-chain evidence and transaction correlation, not workload authentication. |
-| How is agent identity represented in a transaction context? | Transaction Tokens For Agents draft | `act` as agent and `sub` as principal | Strongly aligned with agent audit semantics. |
+| How is agent identity represented in a transaction context? | Transaction Tokens For Agents draft | `act` as delegated agent, `sub` as principal, plus `agentic_ctx` for originator/current actor, hop count, and optional minimum assurance | Strongly aligned with agent audit semantics and with preserving weak-link trust instead of laundering identity through a stronger downstream agent. |
 | Did a human actually authorize this concrete autonomous action? | Verifiable Human Mandates problem draft | Emerging mandate/intent problem, not yet a finished protocol | Relevant to future approval/intent evidence, separate from actor identity. |
 
 This yields a useful separation:
@@ -143,6 +143,8 @@ human mandate            emerging agent-mandate work
         |
 audited outcome          AuditSpec
 ```
+
+A particularly relevant idea in the current Transaction Tokens For Agents draft is **monotonic attenuation**: a chain that began with a low-assurance external agent must not become high-assurance merely because it later passes through a strongly verified internal agent. AuditSpec should preserve the same principle at the evidence layer: later authoritative evidence can strengthen facts that producer directly owns, but it must not retroactively upgrade the trust of earlier actor/delegation assertions.
 
 A JWT is therefore only a possible container. It is not the interoperability model by itself. Likewise, HMAC can authenticate a request in a bilateral shared-secret relationship, but an open ecosystem generally needs independently verifiable key identity/discovery rather than every verifier sharing a secret with every agent.
 
