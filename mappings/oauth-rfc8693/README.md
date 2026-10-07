@@ -153,3 +153,25 @@ A JWT is therefore only a possible container. It is not the interoperability mod
 AuditSpec Core remains OAuth-neutral.
 
 RFC 8693 belongs in mappings, profiles, adapters, and evidence producers. OAuth-specific fields should not become mandatory Core fields merely because one authorization ecosystem uses them.
+
+
+## Executable TypeScript reference
+
+The v0.2 TypeScript reference includes a pure semantic mapper at:
+
+`implementations/typescript/src/oauth-rfc8693.ts`
+
+It accepts already-decoded claims plus an explicit verification context. It deliberately does not parse JWTs, fetch keys, perform JOSE verification, or create a complete AuditSpec event.
+
+The projection keeps these boundaries executable:
+
+- `act` may identify the current actor;
+- nested `act` entries remain prior actor history in nearest-first order;
+- `may_act` stays authorization-to-act context and never becomes an observed actor;
+- `scope` stays authorization context and never creates an allow decision;
+- `aud` stays an authority/applicability boundary and never becomes an AuditSpec target;
+- `client_id` remains OAuth client context and never becomes the immediate actor;
+- unverified claims remain explicitly unverified;
+- unknown claim values are not copied by default, while their claim names remain visible as unmapped semantics.
+
+The mapper also fails closed when the outer current actor cannot be mapped: a nested prior actor is never promoted into the current actor position.

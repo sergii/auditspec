@@ -27,6 +27,7 @@ export * from "./database-runtime.js";
 export * from "./delivery-runtime.js";
 export * from "./authorization-runtime.js";
 export * from "./w3c-prov.js";
+export * from "./oauth-rfc8693.js";
 export * from "./inspector.js";
 export {
   inspectRepository as inspectRepositoryBase,
