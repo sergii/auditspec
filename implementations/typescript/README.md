@@ -1,6 +1,6 @@
 # TypeScript reference implementation
 
-This directory contains the executable TypeScript reference for AuditSpec v0.1. The normative source of truth remains the repository JSON Schemas and `SPEC.md`.
+This directory contains the executable TypeScript reference for the AuditSpec v0.2 release line. The package is currently `0.2.0-rc.1`. The normative Core event contract remains `spec_version: "0.1"`; the repository JSON Schemas and `SPEC.md` remain the source of truth for their respective contracts.
 
 ## Library API
 
@@ -62,7 +62,7 @@ auditspec query-corroboration corroboration.json --relation contradicts --trust 
 auditspec export-oscal assessment.json ./assessment-plan.json
 ```
 
-Inspector findings are advisory in v0.1. The CLI does not treat findings as command failure by default.
+Inspector findings remain advisory in the v0.2 release line. The CLI does not treat findings as command failure by default.
 
 ## Runtime evidence
 
@@ -87,4 +87,4 @@ Tests consume repository-wide conformance artifacts so the TypeScript implementa
 
 ## Packaging status
 
-The v0.1 TypeScript reference remains repository-local and `private`; no npm package is published. Use the tagged GitHub Action or build the reference implementation from source. npm publication and stronger multi-runtime packaging remain future work.
+The v0.2 TypeScript reference remains repository-local and `private`; no npm package is published. The package/server version tracks the repository implementation line and is independent from Core event `spec_version`. Use a released GitHub Action tag/reference or build the reference implementation from source.
