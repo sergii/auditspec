@@ -87,10 +87,6 @@ try {
   run("npm", ["install", "--no-audit", "--no-fund"], {
     cwd: referenceRoot,
   });
-  run("npm", ["run", "build"], {
-    cwd: referenceRoot,
-  });
-
   mkdirSync(packDir, { recursive: true });
 
   const packedName = run(
