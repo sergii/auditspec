@@ -111,6 +111,41 @@ A claim set is not self-authenticating evidence. Consumers should retain enough 
 
 AuditSpec should preserve that provenance instead of treating claim presence as proof.
 
+## Adjacent specifications and layer boundaries
+
+The surrounding standards solve different parts of the problem. AuditSpec should preserve those distinctions rather than flattening them into one "identity token" concept.
+
+| Problem | Relevant work | What it proves or carries | AuditSpec implication |
+| --- | --- | --- | --- |
+| Was this HTTP request signed by a holder of key material? | RFC 9421 HTTP Message Signatures | Integrity/authenticity of selected HTTP components under a key | Useful execution/request evidence; signer identity still depends on key binding and verifier policy. |
+| Is an automated client tied to a discoverable public identity? | Web Bot Auth draft | Automated-client identity continuity and key discovery | Potential producer of attributed actor evidence, but not delegation or consent. |
+| Is an OAuth token being presented by the key holder it was bound to? | RFC 9449 DPoP | Proof of possession and sender-constrained token use | Strengthens credential-use evidence; does not identify the represented human by itself. |
+| Who is the current delegated actor and who came before? | RFC 8693 | `sub`, `act`, nested actor history, `may_act` | Direct mapping input for actor/delegation semantics. |
+| How does identity/authorization survive trust-domain crossings? | OAuth Identity and Authorization Chaining draft | Cross-domain identity and authorization propagation | Relevant to multi-domain delegation provenance and chain boundaries. |
+| How is immutable transaction context propagated inside a trust domain? | Transaction Tokens draft | User/workload identity plus transaction authorization context | Relevant to call-chain evidence and transaction correlation, not workload authentication. |
+| How is agent identity represented in a transaction context? | Transaction Tokens For Agents draft | `act` as agent and `sub` as principal | Strongly aligned with agent audit semantics. |
+| Did a human actually authorize this concrete autonomous action? | Verifiable Human Mandates problem draft | Emerging mandate/intent problem, not yet a finished protocol | Relevant to future approval/intent evidence, separate from actor identity. |
+
+This yields a useful separation:
+
+```text
+request authenticity     RFC 9421
+        |
+key / sender binding     Web Bot Auth / DPoP
+        |
+delegated actor          RFC 8693
+        |
+cross-domain chain       OAuth Identity Chaining
+        |
+transaction context      Transaction Tokens
+        |
+human mandate            emerging agent-mandate work
+        |
+audited outcome          AuditSpec
+```
+
+A JWT is therefore only a possible container. It is not the interoperability model by itself. Likewise, HMAC can authenticate a request in a bilateral shared-secret relationship, but an open ecosystem generally needs independently verifiable key identity/discovery rather than every verifier sharing a secret with every agent.
+
 ## Core boundary
 
 AuditSpec Core remains OAuth-neutral.
