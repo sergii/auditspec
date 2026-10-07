@@ -26,6 +26,7 @@ import {
   assertAuditEvent,
   assertControlMappingProfile,
   assertControlMappingResult,
+  assertConformanceCorpusReport,
   assertCorroborationDiff,
   assertCorroborationQueryResult,
   assertCorroborationReport,
@@ -144,6 +145,7 @@ async function main(): Promise<void> {
     const pathArg = args.find((arg, index) => index > 0 && !arg.startsWith("--"));
     if (!pathArg) usage();
     const report = runConformanceCorpus(pathArg);
+    assertConformanceCorpusReport(report);
     if (args.includes("--json")) {
       print(report);
     } else {
