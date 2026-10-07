@@ -6,6 +6,7 @@ import { diffAssessments } from "./assessment-diff.js";
 import { diffAssuranceGraphs } from "./assurance-graph-diff.js";
 import { buildAssuranceGraph, findAssurancePath } from "./assurance-graph.js";
 import { toCloudEvent } from "./cloudevents.js";
+import { formatConformanceCorpusReport, runConformanceCorpus } from "./conformance-corpus.js";
 import { mapAssessmentToControls } from "./control-mapping.js";
 import { diffCorroborationReports } from "./corroboration-diff.js";
 import { queryCorroboration, type CorroborationQueryFilters } from "./corroboration-query.js";
@@ -99,6 +100,7 @@ function usage(): never {
     "Usage:",
     "  auditspec init-example [event.json] [--force]",
     "  auditspec validate <event.json> [--human]",
+    "  auditspec conformance <events-path> [--json]",
     "  auditspec explain <event.json> [--json]",
     "  auditspec validate-agent <profile.json>",
     "  auditspec normalize <event.json>",
@@ -135,6 +137,19 @@ async function main(): Promise<void> {
     }
     writeFileSync(path, `${JSON.stringify(QUICKSTART_EVENT, null, 2)}\n`, "utf8");
     process.stdout.write(`Created ${path}\n`);
+    return;
+  }
+
+  if (command === "conformance") {
+    const pathArg = args.find((arg, index) => index > 0 && !arg.startsWith("--"));
+    if (!pathArg) usage();
+    const report = runConformanceCorpus(pathArg);
+    if (args.includes("--json")) {
+      print(report);
+    } else {
+      process.stdout.write(formatConformanceCorpusReport(report, pathArg));
+    }
+    process.exitCode = report.passed ? 0 : 1;
     return;
   }
 
