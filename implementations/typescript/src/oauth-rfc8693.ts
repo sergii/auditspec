@@ -107,7 +107,8 @@ function actorChain(
   }
 
   const seen = new Set<object>();
-  const actors: Rfc8693PartyRef[] = [];
+  let currentActor: Rfc8693PartyRef | undefined;
+  const prior: Rfc8693PartyRef[] = [];
   let node: Record<string, unknown> | undefined = value;
   let path = "act";
   let depth = 0;
@@ -124,7 +125,8 @@ function actorChain(
     seen.add(node);
 
     const mapped = party(node, path, "act", unmapped, warnings);
-    if (mapped) actors.push(mapped);
+    if (depth === 0) currentActor = mapped;
+    else if (mapped) prior.push(mapped);
 
     if (node.act === undefined) break;
     if (!obj(node.act)) {
@@ -136,7 +138,7 @@ function actorChain(
     depth += 1;
   }
 
-  return { ...(actors[0] ? { current: actors[0] } : {}), prior: actors.slice(1) };
+  return { ...(currentActor ? { current: currentActor } : {}), prior };
 }
 
 function scopes(value: unknown, warnings: Rfc8693ProjectionWarning[]): string[] {
