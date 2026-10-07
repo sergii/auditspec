@@ -1,0 +1,17 @@
+{
+  "name": "auditspec-external-sample-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal external-consumer sample for the stable AuditSpec TypeScript API",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "emit": "node src/emit.mjs",
+    "validate": "node src/validate.mjs",
+    "explain": "node src/explain.mjs",
+    "conformance": "node src/conformance.mjs",
+    "check": "npm run emit && npm run validate && npm run explain && npm run conformance"
+  }
+}

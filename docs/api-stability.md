@@ -148,6 +148,25 @@ Likewise, CLI commands are user-facing executable behavior, while `src/cli.ts` i
 
 Executable compatibility and library-import compatibility are separate contracts.
 
+## External-consumer proof
+
+The repository includes `examples/external-sample-app/` as a package-boundary regression test.
+
+CI does not run that sample against repository-relative source files. Instead it:
+
+```text
+build reference
+   -> npm pack
+   -> copy sample outside repository
+   -> install packed artifact
+   -> run emit/validate/explain/conformance
+   -> assert internal subpath import is blocked
+```
+
+The sample source is checked to allow only the stable package root. Importing `@auditspec/reference-typescript/experimental`, `src/*`, or `dist/*` from the sample is a test failure.
+
+This proves the stable root is sufficient for a minimal real consumer without accidentally relying on monorepo internals.
+
 ## Publication gate
 
 Before npm publication, the project should additionally decide:

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -33,7 +33,12 @@ export type ValidationResult =
 
 function loadSchema(relativePath: string): object {
   const base = dirname(fileURLToPath(import.meta.url));
-  const parsed = JSON.parse(readFileSync(resolve(base, relativePath), "utf8")) as unknown;
+  const assetPath = relativePath.replace(/^(?:\.\.\/)+/, "");
+  const packagedPath = resolve(base, "assets", assetPath);
+  const repositoryPath = resolve(base, relativePath);
+  const path = existsSync(packagedPath) ? packagedPath : repositoryPath;
+
+  const parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
   if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
     throw new TypeError(`Schema at ${relativePath} is not a JSON object`);
   }

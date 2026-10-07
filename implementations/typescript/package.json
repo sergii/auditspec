@@ -22,13 +22,14 @@
     "auditspec-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node tools/copy-runtime-assets.mjs",
     "test": "tsx --test test/*.test.ts",
     "test:assurance-model": "tsx --test test/assurance-evaluation.test.ts test/all-path-model.test.ts test/assurance-invariants.test.ts test/depth-truncation-hardening.test.ts",
     "test:mutation": "stryker run",
     "check": "npm run build && npm run check:api-surface && npm test",
     "mcp": "node dist/mcp-server.js",
-    "check:api-surface": "node ../../tools/api-surface/check.mjs"
+    "check:api-surface": "node ../../tools/api-surface/check.mjs",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@ast-grep/lang-python": "0.0.6",
@@ -45,5 +46,10 @@
     "@types/node": "22.10.2",
     "tsx": "4.19.2",
     "typescript": "5.7.2"
-  }
+  },
+  "files": [
+    "dist",
+    "api-surface.json",
+    "README.md"
+  ]
 }

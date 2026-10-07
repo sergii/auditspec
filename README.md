@@ -43,7 +43,7 @@ cd ../..
 node implementations/typescript/dist/cli.js init-example audit-event.json
 node implementations/typescript/dist/cli.js validate audit-event.json --human
 node implementations/typescript/dist/cli.js explain audit-event.json
-node implementations/typescript/dist/cli.js conformance ./events/ --json
+node implementations/typescript/dist/cli.js conformance audit-event.json --json
 ```
 
 Expected validation result:
@@ -57,6 +57,31 @@ This path requires only the Core event contract. Inspector, MCP, runtime corrobo
 The TypeScript package root is now deliberately small and stable. Inspector/runtime/research APIs live behind the explicit `@auditspec/reference-typescript/experimental` subpath, while parser/framework plumbing remains internal.
 
 See `examples/external-implementer/README.md` for the complete walkthrough.
+
+## External consumer sample
+
+The repository also contains a small application that consumes AuditSpec only through the stable package root:
+
+```text
+examples/external-sample-app/
+```
+
+Its CI harness builds the TypeScript reference, creates an `npm pack` tarball, copies the sample outside the repository, installs that packed artifact, and runs:
+
+```text
+emit -> validate -> explain -> conformance
+```
+
+It also verifies that an internal `dist/*` package subpath is blocked by Node package exports.
+
+Run the same release-shape simulation locally with:
+
+```bash
+node tools/adoption/check-external-sample.mjs
+```
+
+This is intentionally stronger than an in-repository unit test because the sample cannot import repository-local implementation modules.
+
 
 ## Core event
 
@@ -125,6 +150,7 @@ See `examples/external-implementer/README.md` for the complete walkthrough.
 - `profiles/` - optional semantic/behavioral profiles such as agent and atomicity.
 - `conformance/` - valid and invalid vectors shared by implementations, plus guidance for implementer-owned corpora.
 - `examples/external-implementer/` - five-minute Core adoption path for first-time implementers.
+- `examples/external-sample-app/` - packed-package external consumer that uses only the stable TypeScript root.
 - `tools/conformance/` - executable schema/capability validators and container runner.
 - `implementations/` - TypeScript, Ruby, and Python executable language reference implementations.
 - `adapters/` - runtime framework adapters, machine-readable capability manifests, and framework integration guidance. These extensions depend on AuditSpec contracts; Core does not depend on them.
