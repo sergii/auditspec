@@ -41,7 +41,11 @@ createAuditSpecMcpServer()
 ## CLI
 
 ```bash
+auditspec init-example audit-event.json
 auditspec validate event.json
+auditspec validate event.json --human
+auditspec explain event.json
+auditspec explain event.json --json
 auditspec validate-agent agent-profile.json
 auditspec normalize event.json
 auditspec redact event.json
@@ -61,6 +65,20 @@ auditspec diff-corroboration base-corroboration.json head-corroboration.json
 auditspec query-corroboration corroboration.json --relation contradicts --trust authoritative
 auditspec export-oscal assessment.json ./assessment-plan.json
 ```
+
+### First-time implementer path
+
+`init-example`, human-readable validation, and `explain` form the smallest supported adoption loop:
+
+```text
+create -> validate -> explain -> edit -> validate
+```
+
+The default `validate` output remains machine-readable JSON for compatibility. `--human` adds concise PASS/FAIL output without changing exit-code semantics.
+
+`init-example` refuses accidental overwrite unless `--force` is passed explicitly.
+
+See `../../examples/external-implementer/README.md`.
 
 Inspector findings remain advisory in the v0.2 release line. The CLI does not treat findings as command failure by default.
 
