@@ -129,6 +129,24 @@ auditspec validate audit-event.json --human
 auditspec explain audit-event.json
 ```
 
+## 6. Validate a directory
+
+When your implementation has more than one event fixture, put the JSON files under a directory and run:
+
+```bash
+auditspec conformance ./events/
+```
+
+For CI:
+
+```bash
+auditspec conformance ./events/ --json > conformance-report.json
+```
+
+The command exits `0` only for a non-empty corpus in which every discovered JSON file is a valid Core event.
+
+The report is deterministic and contains paths relative to the corpus root, so CI output does not depend on the machine's absolute checkout path.
+
 ## What this quickstart does not do
 
 It does not require Inspector, MCP, runtime corroboration, agent profiles, mandate research profiles, OSCAL, or any cloud service.
