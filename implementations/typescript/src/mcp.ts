@@ -10,6 +10,7 @@ import { getFrameworkAdapter, listFrameworkAdapters } from "./framework-registry
 import { inspectRepository } from "./inspector.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
+import { AUDITSPEC_REFERENCE_VERSION } from "./version.js";
 import { corroborateAssessment, type RuntimeEvidenceRecord } from "./runtime-corroboration.js";
 import {
   validateAgentProfile,
@@ -95,7 +96,7 @@ function findingSummary(finding: AssessmentFinding): Record<string, unknown> {
 }
 
 export function createAuditSpecMcpServer(): McpServer {
-  const server = new McpServer({ name: "auditspec", version: "0.1.0" });
+  const server = new McpServer({ name: "auditspec", version: AUDITSPEC_REFERENCE_VERSION });
 
   server.registerTool(
     "auditspec.validate_event",
