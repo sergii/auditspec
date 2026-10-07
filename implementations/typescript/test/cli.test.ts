@@ -89,6 +89,88 @@ test("CLI human validation reports concise failure and exits non-zero", () => {
   assert.match(result.stdout, /required property/);
 });
 
+test("CLI validates an implementer corpus with human and JSON summaries", () => {
+  const root = mkdtempSync(join(tmpdir(), "auditspec-cli-corpus-"));
+  try {
+    mkdirSync(join(root, "nested"), { recursive: true });
+
+    const firstPath = join(root, "valid.json");
+    const secondPath = join(root, "nested", "valid-2.json");
+    assert.equal(run("init-example", firstPath).status, 0);
+    assert.equal(run("init-example", secondPath).status, 0);
+
+    const invalid = JSON.parse(readFileSync(firstPath, "utf8")) as Record<string, unknown>;
+    delete invalid.actor;
+    writeFileSync(
+      join(root, "invalid.json"),
+      `${JSON.stringify(invalid, null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(join(root, "notes.txt"), "ignored\n", "utf8");
+
+    const human = run("conformance", root);
+    assert.equal(human.status, 1);
+    assert.match(human.stdout, /^AuditSpec conformance\nCore: 0\.1/m);
+    assert.match(human.stdout, /Events: 3/);
+    assert.match(human.stdout, /Valid: 2/);
+    assert.match(human.stdout, /Invalid: 1/);
+    assert.match(human.stdout, /Result: FAIL/);
+    assert.match(human.stdout, /FAIL invalid\.json/);
+
+    const machine = run("conformance", root, "--json");
+    assert.equal(machine.status, 1);
+    const report = JSON.parse(machine.stdout) as {
+      passed: boolean;
+      summary: { total: number; valid: number; invalid: number };
+      files: Array<{ path: string }>;
+    };
+    assert.equal(report.passed, false);
+    assert.deepEqual(report.summary, {
+      total: 3,
+      valid: 2,
+      invalid: 1,
+      parse_errors: 0,
+    });
+    assert.deepEqual(
+      report.files.map((item) => item.path),
+      ["invalid.json", "nested/valid-2.json", "valid.json"],
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("CLI conformance passes a non-empty all-valid corpus", () => {
+  const root = mkdtempSync(join(tmpdir(), "auditspec-cli-corpus-pass-"));
+  try {
+    assert.equal(run("init-example", join(root, "event.json")).status, 0);
+
+    const result = run("conformance", root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Events: 1/);
+    assert.match(result.stdout, /Valid: 1/);
+    assert.match(result.stdout, /Invalid: 0/);
+    assert.match(result.stdout, /Result: PASS/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("CLI conformance rejects an empty corpus", () => {
+  const root = mkdtempSync(join(tmpdir(), "auditspec-cli-corpus-empty-"));
+  try {
+    writeFileSync(join(root, "README.md"), "no events\n", "utf8");
+
+    const result = run("conformance", root);
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /Events: 0/);
+    assert.match(result.stdout, /Result: FAIL/);
+    assert.match(result.stdout, /no JSON event files/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("CLI validates a valid AuditSpec event", () => {
   const result = run("validate", "conformance/valid/user-action.json");
   assert.equal(result.status, 0, result.stderr);
