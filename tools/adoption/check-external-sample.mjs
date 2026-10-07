@@ -1,5 +1,6 @@
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -90,7 +91,7 @@ try {
     cwd: referenceRoot,
   });
 
-  run("mkdir", ["-p", packDir]);
+  mkdirSync(packDir, { recursive: true });
 
   const packedName = run(
     "npm",
