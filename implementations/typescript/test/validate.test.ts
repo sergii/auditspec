@@ -12,6 +12,7 @@ import {
   validateAuditEvent,
   validateControlMappingProfile,
   validateControlMappingResult,
+  validateConformanceCorpusReport,
   validateCorroborationDiff,
   validateCorroborationQueryResult,
   validateCorroborationReport,
@@ -56,6 +57,7 @@ const canonicalValidators: Record<string, Validator> = {
   "corroboration-diff.json": validateCorroborationDiff,
   "corroboration-query-result.json": validateCorroborationQueryResult,
   "human-mandate-proof.json": validateHumanMandateProof,
+  "conformance-corpus-report.json": validateConformanceCorpusReport,
 };
 
 const invalidContractValidators: Record<string, Validator> = {
@@ -75,6 +77,7 @@ const invalidContractValidators: Record<string, Validator> = {
   "corroboration-query-result": validateCorroborationQueryResult,
   "agent-profile": validateAgentProfile,
   "human-mandate-proof": validateHumanMandateProof,
+  "conformance-corpus-report": validateConformanceCorpusReport,
 };
 
 for (const name of fixtures("conformance/valid")) {
