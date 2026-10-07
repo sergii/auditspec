@@ -4,7 +4,26 @@ This document is a non-normative work queue for AuditSpec. It does not change th
 
 Current behavior is documented by the specification, schemas, framework/runtime manifests, reference implementations, and focused documents under `docs/`. Items below are directions and candidates until they are implemented, tested, and reflected in those executable surfaces.
 
-## v0.2 development candidates
+## v0.3 development candidates
+
+### Adoption and external implementers
+
+The first v0.3 slice adds an executable five-minute Core journey:
+
+```text
+init-example -> validate -> explain -> edit -> validate
+```
+
+Next adoption hardening should prioritize independent implementers over additional protocol breadth:
+
+- a directory/corpus conformance command for implementer-owned event sets;
+- machine-readable conformance summaries suitable for CI;
+- stable/experimental/internal public API classification before any npm publication;
+- external sample applications that depend only on released AuditSpec surfaces;
+- feedback-driven simplification where first-time implementers repeatedly misread Core semantics.
+
+The adoption path must keep Core useful independently from Inspector, MCP, runtime corroboration, agent/mandate research, or cloud services.
+
 
 ### Deeper Rails framework resolution
 

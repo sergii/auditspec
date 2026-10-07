@@ -30,6 +30,31 @@ Later `0.x` revisions may still introduce breaking changes, so compatibility-sen
 - A replacement for OpenTelemetry, CloudEvents, W3C PROV, or OSCAL.
 - A compliance certification.
 
+## Five-minute implementer quickstart
+
+The v0.3 development line starts with one deliberately small external-implementer journey:
+
+```bash
+cd implementations/typescript
+npm install
+npm run build
+cd ../..
+
+node implementations/typescript/dist/cli.js init-example audit-event.json
+node implementations/typescript/dist/cli.js validate audit-event.json --human
+node implementations/typescript/dist/cli.js explain audit-event.json
+```
+
+Expected validation result:
+
+```text
+PASS audit-event.json - valid AuditSpec Core 0.1 event
+```
+
+This path requires only the Core event contract. Inspector, MCP, runtime corroboration, agent profiles, mandate research, OSCAL, and cloud services are optional capabilities around Core.
+
+See `examples/external-implementer/README.md` for the complete walkthrough.
+
 ## Core event
 
 ```json
@@ -96,6 +121,7 @@ Later `0.x` revisions may still introduce breaking changes, so compatibility-sen
 - `spec/` - focused design notes, including delivery/retry semantics.
 - `profiles/` - optional semantic/behavioral profiles such as agent and atomicity.
 - `conformance/` - valid and invalid vectors shared by implementations.
+- `examples/external-implementer/` - five-minute Core adoption path for first-time implementers.
 - `tools/conformance/` - executable schema/capability validators and container runner.
 - `implementations/` - TypeScript, Ruby, and Python executable language reference implementations.
 - `adapters/` - runtime framework adapters, machine-readable capability manifests, and framework integration guidance. These extensions depend on AuditSpec contracts; Core does not depend on them.
