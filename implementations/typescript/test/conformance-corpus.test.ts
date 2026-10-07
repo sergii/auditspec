@@ -13,6 +13,7 @@ import {
   runConformanceCorpus,
 } from "../src/conformance-corpus.js";
 import { QUICKSTART_EVENT } from "../src/quickstart.js";
+import { validateConformanceCorpusReport } from "../src/validate.js";
 
 function writeJson(path: string, value: unknown): void {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
@@ -43,6 +44,7 @@ test("corpus runner recursively validates JSON events with deterministic relativ
       ["nested/a-valid.json", "z-valid.json"],
     );
     assert.ok(report.files.every((item) => item.valid));
+    assert.equal(validateConformanceCorpusReport(report).valid, true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
