@@ -141,7 +141,7 @@ function assertJcsInput(
 
 export function canonicalizeForMandateProof(value: unknown): string {
   assertJcsInput(value);
-  const canonical = canonicalize(value);
+  const canonical = canonicalize(value as Parameters<typeof canonicalize>[0]);
   if (typeof canonical !== "string") {
     throw new TypeError("RFC 8785 canonicalization did not produce a JSON string");
   }
