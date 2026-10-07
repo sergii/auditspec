@@ -6,9 +6,9 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-This repository contains AuditSpec `v0.1`, the first public specification line. The Core event contract and executable assurance surfaces are versioned as v0.1; later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit.
+AuditSpec `v0.2.0` is in release-candidate stabilization. The repository release line is v0.2, while the normative Core audit-event contract intentionally remains `spec_version: "0.1"`; v0.2 adds executable assurance, Inspector/runtime, and experimental identity/mandate capabilities without silently redefining Core.
 
-The `v0.2` development line is formalizing a strict extension boundary: AuditSpec Core remains framework-neutral, language references/SDKs implement shared Core contracts, runtime framework integrations live under `adapters/`, and framework-specific static analysis is provided through Inspector plugins.
+Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for release scope and go/no-go criteria.
 
 ## AuditSpec is
 
@@ -112,6 +112,8 @@ The `v0.2` development line is formalizing a strict extension boundary: AuditSpe
 - `docs/mcp.md` - MCP server and agent-facing tools.
 - `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics, and producer model.
 - `docs/roadmap.md` - non-normative future work and permanent assurance guardrails.
+- `docs/versioning.md` - repository/Core/schema/implementation version boundaries.
+- `docs/release-v0.2.md` - v0.2 release inventory, surface classification, gaps, and release gates.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.
 
