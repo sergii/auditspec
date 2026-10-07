@@ -29,6 +29,22 @@ jobs:
       - name: Check v0.2 release metadata and boundaries
         run: node tools/release/check-v0.2.mjs
 
+
+  external-sample-app:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run external sample app against packed package
+        run: node tools/adoption/check-external-sample.mjs
+
   schema-conformance:
     runs-on: ubuntu-latest
 
