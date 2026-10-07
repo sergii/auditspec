@@ -24,7 +24,7 @@ jobs:
           baseline: auto
 ```
 
-For the v0.2 release line, use `sergii/auditspec@v0.2` or pin the immutable `v0.2.0` tag/commit after the final tag is created. Compatibility-sensitive users should prefer an immutable release tag or commit.
+For the v0.2 release line, use `sergii/auditspec@v0.2` for the release-line reference or pin immutable `sergii/auditspec@v0.2.0`. Compatibility-sensitive users should prefer the immutable release tag or exact commit.
 
 ## Pull request behavior
 
