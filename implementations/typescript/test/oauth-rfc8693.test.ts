@@ -195,3 +195,21 @@ test("keeps issuer mismatch explicit rather than silently accepting conflicting 
 
   assert.ok(projection.warnings.some((warning) => warning.code === "issuer_mismatch"));
 });
+
+
+test("does not promote a prior actor when the current act identity is unresolved", () => {
+  const projection = mapRfc8693Claims({
+    claims: {
+      sub: "user:42",
+      act: {
+        iss: "https://actor-idp.example",
+        act: { sub: "service:prior" },
+      },
+    },
+    verification: verified,
+  });
+
+  assert.equal(projection.current_actor, undefined);
+  assert.deepEqual(projection.prior_actors.map((actor) => actor.subject), ["service:prior"]);
+  assert.deepEqual(projection.delegation, []);
+});
