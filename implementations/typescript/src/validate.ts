@@ -9,6 +9,7 @@ import type { AssessmentReport } from "./assessment-types.js";
 import type { AssuranceGraphDiff } from "./assurance-graph-diff.js";
 import type { AssuranceGraph } from "./assurance-graph.js";
 import type { ControlMappingProfile, ControlMappingResult } from "./control-mapping.js";
+import type { ConformanceCorpusReport } from "./conformance-corpus.js";
 import type { RuntimeCorroborationDiff } from "./corroboration-diff.js";
 import type { CorroborationQueryResult } from "./corroboration-query.js";
 import type { EvidenceQueryResult } from "./evidence-query.js";
@@ -63,6 +64,7 @@ const corroborationDiffSchema = loadSchema("../../../schema/corroboration-diff.s
 const corroborationQueryResultSchema = loadSchema("../../../schema/corroboration-query-result.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
 const humanMandateProofSchema = loadSchema("../../../schema/human-mandate-proof.schema.json");
+const conformanceCorpusReportSchema = loadSchema("../../../schema/conformance-corpus-report.schema.json");
 
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
 const validateAssessment = ajv.compile<AssessmentReport>(assessmentReportSchema);
@@ -81,6 +83,7 @@ const validateCorroborationDiffSchema = ajv.compile<RuntimeCorroborationDiff>(co
 const validateCorroborationQuery = ajv.compile<CorroborationQueryResult>(corroborationQueryResultSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
 const validateMandateProof = ajv.compile<SignedHumanMandateProof>(humanMandateProofSchema);
+const validateCorpusReport = ajv.compile<ConformanceCorpusReport>(conformanceCorpusReportSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
   return (errors ?? []).map((error) => ({
@@ -260,6 +263,25 @@ export function assertHumanMandateProof(
   if (!result.valid) {
     throw new TypeError(
       `Invalid AuditSpec human mandate proof: ${JSON.stringify(result.errors)}`,
+    );
+  }
+}
+
+
+export function validateConformanceCorpusReport(
+  input: unknown,
+): ValidationResult {
+  if (validateCorpusReport(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateCorpusReport.errors) };
+}
+
+export function assertConformanceCorpusReport(
+  input: unknown,
+): asserts input is ConformanceCorpusReport {
+  const result = validateConformanceCorpusReport(input);
+  if (!result.valid) {
+    throw new TypeError(
+      `Invalid AuditSpec conformance corpus report: ${JSON.stringify(result.errors)}`,
     );
   }
 }
