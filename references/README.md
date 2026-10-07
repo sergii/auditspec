@@ -57,7 +57,8 @@ AuditSpec is independently implemented and informed by established work in audit
 
 ## Integrity and transparency
 
-- RFC 8785 JSON Canonicalization Scheme (JCS) - candidate canonical JSON representation for deterministic hashing/signing.
+- RFC 8785 JSON Canonicalization Scheme (JCS) - canonical JSON representation used by the v0.2 human-mandate proof for deterministic content hashing and signing.
+- RFC 8032 Edwards-Curve Digital Signature Algorithm (EdDSA) - Ed25519 signature prior art used by the v0.2 human-mandate proof reference implementation through Node.js crypto.
 - SCITT architecture/receipts - candidate future integrity/transparency profile for signed statements and receipts.
 
 ## Framework-level history
@@ -74,3 +75,5 @@ AuditSpec is independently implemented and informed by established work in audit
 AuditSpec must remain independently implemented. Do not copy source code, prose, fixtures, or UI from prior-art projects unless their licenses and attribution obligations are explicitly satisfied.
 
 Tree-sitter and ast-grep are implementation dependencies under permissive licenses; language packages should retain their own dependency notices when the reference package is distributed.
+
+The TypeScript human-mandate proof uses the `canonicalize` RFC 8785 implementation, pinned in `implementations/typescript/package.json`; the package is Apache-2.0 licensed.

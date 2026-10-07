@@ -130,16 +130,16 @@ Current summary:
 REQ-1 action-to-mandate cryptographic binding       partial
 REQ-2 deterministic server-side verification        partial
 REQ-3 fail-closed                                    preserved
-REQ-4 independently verifiable evidence artifact    not represented
+REQ-4 independently verifiable evidence artifact    partial
 REQ-5 transport / format neutrality                  partial
 REQ-6 escalation                                     partial
 ```
 
 The most important missing pieces are intentional:
 
-1. AuditSpec does not yet define the cryptographic T0 -> T1 binding construction.
-2. AuditSpec does not emit a standalone signed mandate-evaluation proof that a third party can verify without trusting the executing system.
-3. AuditSpec does not define how arbitrary wire payloads are canonically projected into the action parameters that a mandate constrains.
+1. AuditSpec does not yet define the original cryptographic T0 -> T1 binding construction.
+2. AuditSpec now emits a standalone signed evaluation proof with RFC 8785 content bindings, but independent replay of the underlying mandate signature and T0-to-T1 binding still depends on the external mandate protocol.
+3. AuditSpec does not define how arbitrary wire payloads are canonically projected into the action parameters that a mandate constrains before they enter the mandate model.
 4. AuditSpec signals escalation but does not define the human interaction or replacement mandate.
 
 ## Relationship to existing AuditSpec identity work
@@ -189,7 +189,7 @@ prove
   mandate evaluation + execution evidence
 ```
 
-This slice implements the deterministic evaluation boundary between `approve` and `act`. The cryptographic approval artifact and independently verifiable proof remain separate future work.
+The deterministic evaluator implements the boundary between `approve` and `act`. The companion mandate-proof slice now signs RFC 8785 bindings for the mandate, action, and evaluation so third parties can verify the proof issuer's attestation. The original approval protocol and its T0-to-T1 cryptographic binding remain separate concerns.
 
 ## Example
 

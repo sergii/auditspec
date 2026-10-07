@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/human-mandate-proof.schema.json",
+  "title": "AuditSpec Human Mandate Proof v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["statement", "signature"],
+  "properties": {
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement_version",
+        "proof_id",
+        "issued_at",
+        "issuer",
+        "canonicalization",
+        "digest_algorithm",
+        "signature_algorithm",
+        "mandate",
+        "action",
+        "evaluation"
+      ],
+      "properties": {
+        "statement_version": { "const": "0.1" },
+        "proof_id": { "type": "string", "minLength": 1 },
+        "issued_at": { "type": "string", "format": "date-time" },
+        "issuer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "key_id"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "key_id": { "type": "string", "minLength": 1 }
+          }
+        },
+        "canonicalization": { "const": "RFC8785" },
+        "digest_algorithm": { "const": "SHA-256" },
+        "signature_algorithm": { "const": "Ed25519" },
+        "mandate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "digest"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "digest": { "$ref": "#/$defs/sha256Digest" }
+          }
+        },
+        "action": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["digest"],
+          "properties": {
+            "digest": { "$ref": "#/$defs/sha256Digest" }
+          }
+        },
+        "evaluation": { "$ref": "#/$defs/evaluation" }
+      }
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  },
+  "$defs": {
+    "sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[A-Za-z0-9_-]{43}$"
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evaluation_version",
+        "mandate_id",
+        "principal_id",
+        "decision",
+        "authorized",
+        "constraint_results",
+        "verification",
+        "limitations"
+      ],
+      "properties": {
+        "evaluation_version": { "const": "0.1" },
+        "mandate_id": { "type": "string", "minLength": 1 },
+        "principal_id": { "type": "string", "minLength": 1 },
+        "agent_id": { "type": "string", "minLength": 1 },
+        "decision": {
+          "enum": [
+            "within_mandate",
+            "outside_mandate",
+            "requires_fresh_authorization",
+            "unverifiable"
+          ]
+        },
+        "authorized": { "type": "boolean" },
+        "constraint_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "class", "status", "path"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "class": { "enum": ["hard", "escalating"] },
+              "status": { "enum": ["satisfied", "violated", "unverifiable"] },
+              "path": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": { "enum": ["violated", "unverifiable"] }
+                  },
+                  "required": ["status"]
+                },
+                "then": { "required": ["reason"] }
+              }
+            ]
+          }
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mandate_signature_verified",
+            "action_binding_verified"
+          ],
+          "properties": {
+            "mandate_signature_verified": { "type": "boolean" },
+            "action_binding_verified": { "type": "boolean" },
+            "verifier": { "type": "string", "minLength": 1 },
+            "mandate_digest": { "type": "string", "minLength": 1 },
+            "action_digest": { "type": "string", "minLength": 1 }
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": { "const": "within_mandate" }
+            },
+            "required": ["decision"]
+          },
+          "then": {
+            "properties": {
+              "authorized": { "const": true }
+            }
+          },
+          "else": {
+            "properties": {
+              "authorized": { "const": false }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

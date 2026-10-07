@@ -293,7 +293,7 @@ test("requirements coverage keeps cryptographic binding and independent proof ga
       ["REQ-1", "partial"],
       ["REQ-2", "partial"],
       ["REQ-3", "preserved"],
-      ["REQ-4", "not_represented"],
+      ["REQ-4", "partial"],
       ["REQ-5", "partial"],
       ["REQ-6", "partial"],
     ],

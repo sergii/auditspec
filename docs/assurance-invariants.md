@@ -213,3 +213,38 @@ mappings/human-mandate/
 ```
 
 The evaluator consumes cryptographic verification outcomes but does not itself define or perform the T0 mandate signature or T0-to-T1 action-binding mechanism.
+
+
+## 12. A valid proof binds a statement, not unlimited authority
+
+Cryptographic validity MUST NOT broaden the authority of the signer or verifier.
+
+A valid mandate proof can establish that the expected key signed one exact canonical statement and that the statement is bound to the supplied mandate, action, and deterministic evaluation.
+
+It does not, by signature validity alone, establish that:
+
+- the proof issuer is authoritative for every assertion carried inside the statement;
+- the supplied public key is legitimately bound to the claimed issuer;
+- an externally asserted mandate-signature verification outcome was itself independently replayed by the proof consumer;
+- an externally asserted action-binding verification outcome was itself independently replayed by the proof consumer;
+- the business action actually executed.
+
+Therefore:
+
+```text
+valid signature
+      !=
+unbounded authority
+```
+
+and:
+
+```text
+valid proof of unverifiable/outside/escalate
+      !=
+permission
+```
+
+The proof verifier returns `authorized: true` only when the proof is internally valid and the signed/recomputed mandate evaluation itself is `within_mandate`.
+
+Key distribution, PKI, registry trust, and issuer authority remain separate policy/evidence inputs.

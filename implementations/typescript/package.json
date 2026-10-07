@@ -32,7 +32,8 @@
     "@modelcontextprotocol/server": "2.0.0",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "canonicalize": "5.1.0"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.0.0",
