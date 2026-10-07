@@ -93,6 +93,8 @@ The v0.2 TypeScript reference now includes the first executable RFC 9421 and RFC
 - comparative research fixtures for OAuth Identity Chaining, Transaction Tokens, Transaction Tokens For Agents, and emerging human-mandate work, with explicit information-loss reports against the AuditSpec actor/delegation/authorization/evidence model;
 - an assurance-chain invariant inspired by agent transaction-token monotonic attenuation: stronger downstream producers or agents must not silently upgrade weaker upstream actor/delegation provenance, with explicit tests against identity laundering;
 
+The v0.2 TypeScript reference now includes a pure assurance-attenuation evaluator. It computes effective assurance over explicit dependency edges, preserves authoritative strength for unrelated downstream facts, and fails missing dependencies or cycles toward `unknown`.
+
 - deterministic fuzzing with regression capture for malformed, deeply nested, cyclic, and oversized inputs;
 - Go and Rust reference implementations consuming the same shared corpus;
 - additional pinned real-world framework repositories;
@@ -115,6 +117,7 @@ The following are architectural constraints, not backlog items to relax:
 - unresolved or truncated analysis never strengthens assurance;
 - bounded non-observation is inconclusive unless the declared observation scope justifies a stronger statement;
 - producer trust never broadens producer authority;
+- stronger downstream evidence never upgrades weaker upstream provenance across an explicit semantic dependency;
 - runtime evidence corroborates rather than rewrites static coverage;
 - correlation identifiers do not create semantic graph edges by coincidence;
 - control mappings do not become compliance verdicts;
