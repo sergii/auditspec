@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   evaluateHumanMandate,
   type HumanMandate,
@@ -45,6 +48,9 @@ const mandate: HumanMandate = {
     },
   ],
 };
+
+const base = dirname(fileURLToPath(import.meta.url));
+const mappingRoot = resolve(base, "../../../mappings/human-mandate");
 
 const verified = {
   mandate_signature_verified: true,
@@ -247,4 +253,56 @@ test("raw signatures and tokens are outside the evaluator input and output", () 
   assert.equal(serialized.includes("signature_bytes"), false);
   assert.equal(serialized.includes("access_token"), false);
   assert.equal(serialized.includes("session_token"), false);
+});
+
+
+test("canonical human-mandate example matches its expected decision", () => {
+  const fixture = JSON.parse(
+    readFileSync(resolve(mappingRoot, "examples/invoice-pay.json"), "utf8"),
+  ) as {
+    mandate: HumanMandate;
+    action: MandatedAction;
+    verification: Parameters<typeof evaluateHumanMandate>[0]["verification"];
+    expected: { decision: string; authorized: boolean };
+  };
+
+  const result = evaluateHumanMandate({
+    mandate: fixture.mandate,
+    action: fixture.action,
+    verification: fixture.verification,
+  });
+
+  assert.equal(result.decision, fixture.expected.decision);
+  assert.equal(result.authorized, fixture.expected.authorized);
+});
+
+test("requirements coverage keeps cryptographic binding and independent proof gaps explicit", () => {
+  const coverage = JSON.parse(
+    readFileSync(resolve(mappingRoot, "requirements.json"), "utf8"),
+  ) as {
+    requirements: Array<{
+      id: string;
+      coverage: "preserved" | "partial" | "not_represented";
+      gap: string | null;
+    }>;
+  };
+
+  assert.deepEqual(
+    coverage.requirements.map((item) => [item.id, item.coverage]),
+    [
+      ["REQ-1", "partial"],
+      ["REQ-2", "partial"],
+      ["REQ-3", "preserved"],
+      ["REQ-4", "not_represented"],
+      ["REQ-5", "partial"],
+      ["REQ-6", "partial"],
+    ],
+  );
+
+  for (const item of coverage.requirements) {
+    if (item.coverage !== "preserved") {
+      assert.equal(typeof item.gap, "string");
+      assert.ok((item.gap ?? "").length > 0);
+    }
+  }
 });
