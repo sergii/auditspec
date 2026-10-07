@@ -40,12 +40,18 @@ function portablePath(path: string): string {
   return path.split(sep).join("/");
 }
 
+function compareText(left: string, right: string): number {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 function compareIssues(left: ValidationIssue, right: ValidationIssue): number {
   return (
-    left.instancePath.localeCompare(right.instancePath) ||
-    left.schemaPath.localeCompare(right.schemaPath) ||
-    left.keyword.localeCompare(right.keyword) ||
-    (left.message ?? "").localeCompare(right.message ?? "")
+    compareText(left.instancePath, right.instancePath) ||
+    compareText(left.schemaPath, right.schemaPath) ||
+    compareText(left.keyword, right.keyword) ||
+    compareText(left.message ?? "", right.message ?? "")
   );
 }
 
@@ -72,7 +78,7 @@ function discoverJsonFiles(root: string): string[] {
 
   function walk(directory: string): void {
     const entries = readdirSync(directory, { withFileTypes: true })
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .sort((left, right) => compareText(left.name, right.name));
 
     for (const entry of entries) {
       const path = join(directory, entry.name);
@@ -131,7 +137,7 @@ export function runConformanceCorpus(
     });
   }
 
-  results.sort((left, right) => left.path.localeCompare(right.path));
+  results.sort((left, right) => compareText(left.path, right.path));
 
   const valid = results.filter((result) => result.valid).length;
   const invalid = results.length - valid;
