@@ -45,7 +45,7 @@ A graph contains:
 
 The canonical example is `schema/examples/assurance-graph.json`.
 
-## Framework-aware surfaces in v0.1
+## Framework-aware surfaces
 
 The reference implementation currently adds deterministic or deliberately bounded framework evidence for the following supported subsets.
 
@@ -89,6 +89,7 @@ Connection or subscription authorization is intentionally not projected onto eve
 RPC/hooks:
 
 - exact AST-owned `@frappe.whitelist` function attribution, including stacked and multiline decorators;
+- v0.2 module-level `frappe.whitelist` import aliases when direct import identity and alias stability before the decorated definition can be proven conservatively;
 - literal typed `doc_events` handlers using documented event names;
 - literal typed `scheduler_events`, including literal nested `cron` handler maps.
 
@@ -97,6 +98,7 @@ Background dispatch:
 - literal dotted `frappe.enqueue(...)` positional and `method=` targets;
 - unshadowed same-module top-level function references passed to `frappe.enqueue`;
 - direct exact-scope absolute `from ... import ...` function references, including aliases, when the import and repository target can be proven;
+- v0.2 direct module-level absolute `from ... import ...` function references, including aliases, when the binding precedes the caller, remains unrebound, is not caller-shadowed, and resolves to a repository target;
 - `frappe.enqueue_doc(...)` with literal DocType/method identity resolving to a unique conventional direct `Document` controller method;
 - `Document.queue_action(...)` for literal self-dispatch inside a conventional direct controller, preserving Frappe's app-local `_<action>` precedence and the asynchronous assurance boundary.
 
@@ -110,7 +112,7 @@ Framework dispatch is static evidence, not runtime proof. AuditSpec records the 
 
 AuditSpec MUST prefer an unresolved call over a speculative edge.
 
-The v0.1 reference implementation resolves a direct source call when either:
+The reference implementation resolves a direct source call when either:
 
 1. its receiver identifies exactly one matching container/method candidate, or
 2. only one repository-wide method/function candidate exists, in which case the edge is lower confidence.
@@ -172,14 +174,14 @@ This lets an agent inspect a repository, compare architecture before/after a cha
 
 ## Static/runtime evidence boundary
 
-The Assurance Graph is not runtime proof, formal verification, or a complete program call graph. In v0.1 it is deliberately bounded static evidence.
+The Assurance Graph is not runtime proof, formal verification, or a complete program call graph. It is deliberately bounded static evidence.
 
-Runtime Corroboration is already implemented as a separate evidence layer with explicit Observation Scope, provenance, trust, query/diff semantics, and reference OpenTelemetry, authorization-decision, database-receipt, and delivery-receipt producers. Runtime evidence can support, contradict, or remain inconclusive about stable static targets without rewriting the Assurance Graph or static Assessment coverage.
+Runtime Corroboration is implemented as a separate evidence layer with explicit Observation Scope, provenance, trust, query/diff semantics, and reference OpenTelemetry, authorization-decision, database-receipt, and delivery-receipt producers. Runtime evidence can support, contradict, or remain inconclusive about stable static targets without rewriting the Assurance Graph or static Assessment coverage.
 
 Remaining graph/framework work includes:
 
 - Rails lexical/nested concern composition, custom ActionCable connection wiring, more complex/callable route constraints, additional route DSL variants, and additional framework-generated dispatch;
-- Frappe aliased whitelist decorators, module-level imported enqueue references, module/attribute targets, resolvable relative imports, custom/indirect DocType controllers, and other dynamic composition that can be proven without optimistic inference;
+- Frappe module/attribute enqueue targets, resolvable relative imports, custom/indirect DocType controllers, and other dynamic composition that can be proven without optimistic inference;
 - message-bus and cross-service RPC edges;
 - evidence-backed trace/request/session/tool-call correlation that never invents semantic graph edges from correlation coincidence.
 

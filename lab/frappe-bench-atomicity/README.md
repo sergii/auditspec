@@ -2,7 +2,7 @@
 
 This executable lab verifies AuditSpec/Frappe transaction semantics against a real pinned Frappe Bench site backed by MariaDB.
 
-It is deliberately separate from `frameworks/frappe/test_auditspec_frappe.py`. The adapter contract test uses a fake database to prove that the adapter itself never owns commit/rollback. This lab proves how those primitives behave when they are attached to Frappe's actual database, callback manager, request transaction policy, and background-job executor.
+It is deliberately separate from `adapters/frappe/test_auditspec_frappe.py`. The adapter contract test uses a fake database to prove that the adapter itself never owns commit/rollback. This lab proves how those primitives behave when they are attached to Frappe's actual database, callback manager, request transaction policy, and background-job executor.
 
 ## Pinned reference stack
 
@@ -12,7 +12,7 @@ It is deliberately separate from `frameworks/frappe/test_auditspec_frappe.py`. T
 - Redis: `redis:alpine` service containers on Frappe's conventional CI ports
 - Python: `3.14`
 - Node.js: `24` for Bench/Frappe bootstrap compatibility
-- AuditSpec Python reference implementation and Frappe adapter from the checked-out AuditSpec revision
+- AuditSpec Python reference implementation and Frappe runtime adapter from the checked-out AuditSpec revision
 
 The GitHub Actions workflow creates an ephemeral Bench, creates a real site, and runs `runtime_test.py` inside the Bench virtual environment.
 

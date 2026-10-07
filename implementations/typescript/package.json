@@ -1,9 +1,9 @@
 {
   "name": "@auditspec/reference-typescript",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Executable TypeScript reference implementation for AuditSpec v0.1",
+  "description": "Executable TypeScript reference implementation for the AuditSpec v0.2 release line (Core spec_version 0.1)",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,7 +32,8 @@
     "@modelcontextprotocol/server": "2.0.0",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "canonicalize": "5.1.0"
   },
   "devDependencies": {
     "@stryker-mutator/core": "10.0.0",

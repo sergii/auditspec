@@ -1,0 +1,83 @@
+{
+  "fixture_version": "0.1",
+  "id": "transaction-tokens-v11",
+  "source": {
+    "name": "Transaction Tokens",
+    "revision": "draft-ietf-oauth-transaction-tokens-11",
+    "status": "active IETF OAuth WG draft; WG Consensus: Waiting for Write-Up",
+    "url": "https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/"
+  },
+  "scenario": "A short-lived signed transaction token carries subject identity, workload identity, authorization scope, and transaction context through a call chain inside one trust domain.",
+  "facts": [
+    {
+      "id": "transaction-identifier",
+      "source_path": "txn",
+      "meaning": "A unique transaction identifier supports correlation, auditing, and replay detection across the call chain.",
+      "disposition": "partial",
+      "auditspec_targets": ["correlation"],
+      "reason": "AuditSpec can preserve correlation identifiers, but Core does not yet define a dedicated transaction-token txn semantic or single-use replay state."
+    },
+    {
+      "id": "subject",
+      "source_path": "sub",
+      "meaning": "The transaction token carries the user or workload identity on whose behalf the transaction proceeds.",
+      "disposition": "partial",
+      "auditspec_targets": ["represented principal", "delegation principal"],
+      "reason": "AuditSpec can preserve principal identity, but the exact meaning of sub depends on the token issuance flow and is not automatically an immediate actor."
+    },
+    {
+      "id": "trust-domain-audience",
+      "source_path": "aud",
+      "meaning": "The token is valid only inside the identified trust domain.",
+      "disposition": "preserved",
+      "auditspec_targets": ["authorization context audience", "evidence applicability boundary"]
+    },
+    {
+      "id": "transaction-scope",
+      "source_path": "scope",
+      "meaning": "The token narrows the purpose or permitted actions of the transaction and must not be expanded from the source authorization.",
+      "disposition": "partial",
+      "auditspec_targets": ["authorization scopes"],
+      "reason": "AuditSpec can preserve scopes but does not infer a concrete allow decision from scope alone."
+    },
+    {
+      "id": "requesting-workload",
+      "source_path": "req_wl",
+      "meaning": "The token identifies the workload that requested the transaction token and replacement flows maintain the call chain of requesting workloads.",
+      "disposition": "partial",
+      "auditspec_targets": ["actor/delegation evidence", "origin/evidence metadata"],
+      "reason": "AuditSpec can record workload participants, but req_wl call-chain semantics do not yet have a dedicated executable projection."
+    },
+    {
+      "id": "immutable-transaction-context",
+      "source_path": "tctx",
+      "meaning": "Transaction context can carry immutable values about the business transaction through the call chain.",
+      "disposition": "partial",
+      "auditspec_targets": ["extensions", "evidence metadata"],
+      "reason": "AuditSpec can retain such data through extensions/evidence, but there is no standard field-level mapping because tctx contents are deployment-specific."
+    },
+    {
+      "id": "request-context",
+      "source_path": "rctx",
+      "meaning": "Environmental request context accompanies the transaction.",
+      "disposition": "partial",
+      "auditspec_targets": ["origin", "evidence metadata", "extensions"],
+      "reason": "AuditSpec has compatible containers, but rctx contents are deployment-defined and require an explicit profile to avoid semantic guessing."
+    },
+    {
+      "id": "single-use-replay-state",
+      "source_path": "txn replay detection",
+      "meaning": "A recipient may track txn values during the acceptance window to detect or reject replay.",
+      "disposition": "not_represented",
+      "reason": "AuditSpec can record replay-related evidence, but current Core and runtime producers do not define replay-cache state or single-use enforcement semantics."
+    },
+    {
+      "id": "replacement-attenuation",
+      "source_path": "replacement Txn-Token rules",
+      "meaning": "Replacement tokens may reduce authorization scope but must not expand it, and txn, sub, and aud remain unchanged.",
+      "disposition": "partial",
+      "auditspec_targets": ["authorization context", "assurance attenuation"],
+      "reason": "AuditSpec now has generic monotonic assurance attenuation, but it does not yet implement Transaction Token replacement semantics for immutable claims and scope subset validation."
+    }
+  ]
+}

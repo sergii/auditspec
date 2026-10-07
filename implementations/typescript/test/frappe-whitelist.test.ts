@@ -51,6 +51,100 @@ test("attributes multiline frappe.whitelist arguments through the decorated AST 
   assert.equal(isFrappeWhitelistedScope(source, scope), true);
 });
 
+test("attributes a proven from-import alias for frappe.whitelist", () => {
+  const source = [
+    "from frappe import whitelist as api",
+    "",
+    "@api(allow_guest=True)",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), true);
+});
+
+test("attributes a proven imported frappe module alias", () => {
+  const source = [
+    "import frappe as f",
+    "",
+    "@f.whitelist()",
+    "def update_project(name):",
+    "    f.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), true);
+});
+
+test("attributes a directly imported frappe whitelist name", () => {
+  const source = [
+    "from frappe import whitelist",
+    "",
+    "@whitelist()",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), true);
+});
+
+test("fails closed when a whitelist alias is rebound before the definition", () => {
+  const source = [
+    "from frappe import whitelist as api",
+    "api = custom_decorator",
+    "",
+    "@api()",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), false);
+});
+
+test("fails closed when another decorator mutates the whitelist alias", () => {
+  const source = [
+    "from frappe import whitelist as api",
+    "",
+    "@wrapper(api := custom_decorator)",
+    "@api()",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), false);
+});
+
+test("fails closed for a conditional whitelist alias import", () => {
+  const source = [
+    "if FEATURE_ENABLED:",
+    "    from frappe import whitelist as api",
+    "",
+    "@api()",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), false);
+});
+
+test("fails closed for an alias imported from a different module", () => {
+  const source = [
+    "from custom_api import whitelist as api",
+    "",
+    "@api()",
+    "def update_project(name):",
+    "    frappe.db.set_value('Project', name, 'status', 'Active')",
+  ].join("\n");
+
+  const scope = scopeForMutation(source, "set_value");
+  assert.equal(isFrappeWhitelistedScope(source, scope), false);
+});
+
 test("does not inherit a whitelist decorator from a neighboring function", () => {
   const source = [
     "import frappe",

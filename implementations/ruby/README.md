@@ -56,13 +56,15 @@ An identical retry can be classified as a duplicate. Reusing the same identity f
 
 ## Transaction integration
 
-The Ruby reference does not own application transactions.
+The Ruby reference does not own application transactions or depend on Rails.
 
-For Rails, call AuditSpec from the service/domain transaction that owns the mutation, or persist durable AuditSpec outbox intent inside that transaction when the final sink is external.
+For Rails, the runtime integration lives in `adapters/rails/`. Call AuditSpec from the service/domain transaction that owns the mutation, or persist durable AuditSpec outbox intent inside that transaction when the final sink is external.
+
+Rails static source analysis is a separate Inspector plugin capability and does not change Ruby reference semantics.
 
 See:
 
-- `frameworks/rails/README.md`
+- `adapters/rails/README.md`
 - `profiles/atomicity/README.md`
 - `lab/postgres-atomicity/`
 

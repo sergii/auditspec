@@ -1,0 +1,61 @@
+{
+  "mandate": {
+    "mandate_version": "0.1",
+    "id": "mandate-invoice-001",
+    "principal": { "id": "user:42" },
+    "agent": { "id": "agent:7" },
+    "issued_at": "2026-10-07T08:00:00Z",
+    "valid_from": "2026-10-07T08:00:00Z",
+    "expires_at": "2026-10-07T12:00:00Z",
+    "constraints": [
+      {
+        "id": "operation",
+        "class": "hard",
+        "path": "operation",
+        "operator": "equals",
+        "value": "invoice.pay"
+      },
+      {
+        "id": "counterparty",
+        "class": "hard",
+        "path": "parameters.counterparty",
+        "operator": "one_of",
+        "values": ["vendor:a", "vendor:b"]
+      },
+      {
+        "id": "absolute-value-ceiling",
+        "class": "hard",
+        "path": "parameters.amount",
+        "operator": "number_lte",
+        "value": 5000
+      },
+      {
+        "id": "fresh-human-review-threshold",
+        "class": "escalating",
+        "path": "parameters.amount",
+        "operator": "number_lte",
+        "value": 1000
+      }
+    ]
+  },
+  "action": {
+    "actor": { "id": "agent:7" },
+    "operation": "invoice.pay",
+    "parameters": {
+      "counterparty": "vendor:a",
+      "amount": 500
+    },
+    "occurred_at": "2026-10-07T09:00:00Z"
+  },
+  "verification": {
+    "mandate_signature_verified": true,
+    "action_binding_verified": true,
+    "verifier": "example-verifier",
+    "mandate_digest": "sha256:mandate-example",
+    "action_digest": "sha256:action-example"
+  },
+  "expected": {
+    "decision": "within_mandate",
+    "authorized": true
+  }
+}

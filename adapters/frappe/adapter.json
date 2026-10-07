@@ -18,8 +18,8 @@
       "status": "implemented",
       "proof": "contract",
       "evidence": [
-        "frameworks/frappe/auditspec_frappe.py",
-        "frameworks/frappe/test_auditspec_frappe.py",
+        "adapters/frappe/auditspec_frappe.py",
+        "adapters/frappe/test_auditspec_frappe.py",
         ".github/workflows/frappe-adapter.yml"
       ],
       "limitations": [
@@ -43,13 +43,23 @@
       "proof": "pinned_real_world_static",
       "adapter_id": "frappe-ast-assisted-v0.1",
       "evidence": [
-        "implementations/typescript/src/inspector-frappe.ts",
+        "implementations/typescript/src/inspector/plugin.ts",
+        "implementations/typescript/src/inspector/core.ts",
+        "implementations/typescript/src/inspector/plugins/frappe.ts",
+        "implementations/typescript/src/frappe-inspect.ts",
         "implementations/typescript/src/assurance-graph.ts",
+        "implementations/typescript/src/inspector/assurance-graph/core.ts",
+        "implementations/typescript/src/inspector/assurance-graph/plugin.ts",
+        "implementations/typescript/src/inspector/assurance-graph/default-plugins.ts",
+        "implementations/typescript/src/inspector/plugins/frappe-assurance-graph.ts",
         "implementations/typescript/src/ast-calls.ts",
         "implementations/typescript/src/frappe-hooks.ts",
         "implementations/typescript/src/frappe-whitelist.ts",
         "implementations/typescript/src/frappe-enqueue-local.ts",
         "implementations/typescript/src/frappe-document-hooks.ts",
+        "implementations/typescript/test/inspector-plugin.test.ts",
+        "implementations/typescript/test/assurance-graph-plugin.test.ts",
+        "implementations/typescript/test/architecture-boundaries.test.ts",
         "implementations/typescript/test/framework-graph.test.ts",
         "implementations/typescript/test/frappe-hooks.test.ts",
         "implementations/typescript/test/frappe-hooks-graph.test.ts",
@@ -57,6 +67,7 @@
         "implementations/typescript/test/frappe-whitelist-graph.test.ts",
         "implementations/typescript/test/frappe-enqueue-local.test.ts",
         "implementations/typescript/test/frappe-enqueue-graph.test.ts",
+        "implementations/typescript/test/frappe-enqueue-module-graph.test.ts",
         "implementations/typescript/test/frappe-enqueue-doc-graph.test.ts",
         "implementations/typescript/test/frappe-queue-action.test.ts",
         "implementations/typescript/test/frappe-queue-action-graph.test.ts",
@@ -66,12 +77,14 @@
       ],
       "limitations": [
         "Static reachability is not runtime execution proof.",
+        "Frappe assessment and Assurance Graph construction are composed through framework plugins; the shared Inspector/graph cores remain framework-neutral and the default CLI registers the Frappe plugin at the composition boundary.",
+        "The current graph source scanner is limited to Ruby and Python inputs; this does not restrict the framework identity contract but additional source languages require a separate scanner extension boundary.",
         "Frappe whitelist entrypoints are attributed from the Python decorated_definition AST node owned by the exact function; stacked and multiline @frappe.whitelist(...) decorator forms are supported and neighboring decorators never strengthen another function.",
-        "Aliased whitelist decorator names that require Python import/name resolution are not treated as proven @frappe.whitelist entrypoints in v0.1.",
+        "Frappe whitelist decorator aliases are supported when one direct module-level import proves either from frappe import whitelist [as alias] or import frappe as alias before the decorated definition and the alias has no intervening ambiguous use or rebinding; conditional, wildcard, duplicate, different-module, late, or rebound aliases fail closed.",
         "Frappe doc_events and scheduler_events are resolved only from one literal assignment with documented event keys and literal dotted handler strings/lists; scheduler cron maps are supported as literal nested maps.",
         "Dynamic hook composition, later mutation/reassignment, duplicate literal keys, unknown event keys, and non-literal handler composition fail closed rather than producing optimistic hook dispatch edges.",
-        "Frappe enqueue resolution supports exact frappe.enqueue calls with a literal dotted positional or method= target, an unshadowed top-level function reference from the same Python module, or a direct exact-scope absolute from-import function reference including an as alias.",
-        "Conditional, relative, wildcard, duplicate, late, or rebound imports, module-level imported function references, attribute/module references, dynamic enqueue targets, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges.",
+        "Frappe enqueue resolution supports exact frappe.enqueue calls with a literal dotted positional or method= target, an unshadowed top-level function reference from the same Python module, a direct exact-scope absolute from-import function reference including an as alias, or one direct absolute module-level from-import function reference including an as alias when the binding precedes the caller, remains unrebound, and is not shadowed by caller-local state.",
+        "Conditional, relative, wildcard, duplicate, late, or rebound imports, caller-local shadowing, attribute/module references, dynamic enqueue targets, starred argument composition, and unrelated .enqueue methods do not produce optimistic Frappe dispatch edges; a proven import whose repository target is absent never falls back to a same-named local function.",
         "frappe.enqueue_doc resolution supports exact calls with literal doctype and method identity; the document name may remain dynamic because it does not change the controller method target.",
         "Dynamic enqueue_doc doctype/method identity, ambiguous conventional controllers, and custom or indirect controller resolution do not produce optimistic dispatch edges.",
         "Document queue_action resolution supports AST-proven self.queue_action calls inside a conventional direct Document controller when the action is a literal identifier and the effective target method is defined by that controller.",
@@ -107,7 +120,8 @@
     ]
   },
   "references": [
-    "frameworks/README.md",
-    "frameworks/frappe/README.md"
+    "adapters/README.md",
+    "adapters/frappe/README.md",
+    "docs/architecture.md"
   ]
 }

@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "implementations" / "python"))
-sys.path.insert(0, str(ROOT / "frameworks" / "frappe"))
+sys.path.insert(0, str(ROOT / "adapters" / "frappe"))
 
 import frappe  # noqa: E402
 from frappe.app import sync_database  # noqa: E402

@@ -19,12 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: sergii/auditspec@v0.1
+      - uses: sergii/auditspec@v0.2
         with:
           baseline: auto
 ```
 
-For released use, pin the `v0.1` tag or an immutable commit. Before a tag is published, use an explicit commit for experimentation rather than relying on a moving development branch.
+For the v0.2 release line, use `sergii/auditspec@v0.2` or pin the immutable `v0.2.0` tag/commit after the final tag is created. Compatibility-sensitive users should prefer an immutable release tag or commit.
 
 ## Pull request behavior
 

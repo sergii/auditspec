@@ -1,0 +1,35 @@
+{
+  "statement": {
+    "statement_version": "0.1",
+    "proof_id": "proof-invalid-authorization",
+    "issued_at": "2026-10-07T09:00:01Z",
+    "issuer": {
+      "id": "auditspec-proof-service",
+      "key_id": "ed25519-example"
+    },
+    "canonicalization": "RFC8785",
+    "digest_algorithm": "SHA-256",
+    "signature_algorithm": "Ed25519",
+    "mandate": {
+      "id": "mandate-example-001",
+      "digest": "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "action": {
+      "digest": "sha256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+    },
+    "evaluation": {
+      "evaluation_version": "0.1",
+      "mandate_id": "mandate-example-001",
+      "principal_id": "user:42",
+      "decision": "outside_mandate",
+      "authorized": true,
+      "constraint_results": [],
+      "verification": {
+        "mandate_signature_verified": true,
+        "action_binding_verified": true
+      },
+      "limitations": []
+    }
+  },
+  "signature": "AA"
+}

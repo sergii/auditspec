@@ -1,0 +1,72 @@
+{
+  "source": {
+    "name": "Problem Statement: Verifiable Human Mandates for Autonomous Agent Actions",
+    "revision": "draft-yossif-agent-mandate-problem-00",
+    "status": "active individual Internet-Draft; problem statement only; no protocol defined",
+    "url": "https://datatracker.ietf.org/doc/draft-yossif-agent-mandate-problem/"
+  },
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "name": "Action-to-mandate binding",
+      "coverage": "partial",
+      "auditspec_surface": [
+        "MandateVerificationContext.action_binding_verified",
+        "HumanMandateEvaluation.verification"
+      ],
+      "gap": "AuditSpec consumes an external binding-verification result but does not define the cryptographic binding construction, canonicalization, signing format, or verifier."
+    },
+    {
+      "id": "REQ-2",
+      "name": "Deterministic server-side verifiability",
+      "coverage": "partial",
+      "auditspec_surface": [
+        "evaluateHumanMandate"
+      ],
+      "gap": "The evaluator is deterministic over explicit mandate/action data, but cryptographic mandate and binding verification remain external inputs."
+    },
+    {
+      "id": "REQ-3",
+      "name": "Fail-closed on violation",
+      "coverage": "preserved",
+      "auditspec_surface": [
+        "HumanMandateEvaluation.decision",
+        "HumanMandateEvaluation.authorized"
+      ],
+      "gap": null
+    },
+    {
+      "id": "REQ-4",
+      "name": "Independently verifiable evidence output",
+      "coverage": "partial",
+      "auditspec_surface": [
+        "SignedHumanMandateProof",
+        "issueHumanMandateProof",
+        "verifyHumanMandateProof",
+        "schema/human-mandate-proof.schema.json"
+      ],
+      "gap": "AuditSpec now emits an independently verifiable Ed25519 proof over RFC 8785 content bindings and the deterministic evaluation. Independent replay of the original human mandate signature and T0-to-T1 binding cryptography still depends on the external mandate protocol that produced those verifier outcomes."
+    },
+    {
+      "id": "REQ-5",
+      "name": "Transport and format neutrality",
+      "coverage": "partial",
+      "auditspec_surface": [
+        "MandatedAction",
+        "HumanMandate",
+        "evaluateHumanMandate"
+      ],
+      "gap": "The evaluator is transport-neutral after projection into its semantic model, but AuditSpec does not yet define format-neutral canonical binding from arbitrary wire payloads into action parameters."
+    },
+    {
+      "id": "REQ-6",
+      "name": "Escalation without re-centralizing every action",
+      "coverage": "partial",
+      "auditspec_surface": [
+        "MandateConstraint.class=escalating",
+        "HumanMandateEvaluation.decision=requires_fresh_authorization"
+      ],
+      "gap": "AuditSpec can signal that autonomous authority ended, but does not define the fresh human-authorization interaction or resulting replacement mandate."
+    }
+  ]
+}

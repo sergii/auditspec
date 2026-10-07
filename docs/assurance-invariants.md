@@ -120,3 +120,227 @@ implementations/typescript/test/all-path-model.test.ts
 `all-path-model.test.ts` exhaustively evaluates the small state space of one to three entrypoints across all combinations of audit, transaction, and authorization evidence. That is 584 path-set combinations checked against an independent oracle for coverage status and `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002` behavior.
 
 These tests are intended to grow alongside the Inspector. A new adapter that violates an invariant should change the invariant only through an explicit specification decision, not by weakening a test to make CI pass.
+
+
+## 10. Assurance attenuates across dependencies
+
+A dependent assertion MUST NOT become stronger than the weakest assertion it semantically depends on.
+
+This prevents identity laundering and related trust amplification across agent, service, authorization, and evidence chains.
+
+Example:
+
+```text
+external actor identity      self_reported
+          |
+          v
+internal agent delegation    authoritative locally
+          |
+          v
+authorization decision       authoritative locally
+          |
+          v
+business execution           authoritative locally
+```
+
+The local producer strength of each downstream fact remains visible. However, an assertion that depends on the external actor identity cannot have effective assurance stronger than `self_reported`.
+
+This is intentionally fact-scoped. A database-owned receipt about transaction commit can still remain `authoritative` for the database fact when it does not semantically depend on the weak identity assertion.
+
+The TypeScript reference implements this as a pure dependency evaluator:
+
+```text
+implementations/typescript/src/assurance-attenuation.ts
+```
+
+Each assertion has an `intrinsic_strength` and optional `depends_on` assertion ids. The effective strength is bounded by the weakest dependency.
+
+The ordered strength lattice is:
+
+```text
+unknown
+  <
+self_reported
+  <
+attributed
+  <
+authoritative
+```
+
+Missing dependencies and dependency cycles fail closed to `unknown`. Adding a weaker dependency can preserve or reduce effective assurance, but never improve it.
+
+This evaluator does not replace producer authority scopes. `authoritative` means authoritative only for the fact the producer directly owns. Dependency attenuation answers a different question: how strong can a derived or composite assertion remain when it relies on other assertions?
+
+
+## 11. General agent authority is not concrete-action authority
+
+A valid identity, credential, delegation chain, OAuth scope, request signature, or proof-of-possession result MUST NOT by itself establish that one concrete autonomous action is authorized by the human principal.
+
+A positive concrete-action mandate result requires all of the following:
+
+- the relevant mandate or approval artifact is positively verified by an appropriate verifier;
+- the concrete action is positively bound to the mandate being evaluated;
+- the executing agent matches any agent identity explicitly bound by the mandate;
+- the action is within the mandate validity window;
+- every required constraint is evaluable;
+- every hard constraint is satisfied;
+- every escalating constraint is satisfied, unless fresh human authorization is obtained through a separate mechanism.
+
+If the mandate signature or action binding is not verified, or a required action parameter cannot be evaluated, the result fails closed to `unverifiable` and MUST NOT be treated as permission.
+
+Crossing a hard constraint yields `outside_mandate`.
+
+Crossing an escalating constraint yields `requires_fresh_authorization`, not `within_mandate`.
+
+This preserves the distinction between:
+
+```text
+agent may act
+```
+
+and:
+
+```text
+human authorized this action with these parameters
+```
+
+The executable reference is:
+
+```text
+implementations/typescript/src/human-mandate.ts
+implementations/typescript/test/human-mandate.test.ts
+mappings/human-mandate/
+```
+
+The evaluator consumes cryptographic verification outcomes but does not itself define or perform the T0 mandate signature or T0-to-T1 action-binding mechanism.
+
+
+## 12. A valid proof binds a statement, not unlimited authority
+
+Cryptographic validity MUST NOT broaden the authority of the signer or verifier.
+
+A valid mandate proof can establish that the expected key signed one exact canonical statement and that the statement is bound to the supplied mandate, action, and deterministic evaluation.
+
+It does not, by signature validity alone, establish that:
+
+- the proof issuer is authoritative for every assertion carried inside the statement;
+- the supplied public key is legitimately bound to the claimed issuer;
+- an externally asserted mandate-signature verification outcome was itself independently replayed by the proof consumer;
+- an externally asserted action-binding verification outcome was itself independently replayed by the proof consumer;
+- the business action actually executed.
+
+Therefore:
+
+```text
+valid signature
+      !=
+unbounded authority
+```
+
+and:
+
+```text
+valid proof of unverifiable/outside/escalate
+      !=
+permission
+```
+
+The proof verifier returns `authorized: true` only when the proof is internally valid and the signed/recomputed mandate evaluation itself is `within_mandate`.
+
+Key distribution, PKI, registry trust, and issuer authority remain separate policy/evidence inputs.
+
+
+## 13. Authorization projection must not widen authority
+
+Projecting an external authorization artifact into AuditSpec MUST NOT silently discard a source restriction in a way that makes the resulting mandate broader than the source artifact.
+
+If a required source constraint, binding rule, delegation check, replay rule, scope, or other authorization boundary cannot be represented or independently established, the projection MUST fail closed rather than emit a stronger positive mandate.
+
+Examples:
+
+```text
+AAE required rate_limit
+        |
+        | stateless HumanMandate cannot enforce it
+        v
+unverifiable
+```
+
+not:
+
+```text
+drop rate_limit
+        ↓
+broader "pay" permission
+```
+
+and:
+
+```text
+Intent Token scope/bound
+        |
+        | no deployment mapping
+        v
+unverifiable
+```
+
+not:
+
+```text
+keep only action_class
+        ↓
+broader mandate
+```
+
+A cryptographically valid source artifact may therefore still be unusable as a positive AuditSpec HumanMandate projection.
+
+Source-protocol negative or pending states MUST also remain distinct. An AAE `forbid` is not rewritten as permission, and an AAE `hold` is not silently interpreted as a generic AuditSpec allow decision.
+
+The executable reference is:
+
+```text
+implementations/typescript/src/mandate-binding-profiles.ts
+implementations/typescript/test/mandate-binding-profiles.test.ts
+mappings/mandate-binding-profiles/
+```
+
+
+## 14. Adjacent valid artifacts do not create a cross-layer binding
+
+Two independently valid artifacts MUST NOT be treated as evidence about the same action merely because they appear in the same request, trace, session, or transaction.
+
+A positive end-to-end mandate chain requires explicit evidence that the layers refer to the same semantic principal, actor, and concrete action.
+
+At minimum:
+
+- the verified RFC 8693 current actor must match the agent bound by the human authorization artifact;
+- the verified RFC 8693 represented subject must match the human principal bound by the authorization artifact;
+- the signed HTTP request must be explicitly bound to the exact `MandatedAction`;
+- the HumanMandate projection must preserve all required source authorization restrictions;
+- the mandate proof must bind the exact mandate and exact action being evaluated.
+
+Therefore:
+
+```text
+valid request signature
++ valid delegation token
++ valid human authorization artifact
+```
+
+does not imply:
+
+```text
+the signed request is the action the human authorized
+```
+
+without an explicit request-to-action binding.
+
+Likewise, a valid mandate proof cannot repair an actor mismatch in the delegation layer, and an authoritative database commit cannot retroactively prove authorization.
+
+The executable composition harness is:
+
+```text
+implementations/typescript/src/end-to-end-mandate-chain.ts
+implementations/typescript/test/end-to-end-mandate-chain.test.ts
+mappings/end-to-end-mandate-chain/
+```

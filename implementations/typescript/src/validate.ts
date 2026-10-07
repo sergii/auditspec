@@ -13,6 +13,7 @@ import type { RuntimeCorroborationDiff } from "./corroboration-diff.js";
 import type { CorroborationQueryResult } from "./corroboration-query.js";
 import type { EvidenceQueryResult } from "./evidence-query.js";
 import type { OscalExportRequest } from "./oscal.js";
+import type { SignedHumanMandateProof } from "./mandate-proof.js";
 import type { RemediationPlan, RemediationVerificationResult } from "./remediation.js";
 import type { RuntimeCorroborationReport, RuntimeEvidenceRecord } from "./runtime-corroboration.js";
 import type { AuditEvent } from "./types.js";
@@ -61,6 +62,7 @@ const corroborationReportSchema = loadSchema("../../../schema/corroboration-repo
 const corroborationDiffSchema = loadSchema("../../../schema/corroboration-diff.schema.json");
 const corroborationQueryResultSchema = loadSchema("../../../schema/corroboration-query-result.schema.json");
 const agentProfileSchema = loadSchema("../../../profiles/agent/agent-profile.schema.json");
+const humanMandateProofSchema = loadSchema("../../../schema/human-mandate-proof.schema.json");
 
 const validateEvent = ajv.compile<AuditEvent>(auditEventSchema);
 const validateAssessment = ajv.compile<AssessmentReport>(assessmentReportSchema);
@@ -78,6 +80,7 @@ const validateCorroboration = ajv.compile<RuntimeCorroborationReport>(corroborat
 const validateCorroborationDiffSchema = ajv.compile<RuntimeCorroborationDiff>(corroborationDiffSchema);
 const validateCorroborationQuery = ajv.compile<CorroborationQueryResult>(corroborationQueryResultSchema);
 const validateProfile = ajv.compile(agentProfileSchema);
+const validateMandateProof = ajv.compile<SignedHumanMandateProof>(humanMandateProofSchema);
 
 function issues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
   return (errors ?? []).map((error) => ({
@@ -242,4 +245,21 @@ export function assertCorroborationQueryResult(input: unknown): asserts input is
 export function validateAgentProfile(input: unknown): ValidationResult {
   if (validateProfile(input)) return { valid: true, errors: [] };
   return { valid: false, errors: issues(validateProfile.errors) };
+}
+
+
+export function validateHumanMandateProof(input: unknown): ValidationResult {
+  if (validateMandateProof(input)) return { valid: true, errors: [] };
+  return { valid: false, errors: issues(validateMandateProof.errors) };
+}
+
+export function assertHumanMandateProof(
+  input: unknown,
+): asserts input is SignedHumanMandateProof {
+  const result = validateHumanMandateProof(input);
+  if (!result.valid) {
+    throw new TypeError(
+      `Invalid AuditSpec human mandate proof: ${JSON.stringify(result.errors)}`,
+    );
+  }
 }

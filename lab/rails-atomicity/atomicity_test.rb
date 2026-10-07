@@ -4,7 +4,7 @@ require "active_record"
 require "json"
 require "minitest/autorun"
 require_relative "../../implementations/ruby/lib/auditspec"
-require_relative "../../frameworks/rails/auditspec_rails"
+require_relative "../../adapters/rails/auditspec_rails"
 
 ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
 
