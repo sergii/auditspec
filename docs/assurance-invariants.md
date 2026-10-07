@@ -120,3 +120,53 @@ implementations/typescript/test/all-path-model.test.ts
 `all-path-model.test.ts` exhaustively evaluates the small state space of one to three entrypoints across all combinations of audit, transaction, and authorization evidence. That is 584 path-set combinations checked against an independent oracle for coverage status and `AS-AUDIT-002`, `AS-ATOMIC-002`, and `AS-AUTH-002` behavior.
 
 These tests are intended to grow alongside the Inspector. A new adapter that violates an invariant should change the invariant only through an explicit specification decision, not by weakening a test to make CI pass.
+
+
+## 10. Assurance attenuates across dependencies
+
+A dependent assertion MUST NOT become stronger than the weakest assertion it semantically depends on.
+
+This prevents identity laundering and related trust amplification across agent, service, authorization, and evidence chains.
+
+Example:
+
+```text
+external actor identity      self_reported
+          |
+          v
+internal agent delegation    authoritative locally
+          |
+          v
+authorization decision       authoritative locally
+          |
+          v
+business execution           authoritative locally
+```
+
+The local producer strength of each downstream fact remains visible. However, an assertion that depends on the external actor identity cannot have effective assurance stronger than `self_reported`.
+
+This is intentionally fact-scoped. A database-owned receipt about transaction commit can still remain `authoritative` for the database fact when it does not semantically depend on the weak identity assertion.
+
+The TypeScript reference implements this as a pure dependency evaluator:
+
+```text
+implementations/typescript/src/assurance-attenuation.ts
+```
+
+Each assertion has an `intrinsic_strength` and optional `depends_on` assertion ids. The effective strength is bounded by the weakest dependency.
+
+The ordered strength lattice is:
+
+```text
+unknown
+  <
+self_reported
+  <
+attributed
+  <
+authoritative
+```
+
+Missing dependencies and dependency cycles fail closed to `unknown`. Adding a weaker dependency can preserve or reduce effective assurance, but never improve it.
+
+This evaluator does not replace producer authority scopes. `authoritative` means authoritative only for the fact the producer directly owns. Dependency attenuation answers a different question: how strong can a derived or composite assertion remain when it relies on other assertions?
