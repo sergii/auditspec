@@ -10,6 +10,7 @@ export * from "./agent-chain-fixtures.js";
 export * from "./human-mandate.js";
 export * from "./mandate-proof.js";
 export * from "./mandate-binding-profiles.js";
+export * from "./end-to-end-mandate-chain.js";
 export * from "./all-path-assurance.js";
 export * from "./remediation.js";
 export * from "./control-mapping.js";
