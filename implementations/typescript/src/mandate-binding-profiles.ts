@@ -125,7 +125,10 @@ export function verifyAaeCompactJws(input: {
     typeof payload.issuer === "string" &&
     isRecord(payload.credentialSubject) &&
     typeof payload.credentialSubject.id === "string" &&
-    isRecord(payload.credentialSubject.aae);
+    isRecord(payload.credentialSubject.aae) &&
+    isRecord(payload.credentialSubject.aae.mandate) &&
+    isRecord(payload.credentialSubject.aae.constraints) &&
+    isRecord(payload.credentialSubject.aae.validity);
 
   if (!payloadValid) {
     warnings.push("AAE JWS payload is missing the required Verifiable Credential structure.");
@@ -198,10 +201,18 @@ export function verifyIntentTokenCompactJwt(input: {
     typeof payload.declared_intent.action_class === "string" &&
     typeof payload.declared_intent.scope === "string" &&
     isRecord(payload.shard) &&
+    typeof payload.shard.id === "string" &&
     typeof payload.shard.issued_at === "number" &&
     typeof payload.shard.expires_at === "number" &&
+    typeof payload.shard.window_seconds === "number" &&
     isRecord(payload.enforcement) &&
-    payload.enforcement.snap_back === true;
+    payload.enforcement.snap_back === true &&
+    typeof payload.enforcement.audit_chain === "string" &&
+    typeof payload.enforcement.auth_mode === "string" &&
+    (
+      (payload.ibt_level !== "agent" && payload.ibt_level !== "cluster") ||
+      (typeof payload.parent_token_jti === "string" && payload.parent_token_jti.length > 0)
+    );
 
   if (!payloadValid) {
     warnings.push("Intent Token payload is missing one or more required -02 claims.");
