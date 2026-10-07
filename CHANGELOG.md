@@ -52,7 +52,7 @@ Second public AuditSpec repository release line.
 
 ### Release status
 
-- See `docs/release-v0.2.md` for release boundaries and post-merge/tag checks.
+- See `docs/release-v0.2.md` for the completed release gates and version boundaries.
 - Draft-based identity/mandate mappings remain experimental research surfaces and are not protocol-conformance claims.
 
 ## v0.1 - 2026-09-08
