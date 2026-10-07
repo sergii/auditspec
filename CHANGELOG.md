@@ -11,6 +11,9 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 - Added optional human-readable `auditspec validate ... --human` output while preserving machine-readable JSON as the default.
 - Added `auditspec explain` and `--json` explanation projection for the semantic fields a first-time implementer needs to understand.
 - Added executable tests that keep the generated starter event, checked-in example, validation result, and explanation output aligned.
+- Added `auditspec conformance <path>` for deterministic recursive validation of implementer-owned Core event corpora.
+- Added human and `--json` corpus summaries, stable relative file ordering, explicit malformed-JSON accounting, and non-zero failure for empty corpora.
+- Added the versioned `schema/conformance-corpus-report.schema.json` machine-readable CI contract.
 - Core remains `spec_version: "0.1"`; these are adoption surfaces, not a Core schema revision.
 
 ## v0.2.0 - 2026-10-07
