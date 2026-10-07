@@ -1,6 +1,6 @@
 # TypeScript reference implementation
 
-This directory contains the executable TypeScript reference for the AuditSpec v0.2 release line. The package version is `0.2.0`. The normative Core event contract remains `spec_version: "0.1"`; the repository JSON Schemas and `SPEC.md` remain the source of truth for their respective contracts.
+This directory contains the executable TypeScript reference for the AuditSpec v0.3 development line. The package version is `0.3.0-dev.1`; the latest tagged repository release remains `v0.2.0`. The normative Core event contract remains `spec_version: "0.1"`; repository/implementation versions do not imply a Core schema version.
 
 ## Library API
 
@@ -30,7 +30,7 @@ import {
 } from "@auditspec/reference-typescript/experimental";
 ```
 
-See `../../docs/api-stability.md` and `api-surface.json` for the enforced classification.
+See `../../docs/api-stability.md` and `api-surface.json` for the enforced classification. Current development/release metadata is declared in `../../release/metadata.json`.
 
 `normalizeAuditEvent(event)` produces deterministic reference output but does **not** claim RFC 8785/JCS canonicalization and MUST NOT be used as a signing format.
 
@@ -96,7 +96,7 @@ The report uses portable relative paths and deterministic ordering so the same c
 
 The command exits non-zero when any event is invalid, when JSON parsing fails, or when a directory contains no JSON events.
 
-Inspector findings remain advisory in the v0.2 release line. The CLI does not treat findings as command failure by default.
+Inspector findings remain advisory in the v0.3 development line. The CLI does not treat findings as command failure by default.
 
 ## Runtime evidence
 
