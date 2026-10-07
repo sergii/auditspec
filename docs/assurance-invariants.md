@@ -303,3 +303,44 @@ implementations/typescript/src/mandate-binding-profiles.ts
 implementations/typescript/test/mandate-binding-profiles.test.ts
 mappings/mandate-binding-profiles/
 ```
+
+
+## 14. Adjacent valid artifacts do not create a cross-layer binding
+
+Two independently valid artifacts MUST NOT be treated as evidence about the same action merely because they appear in the same request, trace, session, or transaction.
+
+A positive end-to-end mandate chain requires explicit evidence that the layers refer to the same semantic principal, actor, and concrete action.
+
+At minimum:
+
+- the verified RFC 8693 current actor must match the agent bound by the human authorization artifact;
+- the verified RFC 8693 represented subject must match the human principal bound by the authorization artifact;
+- the signed HTTP request must be explicitly bound to the exact `MandatedAction`;
+- the HumanMandate projection must preserve all required source authorization restrictions;
+- the mandate proof must bind the exact mandate and exact action being evaluated.
+
+Therefore:
+
+```text
+valid request signature
++ valid delegation token
++ valid human authorization artifact
+```
+
+does not imply:
+
+```text
+the signed request is the action the human authorized
+```
+
+without an explicit request-to-action binding.
+
+Likewise, a valid mandate proof cannot repair an actor mismatch in the delegation layer, and an authoritative database commit cannot retroactively prove authorization.
+
+The executable composition harness is:
+
+```text
+implementations/typescript/src/end-to-end-mandate-chain.ts
+implementations/typescript/test/end-to-end-mandate-chain.test.ts
+mappings/end-to-end-mandate-chain/
+```

@@ -99,6 +99,8 @@ The v0.2 TypeScript reference also includes a transport-neutral human-mandate re
 The v0.2 line now also includes a signed human-mandate proof using RFC 8785 canonicalization, SHA-256 content bindings, and Ed25519 signatures. A verifier can independently validate the proof issuer's signature, exact mandate/action digests, and deterministic evaluation consistency. The remaining cryptographic gap is independent replay of the original human mandate signature and original T0-to-T1 binding protocol rather than trusting those verifier outcomes as signed attestations.
 
 The v0.2 TypeScript reference now includes AAE and Intent Token mandate-binding profiles. The AAE profile verifies Ed25519 compact JWS artifacts, implements the draft's tagged RFC 8785 action-binding digest, preserves allow/hold/forbid distinctions, and fails closed when required source constraints cannot be represented. The Intent Token profile verifies ES256 JWT artifacts but requires explicit deployment mappings for scope/bounds and explicit replay/delegation/before-action-binding outcomes before producing a positive HumanMandate projection.
+
+The v0.2 line now also includes an end-to-end mandate-chain composition harness that joins RFC 9421 request evidence, RFC 8693 actor/delegation context, AAE mandate projection, HumanMandate evaluation, signed mandate proof, assurance attenuation, application execution observation, and database commit evidence. The harness includes adversarial mutations for action tampering, actor substitution, weakened delegation, unrepresentable required constraints, replay failure, expiry, and missing request-to-action binding.
 - an assurance-chain invariant inspired by agent transaction-token monotonic attenuation: stronger downstream producers or agents must not silently upgrade weaker upstream actor/delegation provenance, with explicit tests against identity laundering;
 
 The v0.2 TypeScript reference now includes a pure assurance-attenuation evaluator. It computes effective assurance over explicit dependency edges, preserves authoritative strength for unrelated downstream facts, and fails missing dependencies or cycles toward `unknown`.
@@ -127,6 +129,7 @@ The following are architectural constraints, not backlog items to relax:
 - producer trust never broadens producer authority;
 - cryptographic proof validity never broadens the signer's fact-scoped authority;
 - projecting an external authorization artifact never drops a required source restriction in a way that widens authority;
+- independently valid adjacent artifacts never create a cross-layer principal/actor/action binding by coincidence;
 - stronger downstream evidence never upgrades weaker upstream provenance across an explicit semantic dependency;
 - runtime evidence corroborates rather than rewrites static coverage;
 - correlation identifiers do not create semantic graph edges by coincidence;
