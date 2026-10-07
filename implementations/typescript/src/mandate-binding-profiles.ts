@@ -278,11 +278,14 @@ function primitive(value: unknown): value is JsonPrimitive {
 
 function aaeGrantConstraints(
   value: unknown,
+  sourceAction: Record<string, unknown>,
   warnings: string[],
-): MandateConstraint[] | undefined {
+): { constraints: MandateConstraint[]; holds: boolean } | undefined {
   if (!Array.isArray(value)) return undefined;
 
   const constraints: MandateConstraint[] = [];
+  let holds = true;
+
   for (let index = 0; index < value.length; index += 1) {
     const item = value[index];
     if (!isRecord(item)) return undefined;
@@ -291,6 +294,7 @@ function aaeGrantConstraints(
     const field = asString(item.field);
     if (!type || !field) return undefined;
     const path = operationPath(field);
+    const actual = sourceAction[field];
 
     if (type === "exact" && primitive(item.value)) {
       constraints.push({
@@ -300,6 +304,7 @@ function aaeGrantConstraints(
         operator: "equals",
         value: item.value,
       });
+      holds = holds && actual === item.value;
       continue;
     }
 
@@ -311,6 +316,10 @@ function aaeGrantConstraints(
         operator: "one_of",
         values: item.values,
       });
+      holds =
+        holds &&
+        primitive(actual) &&
+        item.values.some((candidate) => candidate === actual);
       continue;
     }
 
@@ -334,6 +343,12 @@ function aaeGrantConstraints(
           value: hi,
         },
       );
+      holds =
+        holds &&
+        typeof actual === "number" &&
+        Number.isFinite(actual) &&
+        actual >= lo &&
+        actual <= hi;
       continue;
     }
 
@@ -341,7 +356,7 @@ function aaeGrantConstraints(
     return undefined;
   }
 
-  return constraints;
+  return { constraints, holds };
 }
 
 function actionFromAae(
@@ -711,23 +726,68 @@ export function projectAaeMandateBinding(input: {
     };
   }
 
-  const firstNonForbid = matched.find(
-    (grant) => grant.disposition === "allow" || grant.disposition === "hold",
-  );
-  if (!firstNonForbid) {
+  let selectedGrant: Record<string, unknown> | undefined;
+  let selectedGrantConstraints: MandateConstraint[] | undefined;
+
+  for (const grant of matched) {
+    if (grant.disposition !== "allow" && grant.disposition !== "hold") continue;
+    const evaluated = aaeGrantConstraints(
+      grant.constraints,
+      input.source_action,
+      warnings,
+    );
+    if (!evaluated) {
+      return {
+        profile_version: "0.1",
+        source: "draft-kroehl-agentic-trust-aae-02",
+        status: "unverifiable",
+        action,
+        verification: {
+          mandate_signature_verified: artifactAccepted,
+          action_binding_verified: false,
+          ...(input.trust.verifier ? { verifier: input.trust.verifier } : {}),
+          mandate_digest: digestForMandateProof(payload),
+          action_digest: digestForMandateProof(input.source_action),
+        },
+        source_checks: {
+          ...sourceChecks,
+          action_binding_matched: true,
+        },
+        unmapped,
+        warnings: [...warnings, "AAE grant constraints cannot be represented losslessly."],
+      };
+    }
+
+    if (evaluated.holds) {
+      selectedGrant = grant;
+      selectedGrantConstraints = evaluated.constraints;
+      break;
+    }
+  }
+
+  if (!selectedGrant || !selectedGrantConstraints) {
     return {
       profile_version: "0.1",
       source: "draft-kroehl-agentic-trust-aae-02",
-      status: "unverifiable",
+      status: "source_denied",
       action,
-      verification: falseVerification,
-      source_checks: sourceChecks,
+      verification: {
+        mandate_signature_verified: artifactAccepted,
+        action_binding_verified: true,
+        ...(input.trust.verifier ? { verifier: input.trust.verifier } : {}),
+        mandate_digest: digestForMandateProof(payload),
+        action_digest: digestForMandateProof(input.source_action),
+      },
+      source_checks: {
+        ...sourceChecks,
+        action_binding_matched: true,
+      },
       unmapped,
-      warnings: [...warnings, "Matched AAE grant has an unsupported disposition."],
+      warnings: [...warnings, "No matching non-forbid AAE grant has a satisfied constraint set."],
     };
   }
 
-  if (firstNonForbid.disposition === "hold") {
+  if (selectedGrant.disposition === "hold") {
     return {
       profile_version: "0.1",
       source: "draft-kroehl-agentic-trust-aae-02",
@@ -749,7 +809,7 @@ export function projectAaeMandateBinding(input: {
     };
   }
 
-  const grantConstraints = aaeGrantConstraints(firstNonForbid.constraints, warnings);
+  const grantConstraints = selectedGrantConstraints;
   if (!grantConstraints) {
     return {
       profile_version: "0.1",
