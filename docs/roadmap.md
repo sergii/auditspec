@@ -88,6 +88,8 @@ Further hardening can include:
 
 - a machine-readable OAuth 2.0 Token Exchange (RFC 8693) mapping/profile for `sub`, `act`, nested actor history, `may_act`, `scope`, and audience/resource semantics, with explicit tests that authorized-to-act is not confused with observed action;
 - an HTTP request-evidence profile that can consume RFC 9421/Web Bot Auth/DPoP verification results without claiming that request-signature validity alone proves user identity, delegation, authorization, consent, or execution semantics;
+
+The v0.2 TypeScript reference now includes the first executable RFC 9421 and RFC 9449 DPoP request-evidence projections with negative invariants around actor identity, delegation, authorization, consent, and execution. Web Bot Auth identity/key-discovery mapping remains future work.
 - comparative research fixtures for OAuth Identity Chaining, Transaction Tokens, Transaction Tokens For Agents, and emerging human-mandate work, with explicit information-loss reports against the AuditSpec actor/delegation/authorization/evidence model;
 - an assurance-chain invariant inspired by agent transaction-token monotonic attenuation: stronger downstream producers or agents must not silently upgrade weaker upstream actor/delegation provenance, with explicit tests against identity laundering;
 
