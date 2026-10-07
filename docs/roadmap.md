@@ -97,6 +97,8 @@ The v0.2 line now includes executable information-loss fixtures for OAuth Identi
 The v0.2 TypeScript reference also includes a transport-neutral human-mandate research evaluator based on the requirements in draft-yossif-agent-mandate-problem-00. It separates hard constraints from escalation boundaries, fails unverifiable action/mandate bindings closed, and records explicit coverage gaps for cryptographic binding, independently verifiable evidence, canonical payload binding, and fresh human-authorization interaction.
 
 The v0.2 line now also includes a signed human-mandate proof using RFC 8785 canonicalization, SHA-256 content bindings, and Ed25519 signatures. A verifier can independently validate the proof issuer's signature, exact mandate/action digests, and deterministic evaluation consistency. The remaining cryptographic gap is independent replay of the original human mandate signature and original T0-to-T1 binding protocol rather than trusting those verifier outcomes as signed attestations.
+
+The v0.2 TypeScript reference now includes AAE and Intent Token mandate-binding profiles. The AAE profile verifies Ed25519 compact JWS artifacts, implements the draft's tagged RFC 8785 action-binding digest, preserves allow/hold/forbid distinctions, and fails closed when required source constraints cannot be represented. The Intent Token profile verifies ES256 JWT artifacts but requires explicit deployment mappings for scope/bounds and explicit replay/delegation/before-action-binding outcomes before producing a positive HumanMandate projection.
 - an assurance-chain invariant inspired by agent transaction-token monotonic attenuation: stronger downstream producers or agents must not silently upgrade weaker upstream actor/delegation provenance, with explicit tests against identity laundering;
 
 The v0.2 TypeScript reference now includes a pure assurance-attenuation evaluator. It computes effective assurance over explicit dependency edges, preserves authoritative strength for unrelated downstream facts, and fails missing dependencies or cycles toward `unknown`.
@@ -124,6 +126,7 @@ The following are architectural constraints, not backlog items to relax:
 - bounded non-observation is inconclusive unless the declared observation scope justifies a stronger statement;
 - producer trust never broadens producer authority;
 - cryptographic proof validity never broadens the signer's fact-scoped authority;
+- projecting an external authorization artifact never drops a required source restriction in a way that widens authority;
 - stronger downstream evidence never upgrades weaker upstream provenance across an explicit semantic dependency;
 - runtime evidence corroborates rather than rewrites static coverage;
 - correlation identifiers do not create semantic graph edges by coincidence;
