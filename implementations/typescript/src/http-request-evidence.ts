@@ -174,9 +174,7 @@ export function mapRfc9421Verification(
       target_covered: targetCovered,
       content_digest_covered: hasComponent(covered, "content-digest"),
     },
-    replay_context: {
-      ...(parameters.nonce !== undefined ? { nonce_required: false } : {}),
-    },
+    replay_context: {},
     does_not_prove: [...doesNotProve],
     warnings,
   };
