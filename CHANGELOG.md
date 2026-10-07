@@ -4,6 +4,13 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 
 ## v0.3.0 - Unreleased
 
+### Development versioning
+
+- Moved `main` to the `v0.3` development line with TypeScript/MCP implementation version `0.3.0-dev.1`.
+- Added machine-readable `release/metadata.json` separating latest tagged release, active development line, target release, implementation version, and Core spec version.
+- Replaced the hard-coded v0.2 release checker with a generic release-boundary checker driven by release metadata.
+- Core remains `spec_version: "0.1"`; the v0.3 development version does not imply a Core 0.3 contract.
+
 ### Adoption and conformance
 
 - Added the first external-implementer quickstart centered on one valid Core event.
