@@ -6,7 +6,7 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-AuditSpec `v0.2.0` is in release-candidate stabilization. The repository release line is v0.2, while the normative Core audit-event contract intentionally remains `spec_version: "0.1"`; v0.2 adds executable assurance, Inspector/runtime, and experimental identity/mandate capabilities without silently redefining Core.
+AuditSpec `v0.2.0` is the current repository release line. The repository release line is v0.2, while the normative Core audit-event contract intentionally remains `spec_version: "0.1"`; v0.2 adds executable assurance, Inspector/runtime, and experimental identity/mandate capabilities without silently redefining Core.
 
 Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for release scope and go/no-go criteria.
 
@@ -217,7 +217,7 @@ AuditSpec can run as a non-blocking PR ratchet. Existing findings remain visible
 steps:
   - uses: actions/checkout@v4
 
-  - uses: sergii/auditspec@v0.1
+  - uses: sergii/auditspec@v0.2
     with:
       baseline: auto
 ```
