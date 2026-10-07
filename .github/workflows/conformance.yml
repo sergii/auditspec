@@ -26,8 +26,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Check v0.2 release metadata and boundaries
-        run: node tools/release/check-v0.2.mjs
+      - name: Check release metadata and boundaries
+        run: node tools/release/check.mjs
 
 
   external-sample-app:
