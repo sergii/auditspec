@@ -42,13 +42,13 @@ function b64json(value: unknown): string {
 function makeAaeCompact(
   sourceAction: Record<string, unknown>,
   options: {
-    grants?: Array<Record<string, unknown>>;
+    grants?: Array<Record<string, unknown>> | null;
     constraints?: Record<string, unknown>;
   } = {},
 ): string {
   const grants =
-    options.grants ??
-    [
+    options.grants === undefined
+      ? [
       {
         action_binding: computeAaeActionBinding(sourceAction),
         type_fields: Object.keys(sourceAction),
@@ -67,7 +67,8 @@ function makeAaeCompact(
           },
         ],
       },
-    ];
+    ]
+      : options.grants;
 
   const header = {
     alg: "EdDSA",
@@ -86,7 +87,7 @@ function makeAaeCompact(
         mandate: {
           actions: ["pay"],
           principal_did: "did:example:user-42",
-          grants,
+          ...(grants === null ? {} : { grants }),
         },
         constraints: options.constraints ?? {},
         validity: {
@@ -221,7 +222,7 @@ test("projects a verified AAE allow grant into an executable HumanMandate", () =
     compact: makeAaeCompact(sourceAction),
     issuer_public_key_pem: aaePublic,
     source_action: sourceAction,
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
     trust: trustedAae,
   });
 
@@ -257,7 +258,7 @@ test("AAE exact action binding fails closed when the attempted action changes", 
     compact: makeAaeCompact(authorizedAction),
     issuer_public_key_pem: aaePublic,
     source_action: attemptedAction,
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
     trust: trustedAae,
   });
 
@@ -268,16 +269,16 @@ test("AAE exact action binding fails closed when the attempted action changes", 
 test("AAE actions without grants are not promoted into exact concrete-action authorization", () => {
   const action = { verb: "pay", amount: 500, currency: "USD" };
   const projection = projectAaeMandateBinding({
-    compact: makeAaeCompact(action, { grants: undefined }),
+    compact: makeAaeCompact(action, { grants: null }),
     issuer_public_key_pem: aaePublic,
     source_action: action,
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
     trust: trustedAae,
   });
 
-  // makeAaeCompact uses its default when grants is undefined, so create a no-grants
-  // envelope explicitly by signing a payload with mandate.actions only.
-  assert.equal(projection.status, "ready");
+  assert.equal(projection.status, "unverifiable");
+  assert.equal(projection.verification.mandate_signature_verified, true);
+  assert.equal(projection.verification.action_binding_verified, false);
 });
 
 test("AAE forbid takes precedence and is never projected as permission", () => {
@@ -292,7 +293,7 @@ test("AAE forbid takes precedence and is never projected as permission", () => {
     compact: makeAaeCompact(action, { grants: [forbidGrant] }),
     issuer_public_key_pem: aaePublic,
     source_action: action,
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
     trust: trustedAae,
   });
 
@@ -315,7 +316,7 @@ test("required stateful AAE constraints fail closed when the profile cannot repr
     }),
     issuer_public_key_pem: aaePublic,
     source_action: action,
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
     trust: trustedAae,
   });
 
@@ -330,7 +331,7 @@ test("a cryptographically valid AAE is not a human mandate when issuer authority
     compact: makeAaeCompact(action),
     issuer_public_key_pem: aaePublic,
     source_action: action,
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
     trust: {
       ...trustedAae,
       issuer_authorized_for_principal: false,
@@ -361,7 +362,7 @@ test("projects a fully verified Intent Token only with explicit scope and bound 
       market_scope: "EQUITIES_US",
       amount: 500,
     },
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
   };
 
   const projection = projectIntentTokenMandateBinding({
@@ -401,7 +402,7 @@ test("Intent Token JWT signature alone does not establish concrete-action bindin
       market_scope: "EQUITIES_US",
       amount: 500,
     },
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
   };
 
   const projection = projectIntentTokenMandateBinding({
@@ -434,7 +435,7 @@ test("unmapped Intent Token bounds fail closed instead of broadening authority",
       market_scope: "EQUITIES_US",
       amount: 500,
     },
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
   };
 
   const projection = projectIntentTokenMandateBinding({
@@ -462,7 +463,7 @@ test("Intent Token principal and subject remain distinct principal and agent ide
       market_scope: "EQUITIES_US",
       amount: 500,
     },
-    occurred_at: "2026-10-07T09:00:00Z",
+    occurred_at: "2026-10-07T08:05:00Z",
   };
 
   const projection = projectIntentTokenMandateBinding({
