@@ -6,7 +6,7 @@ export const QUICKSTART_EVENT: AuditEvent = {
   source: "urn:example:billing-service",
   actor: {
     type: "service",
-    id: "service:billing",
+    id: "billing",
   },
   action: "invoice.pay",
   action_version: 1,
