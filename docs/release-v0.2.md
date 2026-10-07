@@ -1,6 +1,6 @@
 # AuditSpec v0.2 release readiness
 
-Status: final release metadata prepared; mainline integration/tag pending
+Status: released
 
 Target repository release: `v0.2.0`
 
@@ -135,18 +135,18 @@ These are not v0.2 blockers unless a release claim says otherwise:
 - no claim that draft-based research profiles are stable standards;
 - no production SaaS/cloud dependency.
 
-## Release blockers
+## Release completion checklist
 
-The v0.2.0 tag should not be cut until all of these are true:
+The v0.2.0 release completed all of these gates:
 
 - [x] release-candidate branch is green in required CI;
 - [x] TypeScript reference package/server version is `0.2.0`;
 - [x] `CHANGELOG.md` v0.2.0 section is finalized with release date;
 - [x] README status no longer says release candidate;
 - [x] release-readiness script passes with final metadata;
-- [ ] the v0.2 integration into `main` is green;
-- [ ] final tag `v0.2.0` is created from the intended mainline commit;
-- [ ] the GitHub Action is smoke-tested from the released tag/reference.
+- [x] the v0.2 integration into `main` is green;
+- [x] final annotated tag `v0.2.0` points to main commit `d1daa5c1a71b4729982288cf97fa5f312cde91c4`;
+- [x] tag-triggered Conformance includes a successful `action-smoke` job on `v0.2.0`.
 
 ## Go/no-go criteria
 
