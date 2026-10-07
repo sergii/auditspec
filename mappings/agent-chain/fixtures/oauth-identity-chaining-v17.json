@@ -1,0 +1,59 @@
+{
+  "fixture_version": "0.1",
+  "id": "oauth-identity-chaining-v17",
+  "source": {
+    "name": "OAuth Identity and Authorization Chaining Across Domains",
+    "revision": "draft-ietf-oauth-identity-chaining-17",
+    "status": "active IETF draft; RFC Editor publication queue",
+    "url": "https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-chaining/"
+  },
+  "scenario": "A client in trust domain A obtains a JWT authorization grant for trust domain B, presents it to B, and B transcribes identity/authorization information into a local access token.",
+  "facts": [
+    {
+      "id": "represented-subject",
+      "source_path": "JWT authorization grant sub",
+      "meaning": "The represented subject identity is carried across the trust-domain boundary, although identifiers may be translated by an authorization server.",
+      "disposition": "partial",
+      "auditspec_targets": ["represented principal", "delegation principal"],
+      "reason": "AuditSpec can preserve the represented principal but does not yet model cross-domain subject-identifier equivalence or translation provenance as an executable mapping."
+    },
+    {
+      "id": "grant-audience",
+      "source_path": "JWT authorization grant aud",
+      "meaning": "The grant is constrained to the authorization server in the target trust domain.",
+      "disposition": "preserved",
+      "auditspec_targets": ["authorization context audience", "evidence applicability boundary"]
+    },
+    {
+      "id": "downscoped-authorization",
+      "source_path": "scope and claims transcription",
+      "meaning": "Authorization information may be downscoped or otherwise transcribed while crossing domains.",
+      "disposition": "partial",
+      "auditspec_targets": ["authorization scopes", "evidence metadata"],
+      "reason": "AuditSpec can retain resulting scopes and evidence but does not yet have an executable cross-domain transcription lineage that proves how each authorization claim changed."
+    },
+    {
+      "id": "trust-domain-crossing",
+      "source_path": "domain A authorization server -> domain B authorization server",
+      "meaning": "A trust relationship between authorization servers permits a signed JWT authorization grant from one domain to be accepted by another.",
+      "disposition": "partial",
+      "auditspec_targets": ["evidence producer", "verification provenance"],
+      "reason": "AuditSpec can attribute issuer/verifier evidence, but trust-domain boundaries and cross-domain trust relationships are not first-class Core objects."
+    },
+    {
+      "id": "claim-transcription-history",
+      "source_path": "claims transcription",
+      "meaning": "Authorization servers can add, remove, or change claims for subject translation, data minimization, and authorization downscoping.",
+      "disposition": "not_represented",
+      "reason": "The current executable mappings preserve resulting assertions but do not represent a per-claim transformation history across authorization servers."
+    },
+    {
+      "id": "authorization-grant-validation",
+      "source_path": "RFC 7523 assertion validation in trust domain B",
+      "meaning": "The receiving authorization server validates the signed JWT authorization grant and local trust policy before issuing an access token.",
+      "disposition": "partial",
+      "auditspec_targets": ["verification evidence", "authorization evidence"],
+      "reason": "AuditSpec has evidence and authorization concepts, but no dedicated executable identity-chaining verifier adapter yet."
+    }
+  ]
+}
