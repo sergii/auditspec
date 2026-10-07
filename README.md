@@ -6,9 +6,9 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-AuditSpec `v0.2.0` is the current repository release line. The repository release line is v0.2, while the normative Core audit-event contract intentionally remains `spec_version: "0.1"`; v0.2 adds executable assurance, Inspector/runtime, and experimental identity/mandate capabilities without silently redefining Core.
+The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.1`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
 
-Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for release scope and go/no-go criteria.
+Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for the completed v0.2.0 release record.
 
 ## AuditSpec is
 
@@ -145,6 +145,7 @@ This is intentionally stronger than an in-repository unit test because the sampl
 
 - `SPEC.md` - normative v0.1 specification.
 - `CHANGELOG.md` - release notes and compatibility notes.
+- `release/metadata.json` - machine-readable development/release version state.
 - `schema/` - JSON Schemas and canonical examples for events, assessments, graphs/diffs, remediation/verification, runtime corroboration, capability manifests, and control/OSCAL bridges.
 - `spec/` - focused design notes, including delivery/retry semantics.
 - `profiles/` - optional semantic/behavioral profiles such as agent and atomicity.
