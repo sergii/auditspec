@@ -1,0 +1,59 @@
+{
+  "spec_version": "0.1",
+  "id": "aud_quickstart_001",
+  "source": "urn:example:billing-service",
+  "actor": {
+    "type": "service",
+    "id": "service:billing"
+  },
+  "action": "invoice.pay",
+  "action_version": 1,
+  "targets": [
+    {
+      "type": "invoice",
+      "id": "INV-0042",
+      "role": "primary"
+    }
+  ],
+  "authorization": {
+    "decision": "allowed",
+    "scopes": [
+      "invoice:pay"
+    ],
+    "policy": {
+      "id": "billing-payment-policy",
+      "version": "1"
+    }
+  },
+  "result": {
+    "status": "succeeded"
+  },
+  "producer": {
+    "name": "billing-service",
+    "version": "1.0.0"
+  },
+  "correlation": {
+    "request_id": "req_quickstart_001",
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+  },
+  "evidence": [
+    {
+      "kind": "authorization_decision",
+      "producer": {
+        "name": "billing-policy",
+        "version": "1.0.0"
+      },
+      "trust": "authoritative"
+    },
+    {
+      "kind": "execution",
+      "producer": {
+        "name": "billing-service",
+        "version": "1.0.0"
+      },
+      "trust": "authoritative"
+    }
+  ],
+  "occurred_at": "2026-10-07T12:00:00Z",
+  "recorded_at": "2026-10-07T12:00:00.005Z"
+}
