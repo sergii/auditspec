@@ -6,11 +6,11 @@ The repository release version is not the same thing as the Core event `spec_ver
 
 ## Version planes
 
-| Plane | v0.2 release-candidate value | Meaning |
+| Plane | v0.2.0 value | Meaning |
 | --- | --- | --- |
-| Repository release | `v0.2.0` target | The version of the repository release/tag as a whole. |
-| TypeScript reference package | `0.2.0-rc.1` | The implementation/release-line version of the private TypeScript reference package. |
-| MCP server implementation | `0.2.0-rc.1` | The server implementation version reported to MCP clients. |
+| Repository release | `v0.2.0` | The version of the repository release/tag as a whole. |
+| TypeScript reference package | `0.2.0` | The implementation/release-line version of the private TypeScript reference package. |
+| MCP server implementation | `0.2.0` | The server implementation version reported to MCP clients. |
 | Core audit event | `spec_version: "0.1"` | The normative semantic contract for AuditSpec Core events. |
 | Core schema URI | `/schema/0.1/audit-event.schema.json` | The immutable Core schema family/version. |
 | Assessment/report schemas | currently `0.1` families | Independently versioned non-Core contracts. |
@@ -70,15 +70,13 @@ Consumers MUST inspect the version field or immutable schema identifier of the s
 
 Reference implementations use package/server versions to describe the implementation build, not the Core event contract.
 
-For the v0.2 release candidate:
+For the v0.2.0 release:
 
 ```text
-TypeScript reference package  0.2.0-rc.1
-MCP server implementation     0.2.0-rc.1
+TypeScript reference package  0.2.0
+MCP server implementation     0.2.0
 Core event spec_version       0.1
 ```
-
-The final release preparation should change the implementation package/server version from `0.2.0-rc.1` to `0.2.0` without changing Core `spec_version`.
 
 ## Research profile rule
 
