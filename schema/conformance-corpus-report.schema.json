@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auditspec.dev/schema/0.1/conformance-corpus-report.schema.json",
+  "title": "AuditSpec Conformance Corpus Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "core_spec_version",
+    "passed",
+    "summary",
+    "files"
+  ],
+  "properties": {
+    "report_version": { "const": "0.1" },
+    "core_spec_version": { "const": "0.1" },
+    "passed": { "type": "boolean" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "valid", "invalid", "parse_errors"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "valid": { "type": "integer", "minimum": 0 },
+        "invalid": { "type": "integer", "minimum": 0 },
+        "parse_errors": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "valid", "errors"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\).+$"
+          },
+          "valid": { "type": "boolean" },
+          "errors": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/validationIssue" }
+          },
+          "parse_error": { "const": "invalid_json" }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": ["parse_error"]
+            },
+            "then": {
+              "properties": {
+                "valid": { "const": false },
+                "errors": { "maxItems": 0 }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "validationIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instancePath", "schemaPath", "keyword", "params"],
+      "properties": {
+        "instancePath": { "type": "string" },
+        "schemaPath": { "type": "string" },
+        "keyword": { "type": "string", "minLength": 1 },
+        "message": { "type": "string" },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

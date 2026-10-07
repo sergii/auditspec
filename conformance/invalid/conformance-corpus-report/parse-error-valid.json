@@ -1,0 +1,19 @@
+{
+  "report_version": "0.1",
+  "core_spec_version": "0.1",
+  "passed": false,
+  "summary": {
+    "total": 1,
+    "valid": 1,
+    "invalid": 0,
+    "parse_errors": 1
+  },
+  "files": [
+    {
+      "path": "broken.json",
+      "valid": true,
+      "errors": [],
+      "parse_error": "invalid_json"
+    }
+  ]
+}

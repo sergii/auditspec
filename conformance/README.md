@@ -25,6 +25,7 @@ Current machine-readable contracts include:
 - Corroboration Query Result
 - Framework Adapter Manifest
 - Runtime Producer Manifest
+- Conformance Corpus Report
 
 ## Schema conformance
 
@@ -95,6 +96,45 @@ These protect against schemas becoming accidentally too permissive. Current exam
 - unsupported Agent Profile approval states
 
 The control-mapping negative vectors intentionally protect a core product boundary: AuditSpec mappings express evidence relevance or potential gaps, not compliance certification or pass/fail verdicts.
+
+## Implementer-owned event corpora
+
+The TypeScript reference can validate an implementer's own directory of Core event JSON files:
+
+```bash
+auditspec conformance ./events/
+```
+
+The runner recursively discovers regular `.json` files, ignores non-JSON files and symbolic links, sorts portable relative paths deterministically, and validates every JSON document as an AuditSpec Core event.
+
+Human output is concise:
+
+```text
+AuditSpec conformance
+Core: 0.1
+Corpus: ./events/
+Events: 100
+Valid: 97
+Invalid: 3
+Parse errors: 1
+Result: FAIL
+```
+
+Only failing files are expanded below the summary.
+
+For CI and tooling:
+
+```bash
+auditspec conformance ./events/ --json
+```
+
+The machine-readable output conforms to:
+
+`schema/conformance-corpus-report.schema.json`
+
+Exit status is `0` only when the corpus contains at least one JSON event and every discovered event is valid. Invalid schema instances, malformed JSON, and an empty corpus all fail non-zero.
+
+This command checks each event independently against Core. It does not infer delivery deduplication, cross-event ordering, business correctness, or runtime truth from a directory of JSON files.
 
 ## Differential reference conformance
 

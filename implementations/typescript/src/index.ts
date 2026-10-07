@@ -51,3 +51,5 @@ export * from "./mcp.js";
 export * from "./runtime-producer-mcp.js";
 
 export * from "./quickstart.js";
+
+export * from "./conformance-corpus.js";

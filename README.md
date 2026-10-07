@@ -43,6 +43,7 @@ cd ../..
 node implementations/typescript/dist/cli.js init-example audit-event.json
 node implementations/typescript/dist/cli.js validate audit-event.json --human
 node implementations/typescript/dist/cli.js explain audit-event.json
+node implementations/typescript/dist/cli.js conformance ./events/ --json
 ```
 
 Expected validation result:
@@ -120,7 +121,7 @@ See `examples/external-implementer/README.md` for the complete walkthrough.
 - `schema/` - JSON Schemas and canonical examples for events, assessments, graphs/diffs, remediation/verification, runtime corroboration, capability manifests, and control/OSCAL bridges.
 - `spec/` - focused design notes, including delivery/retry semantics.
 - `profiles/` - optional semantic/behavioral profiles such as agent and atomicity.
-- `conformance/` - valid and invalid vectors shared by implementations.
+- `conformance/` - valid and invalid vectors shared by implementations, plus guidance for implementer-owned corpora.
 - `examples/external-implementer/` - five-minute Core adoption path for first-time implementers.
 - `tools/conformance/` - executable schema/capability validators and container runner.
 - `implementations/` - TypeScript, Ruby, and Python executable language reference implementations.
