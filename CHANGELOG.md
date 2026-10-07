@@ -2,6 +2,60 @@
 
 AuditSpec follows explicit specification and implementation versions. The Core `spec_version` remains independent from packaging/version metadata used by reference implementations.
 
+## v0.2.0 - Unreleased
+
+Release-candidate stabilization for the second repository release line.
+
+### Compatibility and versioning
+
+- The repository release advances to v0.2.0 while the normative Core audit-event contract remains `spec_version: "0.1"`.
+- Added `docs/versioning.md` to separate repository, implementation, artifact/schema, Inspector/adapter, and external-standard version planes.
+- The TypeScript reference and MCP implementation are staged at `0.2.0-rc.1`; the package remains private and unpublished.
+- No Core producer is required to emit `spec_version: "0.2"`.
+
+### Architecture, Inspector, and runtime assurance
+
+- Formalized the extension boundary between Core, language references, runtime adapters, Inspector Core, framework plugins, source scanners, and behavioral labs.
+- Deepened Rails and Frappe/ERPNext discovery while preserving unresolved/unknown outcomes for ambiguous dynamic behavior.
+- Expanded Assurance Graph/all-path analysis, topology diffs, remediation planning/verification, runtime corroboration, observation scope, producer registries, and evidence query/diff surfaces.
+- Added stronger framework/runtime capability manifests and pinned real-world regression coverage.
+- Preserved advisory Inspector semantics and explicit producer authority boundaries.
+
+### Identity and delegated-agent research
+
+- Added executable RFC 8693 actor/delegation projection with negative invariants for `may_act`, `scope`, `aud`, and `client_id`.
+- Added RFC 9421 HTTP Message Signature and RFC 9449 DPoP request-evidence projections that keep request/key evidence separate from actor/delegation/authorization semantics.
+- Added cross-spec information-loss fixtures for OAuth Identity Chaining, Transaction Tokens, and Transaction Tokens For Agents.
+- Added monotonic assurance attenuation to prevent identity laundering across semantic dependencies.
+
+### Human mandate and concrete-action authorization research
+
+- Added deterministic HumanMandate evaluation with hard constraints, escalation boundaries, agent/time binding, and fail-closed unverifiable outcomes.
+- Added RFC 8785 + SHA-256 + Ed25519 signed HumanMandate proofs with structural conformance and tamper tests.
+- Added AAE -02 and Intent Token -02 mandate-binding research profiles with explicit source-protocol trust inputs and fail-closed handling for unmapped required restrictions.
+- Added an end-to-end composition harness joining request evidence, delegation, human authorization, mandate evaluation, signed proof, assurance attenuation, execution observation, and database commit evidence.
+- Added adversarial whole-chain mutations for action tampering, actor substitution, weakened delegation, unrepresentable constraints, replay failure, expiry, and missing request-to-action binding.
+
+### Assurance guardrails
+
+- Stronger downstream evidence never upgrades weaker upstream provenance across an explicit semantic dependency.
+- General agent authority is not concrete-action authority.
+- A valid cryptographic proof binds a statement, not unlimited signer authority.
+- Authorization projection must not widen authority by dropping required source restrictions.
+- Independently valid adjacent artifacts do not create a principal/actor/action binding by coincidence.
+
+### Reliability and interoperability
+
+- Continued PostgreSQL, Rails/ActiveRecord, and Frappe Bench/MariaDB atomicity/failure-injection coverage.
+- Continued shared TypeScript/Ruby/Python Core conformance.
+- Continued CloudEvents, OpenTelemetry, W3C PROV, control-mapping, and official pinned NIST OSCAL validation.
+
+### Release status
+
+- v0.2.0 is not tagged yet.
+- See `docs/release-v0.2.md` for remaining release gates.
+- Draft-based identity/mandate mappings remain experimental research surfaces and are not protocol-conformance claims.
+
 ## v0.1 - 2026-09-08
 
 First public AuditSpec release.
