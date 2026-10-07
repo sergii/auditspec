@@ -46,6 +46,8 @@ auditspec validate event.json
 auditspec validate event.json --human
 auditspec explain event.json
 auditspec explain event.json --json
+auditspec conformance ./events/
+auditspec conformance ./events/ --json
 auditspec validate-agent agent-profile.json
 auditspec normalize event.json
 auditspec redact event.json
@@ -79,6 +81,16 @@ The default `validate` output remains machine-readable JSON for compatibility. `
 `init-example` refuses accidental overwrite unless `--force` is passed explicitly.
 
 See `../../examples/external-implementer/README.md`.
+
+### Implementer corpus runner
+
+`auditspec conformance <path>` validates either one JSON file or every regular `.json` file recursively under a directory.
+
+The default output is human-readable and expands only failures. `--json` emits the versioned Conformance Corpus Report contract from `schema/conformance-corpus-report.schema.json`.
+
+The report uses portable relative paths and deterministic ordering so the same corpus produces stable machine-readable output across working directories. Non-JSON files and symbolic links are not traversed.
+
+The command exits non-zero when any event is invalid, when JSON parsing fails, or when a directory contains no JSON events.
 
 Inspector findings remain advisory in the v0.2 release line. The CLI does not treat findings as command failure by default.
 
