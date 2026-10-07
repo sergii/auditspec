@@ -170,3 +170,46 @@ authoritative
 Missing dependencies and dependency cycles fail closed to `unknown`. Adding a weaker dependency can preserve or reduce effective assurance, but never improve it.
 
 This evaluator does not replace producer authority scopes. `authoritative` means authoritative only for the fact the producer directly owns. Dependency attenuation answers a different question: how strong can a derived or composite assertion remain when it relies on other assertions?
+
+
+## 11. General agent authority is not concrete-action authority
+
+A valid identity, credential, delegation chain, OAuth scope, request signature, or proof-of-possession result MUST NOT by itself establish that one concrete autonomous action is authorized by the human principal.
+
+A positive concrete-action mandate result requires all of the following:
+
+- the relevant mandate or approval artifact is positively verified by an appropriate verifier;
+- the concrete action is positively bound to the mandate being evaluated;
+- the executing agent matches any agent identity explicitly bound by the mandate;
+- the action is within the mandate validity window;
+- every required constraint is evaluable;
+- every hard constraint is satisfied;
+- every escalating constraint is satisfied, unless fresh human authorization is obtained through a separate mechanism.
+
+If the mandate signature or action binding is not verified, or a required action parameter cannot be evaluated, the result fails closed to `unverifiable` and MUST NOT be treated as permission.
+
+Crossing a hard constraint yields `outside_mandate`.
+
+Crossing an escalating constraint yields `requires_fresh_authorization`, not `within_mandate`.
+
+This preserves the distinction between:
+
+```text
+agent may act
+```
+
+and:
+
+```text
+human authorized this action with these parameters
+```
+
+The executable reference is:
+
+```text
+implementations/typescript/src/human-mandate.ts
+implementations/typescript/test/human-mandate.test.ts
+mappings/human-mandate/
+```
+
+The evaluator consumes cryptographic verification outcomes but does not itself define or perform the T0 mandate signature or T0-to-T1 action-binding mechanism.
