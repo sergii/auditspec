@@ -86,6 +86,11 @@ The current deterministic normalization helper is not a signing format and must 
 
 Further hardening can include:
 
+- a machine-readable OAuth 2.0 Token Exchange (RFC 8693) mapping/profile for `sub`, `act`, nested actor history, `may_act`, `scope`, and audience/resource semantics, with explicit tests that authorized-to-act is not confused with observed action;
+- an HTTP request-evidence profile that can consume RFC 9421/Web Bot Auth/DPoP verification results without claiming that request-signature validity alone proves user identity, delegation, authorization, consent, or execution semantics;
+- comparative research fixtures for OAuth Identity Chaining, Transaction Tokens, Transaction Tokens For Agents, and emerging human-mandate work, with explicit information-loss reports against the AuditSpec actor/delegation/authorization/evidence model;
+- an assurance-chain invariant inspired by agent transaction-token monotonic attenuation: stronger downstream producers or agents must not silently upgrade weaker upstream actor/delegation provenance, with explicit tests against identity laundering;
+
 - deterministic fuzzing with regression capture for malformed, deeply nested, cyclic, and oversized inputs;
 - Go and Rust reference implementations consuming the same shared corpus;
 - additional pinned real-world framework repositories;
