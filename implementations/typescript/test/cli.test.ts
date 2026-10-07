@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -16,6 +16,78 @@ function run(...args: string[]) {
     encoding: "utf8",
   });
 }
+
+test("CLI creates, validates, and explains an external implementer starter event", () => {
+  const root = mkdtempSync(join(tmpdir(), "auditspec-cli-quickstart-"));
+  const eventPath = join(root, "audit-event.json");
+
+  try {
+    const init = run("init-example", eventPath);
+    assert.equal(init.status, 0, init.stderr);
+    assert.match(init.stdout, /Created .*audit-event\.json/);
+
+    const generated = JSON.parse(readFileSync(eventPath, "utf8")) as {
+      spec_version: string;
+      action: string;
+    };
+    assert.equal(generated.spec_version, "0.1");
+    assert.equal(generated.action, "invoice.pay");
+
+    const validate = run("validate", eventPath, "--human");
+    assert.equal(validate.status, 0, validate.stderr);
+    assert.match(
+      validate.stdout,
+      /PASS .*audit-event\.json - valid AuditSpec Core 0\.1 event/,
+    );
+
+    const explain = run("explain", eventPath);
+    assert.equal(explain.status, 0, explain.stderr);
+    assert.match(explain.stdout, /Actor: service:billing/);
+    assert.match(explain.stdout, /Action: invoice\.pay/);
+    assert.match(explain.stdout, /Authorization: allowed/);
+    assert.match(explain.stdout, /Result: succeeded/);
+    assert.match(explain.stdout, /Evidence: 2 record\(s\)/);
+
+    const explainJson = run("explain", eventPath, "--json");
+    assert.equal(explainJson.status, 0, explainJson.stderr);
+    assert.match(explainJson.stdout, /"core_spec_version": "0\.1"/);
+    assert.match(explainJson.stdout, /"actor": "service:billing"/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("CLI init-example refuses accidental overwrite unless --force is explicit", () => {
+  const root = mkdtempSync(join(tmpdir(), "auditspec-cli-quickstart-overwrite-"));
+  const eventPath = join(root, "audit-event.json");
+
+  try {
+    writeFileSync(eventPath, "{\"sentinel\":true}\n", "utf8");
+
+    const refused = run("init-example", eventPath);
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /Refusing to overwrite existing file/);
+    assert.match(readFileSync(eventPath, "utf8"), /sentinel/);
+
+    const forced = run("init-example", eventPath, "--force");
+    assert.equal(forced.status, 0, forced.stderr);
+    assert.match(readFileSync(eventPath, "utf8"), /"aud_quickstart_001"/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("CLI human validation reports concise failure and exits non-zero", () => {
+  const result = run(
+    "validate",
+    "conformance/invalid/missing-actor.json",
+    "--human",
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^FAIL .*missing-actor\.json - \d+ validation error\(s\)/);
+  assert.match(result.stdout, /required property/);
+});
 
 test("CLI validates a valid AuditSpec event", () => {
   const result = run("validate", "conformance/valid/user-action.json");
