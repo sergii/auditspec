@@ -2,6 +2,17 @@
 
 AuditSpec follows explicit specification and implementation versions. The Core `spec_version` remains independent from packaging/version metadata used by reference implementations.
 
+## v0.3.0 - Unreleased
+
+### Adoption and conformance
+
+- Added the first external-implementer quickstart centered on one valid Core event.
+- Added `auditspec init-example` with overwrite protection.
+- Added optional human-readable `auditspec validate ... --human` output while preserving machine-readable JSON as the default.
+- Added `auditspec explain` and `--json` explanation projection for the semantic fields a first-time implementer needs to understand.
+- Added executable tests that keep the generated starter event, checked-in example, validation result, and explanation output aligned.
+- Core remains `spec_version: "0.1"`; these are adoption surfaces, not a Core schema revision.
+
 ## v0.2.0 - 2026-10-07
 
 Second public AuditSpec repository release line.
