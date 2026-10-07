@@ -41,6 +41,7 @@ export interface HumanMandate {
 }
 
 export interface MandatedAction {
+  actor: { id: string };
   operation: string;
   parameters: Record<string, unknown>;
   occurred_at: string;
@@ -303,6 +304,16 @@ export function evaluateHumanMandate(input: {
         "This evaluator does not perform cryptographic signature or action-binding verification; it consumes explicit verifier results.",
       ],
     };
+  }
+
+  if (mandate.agent && action.actor.id !== mandate.agent.id) {
+    results.push({
+      id: "mandate.agent",
+      class: "hard",
+      status: "violated",
+      path: "actor.id",
+      reason: "The executing actor does not match the agent named by the mandate.",
+    });
   }
 
   if (validFrom !== undefined && occurredAt < validFrom) {
