@@ -92,7 +92,9 @@ Further hardening can include:
 The v0.2 TypeScript reference now includes the first executable RFC 9421 and RFC 9449 DPoP request-evidence projections with negative invariants around actor identity, delegation, authorization, consent, and execution. Web Bot Auth identity/key-discovery mapping remains future work.
 - comparative research fixtures for OAuth Identity Chaining, Transaction Tokens, Transaction Tokens For Agents, and emerging human-mandate work, with explicit information-loss reports against the AuditSpec actor/delegation/authorization/evidence model;
 
-The v0.2 line now includes executable information-loss fixtures for OAuth Identity Chaining v17, Transaction Tokens v11, and Transaction Tokens For Agents v02. The fixtures require an explicit disposition for every modeled source fact and execute the agent-chain attenuation scenario. Human-mandate work remains a future fixture.
+The v0.2 line now includes executable information-loss fixtures for OAuth Identity Chaining v17, Transaction Tokens v11, and Transaction Tokens For Agents v02. The fixtures require an explicit disposition for every modeled source fact and execute the agent-chain attenuation scenario.
+
+The v0.2 TypeScript reference also includes a transport-neutral human-mandate research evaluator based on the requirements in draft-yossif-agent-mandate-problem-00. It separates hard constraints from escalation boundaries, fails unverifiable action/mandate bindings closed, and records explicit coverage gaps for cryptographic binding, independently verifiable evidence, canonical payload binding, and fresh human-authorization interaction.
 - an assurance-chain invariant inspired by agent transaction-token monotonic attenuation: stronger downstream producers or agents must not silently upgrade weaker upstream actor/delegation provenance, with explicit tests against identity laundering;
 
 The v0.2 TypeScript reference now includes a pure assurance-attenuation evaluator. It computes effective assurance over explicit dependency edges, preserves authoritative strength for unrelated downstream facts, and fails missing dependencies or cycles toward `unknown`.

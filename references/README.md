@@ -21,7 +21,10 @@ AuditSpec is independently implemented and informed by established work in audit
 - OAuth Identity and Authorization Chaining Across Domains (draft-ietf-oauth-identity-chaining) - preserves identity and authorization information across OAuth trust-domain boundaries by combining Token Exchange and JWT authorization grants.
 - Transaction Tokens (draft-ietf-oauth-transaction-tokens) - short-lived signed transaction context carrying user/workload identity and authorization context through a call chain inside a trust domain; explicitly distinct from workload authentication credentials and OAuth access tokens.
 - Transaction Tokens For Agents (draft-araut-oauth-transaction-tokens-for-agents) - active individual draft extending Transaction Tokens with `act` for the delegated agent, `sub` for the represented principal, and `agentic_ctx` for multi-agent chain metadata such as current actor, originator, hop count, and optional monotonically attenuated assurance.
-- Verifiable Human Mandates for Autonomous Agent Actions (draft-yossif-agent-mandate-problem) - emerging problem statement around proving that a concrete autonomous-agent action remained within a human-authorized intent/mandate.
+- Verifiable Human Mandates for Autonomous Agent Actions (draft-yossif-agent-mandate-problem-00) - active individual problem statement separating general agent authority from proof that one concrete action and its parameters fall within a human-signed mandate. It defines six solution requirements but deliberately defines no protocol.
+- Agent Authorization Envelope (draft-kroehl-agentic-trust-aae-02) - active individual proposal for a machine-evaluable authorization envelope with MANDATE, CONSTRAINTS, and VALIDITY blocks. Useful solution-side prior art, not an IETF standard.
+- Intent Token (draft-williams-intent-token-02) - active individual proposal for a signed, time-bounded intent authorization envelope bound to agent actions and delegation chains. Useful prior art for pre-action binding and fail-closed enforcement, with separate IPR considerations documented by its author.
+- Agent Authorization use cases and gap analysis (draft-chen-oauth-agent-authz-use-cases-03) - current OAuth work distinguishing grant-layer authority from execution-layer evidence and describing agent delegation/intent use cases.
 
 ## Request authenticity and proof of possession
 
