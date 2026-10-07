@@ -1,0 +1,138 @@
+{
+  "fixture_version": "0.1",
+  "id": "transaction-tokens-for-agents-v02",
+  "source": {
+    "name": "Transaction Tokens For Agents",
+    "revision": "draft-araut-oauth-transaction-tokens-for-agents-02",
+    "status": "active individual Internet-Draft; informational; not an IETF WG standard",
+    "url": "https://datatracker.ietf.org/doc/draft-araut-oauth-transaction-tokens-for-agents/"
+  },
+  "scenario": "A low-assurance external agent initiates a transaction that later passes through a strongly verified internal agent, policy service, execution service, and database.",
+  "facts": [
+    {
+      "id": "delegated-agent",
+      "source_path": "act",
+      "meaning": "The transaction can retain the delegated agent identity separately from the represented principal.",
+      "disposition": "preserved",
+      "auditspec_targets": ["RFC 8693 current actor/delegation projection"]
+    },
+    {
+      "id": "current-agent",
+      "source_path": "agentic_ctx.current_actor",
+      "meaning": "The transaction context identifies the agent currently executing the request and updates it when the next agent obtains a replacement token.",
+      "disposition": "partial",
+      "auditspec_targets": ["actor", "agent evidence"],
+      "reason": "AuditSpec has an immediate actor concept, but no executable agentic_ctx parser/profile yet."
+    },
+    {
+      "id": "originating-agent",
+      "source_path": "agentic_ctx.originator",
+      "meaning": "The first agent in the transaction chain remains immutable as the originator.",
+      "disposition": "partial",
+      "auditspec_targets": ["delegation history", "evidence provenance"],
+      "reason": "AuditSpec can preserve the participant and provenance, but originator has no dedicated first-class Core field."
+    },
+    {
+      "id": "hop-count",
+      "source_path": "agentic_ctx.chain_metadata.hop_count",
+      "meaning": "The number of agent transitions is incremented during agent replacement flows.",
+      "disposition": "not_represented",
+      "reason": "AuditSpec can derive graph/path length in some contexts, but it does not currently accept this token-supplied hop counter as a defined semantic assertion."
+    },
+    {
+      "id": "minimum-assurance",
+      "source_path": "agentic_ctx.chain_metadata.min_assurance_level",
+      "meaning": "Overall agent-chain assurance is monotonically attenuated to the minimum assurance level encountered in the chain.",
+      "disposition": "preserved",
+      "auditspec_targets": ["assurance attenuation evaluator", "effective_strength"]
+    },
+    {
+      "id": "agent-registry-source",
+      "source_path": "Agent Registry / equivalent verified source",
+      "meaning": "Authorization-relevant agent context must come from a verified source rather than self-report when it influences policy.",
+      "disposition": "partial",
+      "auditspec_targets": ["evidence producer", "producer authority scope", "provenance"],
+      "reason": "AuditSpec models producer trust and authority boundaries, but does not define an Agent Registry protocol."
+    },
+    {
+      "id": "workload-chain",
+      "source_path": "req_wl",
+      "meaning": "The requesting workload chain remains available alongside agent-specific context.",
+      "disposition": "partial",
+      "auditspec_targets": ["origin/evidence metadata", "delegation evidence"],
+      "reason": "AuditSpec can retain workload participants but lacks a dedicated req_wl projection."
+    },
+    {
+      "id": "deployment-posture",
+      "source_path": "agentic_ctx deployment-specific posture/prov/identity",
+      "meaning": "Deployments may attach verified agent posture, provenance, and workload metadata.",
+      "disposition": "partial",
+      "auditspec_targets": ["evidence metadata", "extensions"],
+      "reason": "AuditSpec intentionally avoids standardizing deployment-specific agent posture fields without a separate profile."
+    },
+    {
+      "id": "identity-laundering-prevention",
+      "source_path": "monotonic attenuation rule",
+      "meaning": "A high-assurance internal agent must not make a low-assurance external originator appear high assurance downstream.",
+      "disposition": "preserved",
+      "auditspec_targets": ["Assurance Invariant 10", "assurance attenuation evaluator"]
+    }
+  ],
+  "assurance_scenario": {
+    "assertions": [
+      {
+        "id": "external-originator",
+        "kind": "actor_identity",
+        "intrinsic_strength": "self_reported",
+        "producer": {
+          "name": "external-federation-boundary"
+        }
+      },
+      {
+        "id": "internal-agent",
+        "kind": "delegation",
+        "intrinsic_strength": "authoritative",
+        "depends_on": ["external-originator"],
+        "producer": {
+          "name": "agent-registry",
+          "authority_scope": ["internal agent identity and posture"]
+        }
+      },
+      {
+        "id": "authorization",
+        "kind": "authorization",
+        "intrinsic_strength": "authoritative",
+        "depends_on": ["internal-agent"],
+        "producer": {
+          "name": "policy-enforcement-point",
+          "authority_scope": ["authorization decision"]
+        }
+      },
+      {
+        "id": "execution",
+        "kind": "execution",
+        "intrinsic_strength": "authoritative",
+        "depends_on": ["authorization"],
+        "producer": {
+          "name": "application"
+        }
+      },
+      {
+        "id": "database-commit",
+        "kind": "persistence",
+        "intrinsic_strength": "authoritative",
+        "producer": {
+          "name": "database",
+          "authority_scope": ["transaction commit"]
+        }
+      }
+    ],
+    "expected_effective_strengths": {
+      "external-originator": "self_reported",
+      "internal-agent": "self_reported",
+      "authorization": "self_reported",
+      "execution": "self_reported",
+      "database-commit": "authoritative"
+    }
+  }
+}
