@@ -13,6 +13,7 @@ import type {
   MandatedAction,
   MandateVerificationContext,
 } from "../src/human-mandate.js";
+import { validateHumanMandateProof } from "../src/validate.js";
 
 const keyPair = generateKeyPairSync("ed25519");
 const otherKeyPair = generateKeyPairSync("ed25519");
@@ -285,4 +286,12 @@ test("undefined values are rejected rather than silently omitted", () => {
     () => canonicalizeForMandateProof({ amount: undefined }),
     /cannot contain undefined/,
   );
+});
+
+
+test("generated mandate proof satisfies the structural schema", () => {
+  const proof = issue();
+  const validation = validateHumanMandateProof(proof);
+
+  assert.equal(validation.valid, true);
 });
