@@ -248,3 +248,58 @@ permission
 The proof verifier returns `authorized: true` only when the proof is internally valid and the signed/recomputed mandate evaluation itself is `within_mandate`.
 
 Key distribution, PKI, registry trust, and issuer authority remain separate policy/evidence inputs.
+
+
+## 13. Authorization projection must not widen authority
+
+Projecting an external authorization artifact into AuditSpec MUST NOT silently discard a source restriction in a way that makes the resulting mandate broader than the source artifact.
+
+If a required source constraint, binding rule, delegation check, replay rule, scope, or other authorization boundary cannot be represented or independently established, the projection MUST fail closed rather than emit a stronger positive mandate.
+
+Examples:
+
+```text
+AAE required rate_limit
+        |
+        | stateless HumanMandate cannot enforce it
+        v
+unverifiable
+```
+
+not:
+
+```text
+drop rate_limit
+        ↓
+broader "pay" permission
+```
+
+and:
+
+```text
+Intent Token scope/bound
+        |
+        | no deployment mapping
+        v
+unverifiable
+```
+
+not:
+
+```text
+keep only action_class
+        ↓
+broader mandate
+```
+
+A cryptographically valid source artifact may therefore still be unusable as a positive AuditSpec HumanMandate projection.
+
+Source-protocol negative or pending states MUST also remain distinct. An AAE `forbid` is not rewritten as permission, and an AAE `hold` is not silently interpreted as a generic AuditSpec allow decision.
+
+The executable reference is:
+
+```text
+implementations/typescript/src/mandate-binding-profiles.ts
+implementations/typescript/test/mandate-binding-profiles.test.ts
+mappings/mandate-binding-profiles/
+```
