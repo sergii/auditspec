@@ -64,7 +64,14 @@ function weaker(
 export function evaluateAssuranceAttenuation(
   assertions: AssuranceAssertion[],
 ): AssuranceAttenuationResult {
-  const byId = new Map(assertions.map((assertion) => [assertion.id, assertion]));
+  const byId = new Map<string, AssuranceAssertion>();
+  for (const assertion of assertions) {
+    if (byId.has(assertion.id)) {
+      throw new TypeError(`Duplicate assurance assertion id: ${assertion.id}`);
+    }
+    byId.set(assertion.id, assertion);
+  }
+
   const cache = new Map<string, EvaluatedAssuranceAssertion>();
   const active = new Set<string>();
 
@@ -110,6 +117,18 @@ export function evaluateAssuranceAttenuation(
           dependency_id: dependencyId,
           message:
             "A missing assurance dependency prevents the dependent assertion from retaining stronger assurance.",
+        });
+        continue;
+      }
+
+      if (active.has(dependencyId)) {
+        effective = "unknown";
+        limiting.add(dependencyId);
+        issues.push({
+          code: "dependency_cycle",
+          dependency_id: dependencyId,
+          message:
+            "A cyclic assurance dependency prevents trust amplification and fails closed to unknown.",
         });
         continue;
       }
