@@ -2,7 +2,7 @@
 
 AuditSpec conformance is executable, not only descriptive.
 
-The v0.1 repository defines multiple machine-readable contracts. Implementations should treat the JSON Schemas, canonical examples, positive vectors, negative vectors, behavioral invariants, and capability manifests as shared interoperability material rather than re-inventing local shapes.
+The v0.2 repository release line retains the v0.1 Core event contract and defines multiple independently versioned machine-readable contracts. Implementations should treat the JSON Schemas, canonical examples, positive vectors, negative vectors, behavioral invariants, and capability manifests as shared interoperability material rather than re-inventing local shapes.
 
 Current machine-readable contracts include:
 
@@ -44,7 +44,7 @@ docker build -f tools/conformance/Dockerfile -t auditspec-conformance .
 docker run --rm auditspec-conformance
 ```
 
-GitHub Actions runs this suite on the `v0.1` working branch and on pull requests.
+GitHub Actions runs this suite on pull requests and on configured main/tag pushes.
 
 ## Core event vectors
 
@@ -119,7 +119,7 @@ The small-state model test exhaustively checks 584 one-to-three-entrypoint combi
 
 ## Mutation testing
 
-A focused StrykerJS mutation configuration targets the pure v0.1 assurance classification function:
+A focused StrykerJS mutation configuration targets the pure assurance classification function:
 
 ```bash
 cd implementations/typescript
@@ -142,7 +142,7 @@ CI also runs the Inspector against pinned public Rails and Frappe repositories. 
 
 ## Failure-injection and framework runtime conformance
 
-v0.1 already exercises transactional/delivery behavior outside JSON Schema:
+The current release line exercises transactional/delivery behavior outside JSON Schema:
 
 - `lab/postgres-atomicity/` verifies same-store/outbox rollback, failure injection, stable logical identity, and duplicate delivery semantics against PostgreSQL;
 - `lab/rails-atomicity/` verifies the ActiveRecord transaction adapter behavior and after-commit wake-up semantics;
@@ -154,7 +154,7 @@ CloudEvents, OpenTelemetry, and W3C PROV mappings also have executable TypeScrip
 
 ## Remaining conformance and hardening families
 
-The v0.1 cycle can still deepen conformance through:
+Future cycles can deepen conformance through:
 
 - fuzzing malformed, deeply nested, cyclic, and oversized inputs with deterministic regression capture;
 - differential conformance for future Go and Rust implementations;
