@@ -10,6 +10,7 @@ import { getFrameworkAdapter, listFrameworkAdapters } from "./framework-registry
 import { inspectRepository } from "./inspector.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
+import { AUDITSPEC_REFERENCE_VERSION } from "./version.js";
 import { corroborateAssessment, type RuntimeEvidenceRecord } from "./runtime-corroboration.js";
 import {
   validateAgentProfile,
