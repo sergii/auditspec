@@ -12,7 +12,7 @@ import { queryCorroboration, type CorroborationQueryFilters } from "./corroborat
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspector.js";
 import { normalizeAuditEvent } from "./normalize.js";
-import { formatAuditEventExplanation, QUICKSTART_EVENT } from "./quickstart.js";
+import { explainAuditEvent, formatAuditEventExplanation, QUICKSTART_EVENT } from "./quickstart.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { redactAuditEvent } from "./redact.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
@@ -333,7 +333,6 @@ async function main(): Promise<void> {
   if (command === "explain") {
     assertAuditEvent(input);
     if (args.includes("--json")) {
-      const { explainAuditEvent } = await import("./quickstart.js");
       print(explainAuditEvent(input));
     } else {
       process.stdout.write(formatAuditEventExplanation(input));
