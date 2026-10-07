@@ -89,7 +89,7 @@ AuditSpec event
 Core: 0.1
 ID: aud_quickstart_001
 Source: urn:example:billing-service
-Actor: service:service:billing
+Actor: service:billing
 Delegation: none
 Action: invoice.pay
 Targets: invoice:INV-0042 (primary)
