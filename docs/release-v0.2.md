@@ -22,7 +22,7 @@ The release hardens the architecture around Core, expands framework/runtime evid
 
 - Core `SPEC.md` remains AuditSpec v0.1.
 - Core audit-event schema remains `/schema/0.1/audit-event.schema.json`.
-- Existing Core producers do not need to emit `spec_version: "0.2"`.
+- No Core producer is required to emit `spec_version: "0.2"`.
 - Delivery identity remains `(source, id)`.
 - Authorization decision and execution result remain separate facts.
 - Evidence trust remains fact-scoped.
