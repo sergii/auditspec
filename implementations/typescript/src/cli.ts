@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { diffAssessments } from "./assessment-diff.js";
 import { diffAssuranceGraphs } from "./assurance-graph-diff.js";
@@ -12,6 +12,7 @@ import { queryCorroboration, type CorroborationQueryFilters } from "./corroborat
 import { queryEvidence, type EvidenceQueryFilters } from "./evidence-query.js";
 import { inspectRepository } from "./inspector.js";
 import { normalizeAuditEvent } from "./normalize.js";
+import { formatAuditEventExplanation, QUICKSTART_EVENT } from "./quickstart.js";
 import { exportOscalAssessmentResults } from "./oscal.js";
 import { redactAuditEvent } from "./redact.js";
 import { planRemediation, verifyRemediation } from "./remediation.js";
@@ -96,7 +97,9 @@ function printAssessment(report: AssessmentReport): void {
 function usage(): never {
   process.stderr.write([
     "Usage:",
-    "  auditspec validate <event.json>",
+    "  auditspec init-example [event.json] [--force]",
+    "  auditspec validate <event.json> [--human]",
+    "  auditspec explain <event.json> [--json]",
     "  auditspec validate-agent <profile.json>",
     "  auditspec normalize <event.json>",
     "  auditspec redact <event.json>",
@@ -123,6 +126,17 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const command = args[0];
   if (!command) usage();
+
+  if (command === "init-example") {
+    const path = resolve(args.find((arg, index) => index > 0 && !arg.startsWith("--")) ?? "audit-event.json");
+    const force = args.includes("--force");
+    if (existsSync(path) && !force) {
+      throw new TypeError(`Refusing to overwrite existing file: ${path}. Pass --force to replace it.`);
+    }
+    writeFileSync(path, `${JSON.stringify(QUICKSTART_EVENT, null, 2)}\n`, "utf8");
+    process.stdout.write(`Created ${path}\n`);
+    return;
+  }
 
   if (command === "inspect") {
     const pathArg = args.find((arg, index) => index > 0 && !arg.startsWith("--")) ?? ".";
@@ -316,10 +330,34 @@ async function main(): Promise<void> {
   if (!path) usage();
   const input = readJson(path);
 
+  if (command === "explain") {
+    assertAuditEvent(input);
+    if (args.includes("--json")) {
+      const { explainAuditEvent } = await import("./quickstart.js");
+      print(explainAuditEvent(input));
+    } else {
+      process.stdout.write(formatAuditEventExplanation(input));
+    }
+    return;
+  }
+
   switch (command) {
     case "validate": {
       const result = validateAuditEvent(input);
-      print(result);
+      if (args.includes("--human")) {
+        if (result.valid) {
+          process.stdout.write(`PASS ${path} - valid AuditSpec Core 0.1 event\n`);
+        } else {
+          process.stdout.write(`FAIL ${path} - ${result.errors.length} validation error(s)\n`);
+          for (const error of result.errors) {
+            process.stdout.write(
+              `  ${error.instancePath || "/"}: ${error.message ?? error.keyword}\n`,
+            );
+          }
+        }
+      } else {
+        print(result);
+      }
       process.exitCode = result.valid ? 0 : 1;
       break;
     }
