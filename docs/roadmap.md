@@ -18,7 +18,7 @@ Next adoption hardening should prioritize independent implementers over addition
 
 - implemented: a deterministic directory/file conformance command for implementer-owned Core event sets;
 - implemented: versioned machine-readable conformance summaries suitable for CI;
-- stable/experimental/internal public API classification before any npm publication;
+- implemented: machine-enforced stable/experimental/internal TypeScript API classification with a restricted package export map;
 - external sample applications that depend only on released AuditSpec surfaces;
 - feedback-driven simplification where first-time implementers repeatedly misread Core semantics.
 
