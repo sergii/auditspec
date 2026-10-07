@@ -17,6 +17,8 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 - Added machine-readable stable/experimental/internal TypeScript API classification and CI drift checks.
 - Restricted the package root to explicitly named stable Core/adoption/interoperability symbols and moved Inspector/runtime/research APIs behind `@auditspec/reference-typescript/experimental`.
 - Removed internal parser/framework plumbing from package exports and updated the GitHub Action to consume Inspector through the experimental entrypoint.
+- Added a packed-package external sample application that emits, validates, explains, and corpus-checks a real Core event using only the stable package root.
+- Added CI that copies the sample outside the repository, installs an `npm pack` artifact, and verifies internal package subpaths remain inaccessible.
 - Core remains `spec_version: "0.1"`; these are adoption surfaces, not a Core schema revision.
 
 ## v0.2.0 - 2026-10-07
