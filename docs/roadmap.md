@@ -6,6 +6,28 @@ Current behavior is documented by the specification, schemas, framework/runtime 
 
 ## v0.3 development candidates
 
+### Release engineering
+
+The active mainline now uses machine-readable development metadata:
+
+```text
+latest release      v0.2.0
+main line           v0.3
+target release      v0.3.0
+reference version   0.3.0-dev.1
+Core spec_version   0.1
+```
+
+Implemented:
+
+- `release/metadata.json` as the source of truth for current release/development state;
+- generic release-boundary CI driven by that metadata rather than a hard-coded v0.2 script;
+- explicit `-dev.N` development versions and `-rc.N` candidate convention;
+- synchronized TypeScript package, MCP shared version, API-surface manifest, README, changelog, and versioning docs.
+
+Future release preparation should advance the metadata stage rather than copy/rename a version-specific checker.
+
+
 ### Adoption and external implementers
 
 The first v0.3 slice adds an executable five-minute Core journey:

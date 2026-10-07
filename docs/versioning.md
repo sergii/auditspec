@@ -6,34 +6,62 @@ The repository release version is not the same thing as the Core event `spec_ver
 
 ## Version planes
 
-| Plane | v0.2.0 value | Meaning |
+Current `main` development state is declared in `release/metadata.json`.
+
+| Plane | Current value | Meaning |
 | --- | --- | --- |
-| Repository release | `v0.2.0` | The version of the repository release/tag as a whole. |
-| TypeScript reference package | `0.2.0` | The implementation/release-line version of the private TypeScript reference package. |
-| MCP server implementation | `0.2.0` | The server implementation version reported to MCP clients. |
-| Core audit event | `spec_version: "0.1"` | The normative semantic contract for AuditSpec Core events. |
-| Core schema URI | `/schema/0.1/audit-event.schema.json` | The immutable Core schema family/version. |
+| Latest tagged release | `v0.2.0` | Latest immutable repository release/tag. |
+| Main development line | `v0.3` | Active repository development line on `main`. |
+| Target next release | `v0.3.0` | Planned repository release for the active development line. |
+| TypeScript reference package | `0.3.0-dev.1` | Private implementation development version. |
+| MCP server implementation | `0.3.0-dev.1` | Server implementation version reported to MCP clients. |
+| Core audit event | `spec_version: "0.1"` | Normative semantic contract for AuditSpec Core events. |
+| Core schema URI | `/schema/0.1/audit-event.schema.json` | Immutable Core schema family/version. |
 | Assessment/report schemas | currently `0.1` families | Independently versioned non-Core contracts. |
 | Inspector/adapters/plugins | independently versioned | Implementation capability versions, not Core versions. |
 | External drafts/standards | exact RFC or draft revision | Prior-art/source revision used by a mapping/profile. |
 
-## Why v0.2 can still use Core spec_version 0.1
+## Development and release versions
 
-The v0.2 repository line adds substantial executable capability without redefining the Core event.
+The active repository line and the latest tagged release are deliberately different while development is in progress:
+
+```text
+latest tagged release       v0.2.0
+main development line       v0.3
+next target release         v0.3.0
+reference implementation    0.3.0-dev.1
+Core event spec_version     0.1
+```
+
+Development implementation versions use:
+
+```text
+<target>-dev.N
+```
+
+Release candidates use:
+
+```text
+<target>-rc.N
+```
+
+A final released implementation version equals the target release version.
+
+Advancing `0.3.0-dev.1` to another development/candidate/final version changes implementation/repository metadata only. It does not change Core unless AuditSpec explicitly versions the normative Core contract.
+
+## Why v0.3 can still use Core spec_version 0.1
+
+The v0.3 development line adds adoption, conformance, package-boundary, and API-stability capabilities without redefining the Core event.
 
 Examples include:
 
-- framework-neutral Inspector/plugin boundaries;
-- deeper Rails and Frappe source analysis;
-- runtime evidence producers and corroboration;
-- assurance attenuation;
-- RFC 8693 identity/delegation projection;
-- RFC 9421 and DPoP request-evidence projection;
-- human-mandate evaluation and signed mandate proof;
-- AAE and Intent Token research profiles;
-- end-to-end mandate-chain composition.
+- first-time implementer quickstart commands;
+- implementer-owned corpus conformance;
+- stable/experimental/internal TypeScript API classification;
+- a packed-package external consumer sample;
+- release-shape/package-boundary validation.
 
-Those surfaces consume or complement Core. They do not require changing the meaning of:
+Those surfaces consume or distribute Core. They do not change the meaning of:
 
 ```json
 {
@@ -41,7 +69,7 @@ Those surfaces consume or complement Core. They do not require changing the mean
 }
 ```
 
-Changing the repository release number therefore MUST NOT be interpreted as a silent Core schema upgrade.
+Changing the repository or implementation version MUST NOT be interpreted as a silent Core schema upgrade.
 
 ## Core version rule
 
@@ -70,13 +98,15 @@ Consumers MUST inspect the version field or immutable schema identifier of the s
 
 Reference implementations use package/server versions to describe the implementation build, not the Core event contract.
 
-For the v0.2.0 release:
+For current `main` development:
 
 ```text
-TypeScript reference package  0.2.0
-MCP server implementation     0.2.0
+TypeScript reference package  0.3.0-dev.1
+MCP server implementation     0.3.0-dev.1
 Core event spec_version       0.1
 ```
+
+The latest tagged release remains `v0.2.0`.
 
 ## Research profile rule
 
