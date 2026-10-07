@@ -2,15 +2,15 @@
 
 AuditSpec follows explicit specification and implementation versions. The Core `spec_version` remains independent from packaging/version metadata used by reference implementations.
 
-## v0.2.0 - Unreleased
+## v0.2.0 - 2026-10-07
 
-Release-candidate stabilization for the second repository release line.
+Second public AuditSpec repository release line.
 
 ### Compatibility and versioning
 
 - The repository release advances to v0.2.0 while the normative Core audit-event contract remains `spec_version: "0.1"`.
 - Added `docs/versioning.md` to separate repository, implementation, artifact/schema, Inspector/adapter, and external-standard version planes.
-- The TypeScript reference and MCP implementation are staged at `0.2.0-rc.1`; the package remains private and unpublished.
+- The TypeScript reference and MCP implementation are versioned `0.2.0`; the package remains private and unpublished.
 - No Core producer is required to emit `spec_version: "0.2"`.
 
 ### Architecture, Inspector, and runtime assurance
@@ -52,8 +52,7 @@ Release-candidate stabilization for the second repository release line.
 
 ### Release status
 
-- v0.2.0 is not tagged yet.
-- See `docs/release-v0.2.md` for remaining release gates.
+- See `docs/release-v0.2.md` for release boundaries and post-merge/tag checks.
 - Draft-based identity/mandate mappings remain experimental research surfaces and are not protocol-conformance claims.
 
 ## v0.1 - 2026-09-08

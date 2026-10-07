@@ -1,6 +1,6 @@
 # TypeScript reference implementation
 
-This directory contains the executable TypeScript reference for the AuditSpec v0.2 release line. The package is currently `0.2.0-rc.1`. The normative Core event contract remains `spec_version: "0.1"`; the repository JSON Schemas and `SPEC.md` remain the source of truth for their respective contracts.
+This directory contains the executable TypeScript reference for the AuditSpec v0.2 release line. The package version is `0.2.0`. The normative Core event contract remains `spec_version: "0.1"`; the repository JSON Schemas and `SPEC.md` remain the source of truth for their respective contracts.
 
 ## Library API
 

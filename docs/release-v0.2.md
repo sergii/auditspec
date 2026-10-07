@@ -1,6 +1,6 @@
 # AuditSpec v0.2 release readiness
 
-Status: release-candidate stabilization
+Status: final release metadata prepared; mainline integration/tag pending
 
 Target repository release: `v0.2.0`
 
@@ -139,11 +139,11 @@ These are not v0.2 blockers unless a release claim says otherwise:
 
 The v0.2.0 tag should not be cut until all of these are true:
 
-- [ ] release-candidate branch is green in required CI;
-- [ ] TypeScript reference package/server version is changed from `0.2.0-rc.1` to `0.2.0`;
-- [ ] `CHANGELOG.md` v0.2.0 section is finalized with release date;
-- [ ] README status no longer says release candidate;
-- [ ] release-readiness script passes with final metadata;
+- [x] release-candidate branch is green in required CI;
+- [x] TypeScript reference package/server version is `0.2.0`;
+- [x] `CHANGELOG.md` v0.2.0 section is finalized with release date;
+- [x] README status no longer says release candidate;
+- [x] release-readiness script passes with final metadata;
 - [ ] the v0.2 integration into `main` is green;
 - [ ] final tag `v0.2.0` is created from the intended mainline commit;
 - [ ] the GitHub Action is smoke-tested from the released tag/reference.
