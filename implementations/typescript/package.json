@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental.d.ts",
+      "import": "./dist/experimental.js"
     }
   },
   "bin": {
@@ -22,8 +26,9 @@
     "test": "tsx --test test/*.test.ts",
     "test:assurance-model": "tsx --test test/assurance-evaluation.test.ts test/all-path-model.test.ts test/assurance-invariants.test.ts test/depth-truncation-hardening.test.ts",
     "test:mutation": "stryker run",
-    "check": "npm run build && npm test",
-    "mcp": "node dist/mcp-server.js"
+    "check": "npm run build && npm run check:api-surface && npm test",
+    "mcp": "node dist/mcp-server.js",
+    "check:api-surface": "node ../../tools/api-surface/check.mjs"
   },
   "dependencies": {
     "@ast-grep/lang-python": "0.0.6",

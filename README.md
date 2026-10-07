@@ -54,6 +54,8 @@ PASS audit-event.json - valid AuditSpec Core 0.1 event
 
 This path requires only the Core event contract. Inspector, MCP, runtime corroboration, agent profiles, mandate research, OSCAL, and cloud services are optional capabilities around Core.
 
+The TypeScript package root is now deliberately small and stable. Inspector/runtime/research APIs live behind the explicit `@auditspec/reference-typescript/experimental` subpath, while parser/framework plumbing remains internal.
+
 See `examples/external-implementer/README.md` for the complete walkthrough.
 
 ## Core event
@@ -140,6 +142,7 @@ See `examples/external-implementer/README.md` for the complete walkthrough.
 - `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics, and producer model.
 - `docs/roadmap.md` - non-normative future work and permanent assurance guardrails.
 - `docs/versioning.md` - repository/Core/schema/implementation version boundaries.
+- `docs/api-stability.md` - TypeScript stable/experimental/internal package API boundary.
 - `docs/release-v0.2.md` - v0.2 release inventory, surface classification, gaps, and release gates.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.

@@ -4,29 +4,33 @@ This directory contains the executable TypeScript reference for the AuditSpec v0
 
 ## Library API
 
-The package exposes Core validation, normalization, redaction, delivery identity, CloudEvents and OpenTelemetry mappings, repository inspection, Assurance Graph construction/diff/path queries, assessment diffing, remediation planning/verification, control mapping, static evidence queries, runtime corroboration/query/diff, runtime producer registries/adapters, OSCAL projection, W3C PROV projection, and MCP server construction.
+The package root exposes the intentionally stable implementer surface: Core event types/validation, normalization/redaction, delivery identity, Core interoperability projections, quickstart helpers, and corpus conformance. Inspector/runtime/assurance/control/MCP/identity-research APIs require the explicit `@auditspec/reference-typescript/experimental` entrypoint.
 
-Important functions include:
+Stable root examples:
 
 ```ts
-validateAuditEvent(value)
-validateAssessmentReport(value)
-validateAgentProfile(value)
-inspectRepository(path)
-buildAssuranceGraph(path)
-diffAssuranceGraphs(base, head)
-findAssurancePath(graph, location)
-diffAssessments(base, head)
-planRemediation(assessment)
-verifyRemediation(base, head)
-mapAssessmentToControls(assessment, profile)
-queryEvidence(assessment, filters)
-corroborateAssessment(assessment, evidence)
-diffCorroborationReports(base, head)
-queryCorroboration(report, filters)
-exportOscalAssessmentResults(assessment, request)
-createAuditSpecMcpServer()
+import {
+  validateAuditEvent,
+  normalizeAuditEvent,
+  redactAuditEvent,
+  toCloudEvent,
+  runConformanceCorpus,
+} from "@auditspec/reference-typescript";
 ```
+
+Experimental examples:
+
+```ts
+import {
+  inspectRepository,
+  buildAssuranceGraph,
+  corroborateAssessment,
+  evaluateHumanMandate,
+  createAuditSpecMcpServer,
+} from "@auditspec/reference-typescript/experimental";
+```
+
+See `../../docs/api-stability.md` and `api-surface.json` for the enforced classification.
 
 `normalizeAuditEvent(event)` produces deterministic reference output but does **not** claim RFC 8785/JCS canonicalization and MUST NOT be used as a signing format.
 
@@ -117,4 +121,4 @@ Tests consume repository-wide conformance artifacts so the TypeScript implementa
 
 ## Packaging status
 
-The v0.2 TypeScript reference remains repository-local and `private`; no npm package is published. The package/server version tracks the repository implementation line and is independent from Core event `spec_version`. Use a released GitHub Action tag/reference or build the reference implementation from source.
+The TypeScript reference remains repository-local and `private`; no npm package is published. The package export map already restricts library imports to the stable root and explicit `./experimental` subpath; internal modules are not package exports. The package/server version remains independent from Core event `spec_version`.

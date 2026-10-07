@@ -105,3 +105,24 @@ Consumers that require reproducibility should pin:
 - an immutable AuditSpec release/tag or commit;
 - the exact artifact/schema version they consume;
 - the exact external draft/RFC revision where a research mapping depends on one.
+
+
+## Library API stability rule
+
+Repository/package version and individual library API stability are separate dimensions.
+
+The TypeScript reference classifies imports as:
+
+```text
+stable        @auditspec/reference-typescript
+experimental @auditspec/reference-typescript/experimental
+internal     not exported as a package subpath
+```
+
+The machine-readable classification is `implementations/typescript/api-surface.json`.
+
+A stable root symbol is an intentional compatibility surface for external implementers. Experimental APIs may change incompatibly across `0.x` releases. Internal source/build files have no import compatibility promise.
+
+Adding a source module does not make it public. The API-surface CI gate requires every TypeScript module to be classified and prevents the stable root from using wildcard exports.
+
+See `docs/api-stability.md`.

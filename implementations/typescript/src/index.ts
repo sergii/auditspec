@@ -1,55 +1,107 @@
-export * from "./version.js";
-export * from "./types.js";
-export * from "./assessment-types.js";
-export * from "./assessment-diff.js";
-export * from "./assurance-graph.js";
-export * from "./assurance-graph-diff.js";
-export * from "./assurance-paths.js";
-export * from "./assurance-evaluation.js";
-export * from "./assurance-attenuation.js";
-export * from "./agent-chain-fixtures.js";
-export * from "./human-mandate.js";
-export * from "./mandate-proof.js";
-export * from "./mandate-binding-profiles.js";
-export * from "./end-to-end-mandate-chain.js";
-export * from "./all-path-assurance.js";
-export * from "./remediation.js";
-export * from "./control-mapping.js";
-export * from "./evidence-query.js";
-export * from "./framework-registry.js";
-export * from "./runtime-producer-registry.js";
-export * from "./observation-scope.js";
-export * from "./runtime-corroboration.js";
-export * from "./corroboration-diff.js";
-export * from "./corroboration-query.js";
-export * from "./oscal.js";
-export * from "./validate.js";
-export * from "./normalize.js";
-export * from "./redact.js";
-export * from "./delivery.js";
-export * from "./cloudevents.js";
-export * from "./opentelemetry.js";
-export * from "./opentelemetry-runtime.js";
-export * from "./database-runtime.js";
-export * from "./delivery-runtime.js";
-export * from "./authorization-runtime.js";
-export * from "./w3c-prov.js";
-export * from "./oauth-rfc8693.js";
-export * from "./http-request-evidence.js";
-export * from "./inspector.js";
 export {
-  inspectRepository as inspectRepositoryBase,
-  inspectRepositoryWithPlugins,
-} from "./inspect.js";
+  AUDITSPEC_CORE_SPEC_VERSION,
+  AUDITSPEC_REFERENCE_VERSION,
+  AUDITSPEC_RELEASE_LINE,
+} from "./version.js";
+
 export type {
-  InspectorAssurancePolicy,
-  InspectorFrameworkPlugin,
-  InspectorPluginInspection,
-} from "./inspector/plugin.js";
-export * from "./frappe-inspect.js";
-export * from "./mcp.js";
-export * from "./runtime-producer-mcp.js";
+  Actor,
+  ActorType,
+  AuditEvent,
+  Authorization,
+  Changes,
+  Correlation,
+  Delegation,
+  Digest,
+  DisplaySnapshot,
+  EntityRef,
+  Evidence,
+  ExecutionResult,
+  Extension,
+  JsonObject,
+  JsonPrimitive,
+  JsonValue,
+  Ordering,
+  Origin,
+  Producer,
+  Redaction,
+  RelatedEntity,
+} from "./types.js";
 
-export * from "./quickstart.js";
+export {
+  assertAuditEvent,
+  assertConformanceCorpusReport,
+  validateAuditEvent,
+  validateConformanceCorpusReport,
+} from "./validate.js";
+export type {
+  ValidationIssue,
+  ValidationResult,
+} from "./validate.js";
 
-export * from "./conformance-corpus.js";
+export { normalizeAuditEvent } from "./normalize.js";
+
+export {
+  DEFAULT_SECRET_KEYS,
+  redactAuditEvent,
+} from "./redact.js";
+export type {
+  RedactionMethod,
+  RedactionPolicy,
+} from "./redact.js";
+
+export {
+  AuditIdentityConflictError,
+  InMemoryAuditDeduplicator,
+  auditEventIdentity,
+} from "./delivery.js";
+export type {
+  AuditDeliveryResult,
+  AuditDeliveryStatus,
+} from "./delivery.js";
+
+export {
+  fromCloudEvent,
+  toCloudEvent,
+} from "./cloudevents.js";
+export type {
+  CloudEvent,
+} from "./cloudevents.js";
+
+export {
+  fromOpenTelemetryLog,
+  toOpenTelemetryLog,
+} from "./opentelemetry.js";
+export type {
+  OpenTelemetryLogProjection,
+} from "./opentelemetry.js";
+
+export {
+  fromW3CProvProjection,
+  toW3CProvProjection,
+} from "./w3c-prov.js";
+export type {
+  ProvActivity,
+  ProvAgent,
+  ProvEntity,
+  ProvRelation,
+  W3CProvProjection,
+} from "./w3c-prov.js";
+
+export {
+  QUICKSTART_EVENT,
+  explainAuditEvent,
+  formatAuditEventExplanation,
+} from "./quickstart.js";
+export type {
+  AuditEventExplanation,
+} from "./quickstart.js";
+
+export {
+  formatConformanceCorpusReport,
+  runConformanceCorpus,
+} from "./conformance-corpus.js";
+export type {
+  ConformanceCorpusFileResult,
+  ConformanceCorpusReport,
+} from "./conformance-corpus.js";

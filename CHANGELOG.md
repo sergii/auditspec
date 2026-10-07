@@ -14,6 +14,9 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 - Added `auditspec conformance <path>` for deterministic recursive validation of implementer-owned Core event corpora.
 - Added human and `--json` corpus summaries, stable relative file ordering, explicit malformed-JSON accounting, and non-zero failure for empty corpora.
 - Added the versioned `schema/conformance-corpus-report.schema.json` machine-readable CI contract.
+- Added machine-readable stable/experimental/internal TypeScript API classification and CI drift checks.
+- Restricted the package root to explicitly named stable Core/adoption/interoperability symbols and moved Inspector/runtime/research APIs behind `@auditspec/reference-typescript/experimental`.
+- Removed internal parser/framework plumbing from package exports and updated the GitHub Action to consume Inspector through the experimental entrypoint.
 - Core remains `spec_version: "0.1"`; these are adoption surfaces, not a Core schema revision.
 
 ## v0.2.0 - 2026-10-07

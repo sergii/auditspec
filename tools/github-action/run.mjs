@@ -11,7 +11,7 @@ if (!actionPath || !workspace || !runnerTemp) {
   throw new Error("AuditSpec GitHub Action requires GITHUB_ACTION_PATH, GITHUB_WORKSPACE, and RUNNER_TEMP");
 }
 
-const libraryUrl = pathToFileURL(join(actionPath, "implementations/typescript/dist/index.js")).href;
+const libraryUrl = pathToFileURL(join(actionPath, "implementations/typescript/dist/experimental.js")).href;
 const {
   assertAssessmentDiff,
   assertAssessmentReport,
