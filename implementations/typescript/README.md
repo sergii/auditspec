@@ -1,6 +1,6 @@
 # TypeScript reference implementation
 
-This directory contains the executable TypeScript reference for the AuditSpec v0.3 release-candidate line. The package version is `0.3.0-rc.1`; the latest tagged repository release remains `v0.2.0`. The normative Core event contract remains `spec_version: "0.1"`; repository/implementation versions do not imply a Core schema version.
+This directory contains the executable TypeScript reference for AuditSpec v0.3.0. The package version is `0.3.0`; the latest tagged repository release is `v0.3.0`. The normative Core event contract remains `spec_version: "0.1"`; repository/implementation versions do not imply a Core schema version.
 
 ## Library API
 
@@ -96,7 +96,7 @@ The report uses portable relative paths and deterministic ordering so the same c
 
 The command exits non-zero when any event is invalid, when JSON parsing fails, or when a directory contains no JSON events.
 
-Inspector findings remain advisory in the v0.3 release-candidate line. The CLI does not treat findings as command failure by default.
+Inspector findings remain advisory in the v0.3 release line. The CLI does not treat findings as command failure by default.
 
 ## Runtime evidence
 

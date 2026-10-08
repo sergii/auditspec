@@ -8,13 +8,13 @@ Current behavior is documented by the specification, schemas, framework/runtime 
 
 ### Release engineering
 
-The active mainline now uses machine-readable release metadata and is in v0.3.0 RC stabilization:
+The active mainline now uses machine-readable release metadata and v0.3.0 is released:
 
 ```text
 latest release      v0.2.0
 main line           v0.3
 target release      v0.3.0
-reference version   0.3.0-rc.1
+reference version   0.3.0
 Core spec_version   0.1
 ```
 
@@ -25,7 +25,7 @@ Implemented:
 - explicit `-dev.N` development versions and `-rc.N` candidate convention;
 - synchronized TypeScript package, MCP shared version, API-surface manifest, README, changelog, and versioning docs.
 
-The current candidate is `0.3.0-rc.1`. Final release preparation should advance the same metadata to `released` rather than copy or rename a version-specific checker.
+v0.3.0 has completed the candidate-to-released transition. Future release lines should reuse the same metadata/checker flow.
 
 
 ### Adoption and external implementers
