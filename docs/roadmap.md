@@ -8,13 +8,13 @@ Current behavior is documented by the specification, schemas, framework/runtime 
 
 ### Release engineering
 
-The active mainline now uses machine-readable development metadata:
+The active mainline now uses machine-readable release metadata and is in v0.3.0 RC stabilization:
 
 ```text
 latest release      v0.2.0
 main line           v0.3
 target release      v0.3.0
-reference version   0.3.0-dev.4
+reference version   0.3.0-rc.1
 Core spec_version   0.1
 ```
 
@@ -25,7 +25,7 @@ Implemented:
 - explicit `-dev.N` development versions and `-rc.N` candidate convention;
 - synchronized TypeScript package, MCP shared version, API-surface manifest, README, changelog, and versioning docs.
 
-Future release preparation should advance the metadata stage rather than copy/rename a version-specific checker.
+The current candidate is `0.3.0-rc.1`. Final release preparation should advance the same metadata to `released` rather than copy or rename a version-specific checker.
 
 
 ### Adoption and external implementers
@@ -71,7 +71,7 @@ Candidate gaps include:
 - custom or indirect DocType controller resolution;
 - other dynamic composition only when the target can be established conservatively.
 
-The v0.2 development line already resolves Frappe whitelist decorator aliases when a direct module-level import proves that the decorator is `frappe.whitelist` and the alias remains unambiguous until the decorated definition. It also resolves direct absolute module-level `from module import function [as alias]` references passed to `frappe.enqueue(...)` when the binding is unique, precedes the caller, is not shadowed by caller-local state, remains unrebound at module level, and resolves to a concrete repository target.
+The current implementation resolves Frappe whitelist decorator aliases when a direct module-level import proves that the decorator is `frappe.whitelist` and the alias remains unambiguous until the decorated definition. It also resolves direct absolute module-level `from module import function [as alias]` references passed to `frappe.enqueue(...)` when the binding is unique, precedes the caller, is not shadowed by caller-local state, remains unrebound at module level, and resolves to a concrete repository target.
 
 ### Cross-service topology
 
