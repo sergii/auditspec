@@ -6,7 +6,7 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.1`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
+The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.2`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
 
 Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for the completed v0.2.0 release record.
 
@@ -83,6 +83,20 @@ node tools/adoption/check-external-sample.mjs
 This is intentionally stronger than an in-repository unit test because the sample cannot import repository-local implementation modules.
 
 
+## Schema-valid semantic traps
+
+Core validation answers whether an event conforms structurally and to the normative machine-checkable constraints. It cannot prove that an implementer chose the right real-world actor, delegation chain, evidence trust, source identity, or causal relation.
+
+The v0.3 development line includes a paired confusion corpus:
+
+```text
+examples/implementer-feedback/corpus.json
+```
+
+Its anti-pattern examples intentionally remain Core-valid. The paired recommended events show the intended semantic representation for the stated situation.
+
+The corpus currently has `evidence_status: "hypothesis"`: it is a set of predicted first-time-implementer mistakes, not a claim of already-observed external-user feedback. See `examples/implementer-feedback/README.md`.
+
 ## Core event
 
 ```json
@@ -152,6 +166,7 @@ This is intentionally stronger than an in-repository unit test because the sampl
 - `conformance/` - valid and invalid vectors shared by implementations, plus guidance for implementer-owned corpora.
 - `examples/external-implementer/` - five-minute Core adoption path for first-time implementers.
 - `examples/external-sample-app/` - packed-package external consumer that uses only the stable TypeScript root.
+- `examples/implementer-feedback/` - schema-valid semantic confusion corpus for first-time implementers.
 - `tools/conformance/` - executable schema/capability validators and container runner.
 - `implementations/` - TypeScript, Ruby, and Python executable language reference implementations.
 - `adapters/` - runtime framework adapters, machine-readable capability manifests, and framework integration guidance. These extensions depend on AuditSpec contracts; Core does not depend on them.

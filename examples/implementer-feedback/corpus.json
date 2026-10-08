@@ -1,0 +1,896 @@
+{
+  "corpus_version": "0.1",
+  "evidence_status": "hypothesis",
+  "description": "Hypothesized first-time implementer confusion cases. Every anti-pattern is intentionally Core-schema-valid so the corpus tests semantic understanding rather than only JSON shape.",
+  "scenarios": [
+    {
+      "id": "agent-on-behalf-of-user",
+      "title": "Keep the AI agent as the immediate actor",
+      "focus": [
+        "actor",
+        "delegation"
+      ],
+      "situation": "Agent agent:7 executes invoice.pay after user 42 asks it to perform the payment.",
+      "misconception": "Record the user as actor because the business intent originated with the user.",
+      "why_misleading": "It erases the entity that directly caused the audited operation and collapses delegation into identity.",
+      "takeaway": "actor is the immediate actor; the represented user belongs in the ordered delegation chain.",
+      "spec_refs": [
+        "SPEC.md#4-actor",
+        "SPEC.md#5-delegation-and-impersonation"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_agent_on_behalf_of_user",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z"
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_agent_on_behalf_of_user",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "agent",
+            "id": "agent:7"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "delegation": [
+            {
+              "relationship": "on_behalf_of",
+              "principal": {
+                "type": "user",
+                "id": "42"
+              }
+            }
+          ]
+        }
+      ],
+      "expected_changed_fields": [
+        "actor",
+        "delegation"
+      ]
+    },
+    {
+      "id": "nested-delegation-order",
+      "title": "Order delegation nearest to the actor first",
+      "focus": [
+        "delegation"
+      ],
+      "situation": "A child agent acts for a parent agent, which acts on behalf of user 42.",
+      "misconception": "List the human principal first because the human is ultimately responsible.",
+      "why_misleading": "AuditSpec delegation order is structural, not importance-ranked: the first entry is nearest to the immediate actor.",
+      "takeaway": "For child -> parent -> user, the chain must be [parent, user].",
+      "spec_refs": [
+        "SPEC.md#5-delegation-and-impersonation",
+        "spec/actors.md#actors-and-delegation"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_nested_delegation_order",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "agent",
+            "id": "agent:child"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "delegation": [
+            {
+              "relationship": "on_behalf_of",
+              "principal": {
+                "type": "user",
+                "id": "42"
+              }
+            },
+            {
+              "relationship": "delegated_by",
+              "principal": {
+                "type": "agent",
+                "id": "agent:parent"
+              }
+            }
+          ]
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_nested_delegation_order",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "agent",
+            "id": "agent:child"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "delegation": [
+            {
+              "relationship": "delegated_by",
+              "principal": {
+                "type": "agent",
+                "id": "agent:parent"
+              }
+            },
+            {
+              "relationship": "on_behalf_of",
+              "principal": {
+                "type": "user",
+                "id": "42"
+              }
+            }
+          ]
+        }
+      ],
+      "expected_changed_fields": [
+        "delegation"
+      ]
+    },
+    {
+      "id": "impersonation-keeps-operator",
+      "title": "Preserve the operator during impersonation",
+      "focus": [
+        "actor",
+        "delegation"
+      ],
+      "situation": "Support operator admin:99 impersonates customer user:42 to inspect an account.",
+      "misconception": "Record user 42 as actor because the application session is impersonating that user.",
+      "why_misleading": "It hides who actually operated the session and destroys accountability for the impersonation action.",
+      "takeaway": "Keep the operator as actor and record the impersonated principal in delegation with a safe reason/reference.",
+      "spec_refs": [
+        "SPEC.md#5-delegation-and-impersonation",
+        "spec/actors.md#actors-and-delegation"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_impersonation_keeps_operator",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "account.view",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z"
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_impersonation_keeps_operator",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "admin:99"
+          },
+          "action": "account.view",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "delegation": [
+            {
+              "relationship": "impersonation",
+              "principal": {
+                "type": "user",
+                "id": "42"
+              },
+              "reason": "support_case",
+              "reference": "SUP-1842"
+            }
+          ]
+        }
+      ],
+      "expected_changed_fields": [
+        "actor",
+        "delegation"
+      ]
+    },
+    {
+      "id": "source-is-not-producer-version",
+      "title": "Keep source stable across producer deployments",
+      "focus": [
+        "source",
+        "producer",
+        "identity"
+      ],
+      "situation": "billing-worker version 17 emits an audit event for the billing bounded context.",
+      "misconception": "Put the deployable component and its version into source.",
+      "why_misleading": "Changing source changes the logical event identity namespace because identity is (source, id).",
+      "takeaway": "Use a stable bounded-context/system source and record software component/version under producer.",
+      "spec_refs": [
+        "SPEC.md#3-event-identity-and-source",
+        "SPEC.md#12-producer-and-origin",
+        "spec/delivery.md#logical-event-identity"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_source_is_not_producer_version",
+          "source": "urn:example:billing-worker:v17",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "producer": {
+            "name": "billing-worker-v17"
+          }
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_source_is_not_producer_version",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "producer": {
+            "name": "billing-worker",
+            "version": "17"
+          }
+        }
+      ],
+      "expected_changed_fields": [
+        "source",
+        "producer"
+      ]
+    },
+    {
+      "id": "target-versus-subject",
+      "title": "Separate the resource acted on from the entity affected",
+      "focus": [
+        "targets",
+        "subjects"
+      ],
+      "situation": "An invoice refund directly mutates invoice INV-42 and materially affects customer user:42.",
+      "misconception": "Put every related entity into targets.",
+      "why_misleading": "It makes consumers unable to distinguish the directly acted-on resource from materially affected entities.",
+      "takeaway": "Use targets for resources directly acted upon and subjects for materially affected entities.",
+      "spec_refs": [
+        "SPEC.md#7-targets-and-subjects"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_target_versus_subject",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.refund",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "targets": [
+            {
+              "type": "invoice",
+              "id": "INV-42",
+              "role": "primary"
+            },
+            {
+              "type": "user",
+              "id": "42",
+              "role": "affected"
+            }
+          ]
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_target_versus_subject",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.refund",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "targets": [
+            {
+              "type": "invoice",
+              "id": "INV-42",
+              "role": "primary"
+            }
+          ],
+          "subjects": [
+            {
+              "type": "user",
+              "id": "42",
+              "role": "affected"
+            }
+          ]
+        }
+      ],
+      "expected_changed_fields": [
+        "targets",
+        "subjects"
+      ]
+    },
+    {
+      "id": "authorization-does-not-imply-execution",
+      "title": "Separate authorization success from execution success",
+      "focus": [
+        "authorization",
+        "result"
+      ],
+      "situation": "Policy allows invoice.pay, but the database fails before the payment state change commits.",
+      "misconception": "Set result to succeeded because authorization was allowed.",
+      "why_misleading": "Authorization and execution are separate facts; a positive decision does not prove the business operation succeeded.",
+      "takeaway": "Record authorization allowed and execution failed independently.",
+      "spec_refs": [
+        "SPEC.md#8-authorization",
+        "SPEC.md#9-execution-result"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_authorization_does_not_imply_execution",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "authorization": {
+            "decision": "allowed",
+            "scopes": [
+              "invoice:pay"
+            ]
+          }
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_authorization_does_not_imply_execution",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "failed",
+            "code": "db_unavailable"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "authorization": {
+            "decision": "allowed",
+            "scopes": [
+              "invoice:pay"
+            ]
+          }
+        }
+      ],
+      "expected_changed_fields": [
+        "result"
+      ]
+    },
+    {
+      "id": "scope-is-not-authorization-decision",
+      "title": "Do not promote capability context into a concrete allow decision",
+      "focus": [
+        "authorization"
+      ],
+      "situation": "A verified credential carries invoice:pay scope, but the application did not capture the concrete authorization decision for this request.",
+      "misconception": "Because the scope exists, authorization.decision must be allowed.",
+      "why_misleading": "Scopes describe capability context; without an observed/evaluated decision, allowed overstates the available fact.",
+      "takeaway": "When a decision is relevant but unavailable, preserve uncertainty instead of manufacturing an allow.",
+      "spec_refs": [
+        "SPEC.md#8-authorization",
+        "spec/actors.md#oauth-20-token-exchange-mapping-notes"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_scope_is_not_authorization_decision",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "authorization": {
+            "decision": "allowed",
+            "scopes": [
+              "invoice:pay"
+            ]
+          }
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_scope_is_not_authorization_decision",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "authorization": {
+            "decision": "unknown",
+            "scopes": [
+              "invoice:pay"
+            ]
+          }
+        }
+      ],
+      "expected_changed_fields": [
+        "authorization"
+      ]
+    },
+    {
+      "id": "agent-report-is-not-authoritative-execution",
+      "title": "Keep evidence trust scoped to the producer",
+      "focus": [
+        "evidence"
+      ],
+      "situation": "An agent runtime says its tool call succeeded; the server separately records that the business operation executed.",
+      "misconception": "Mark the agent report authoritative because the agent initiated the operation.",
+      "why_misleading": "Actor-controlled evidence is self-reported for execution facts; authoritative server evidence remains a separate observation.",
+      "takeaway": "Do not upgrade weaker evidence because it agrees with a stronger producer.",
+      "spec_refs": [
+        "SPEC.md#14-evidence-and-trust",
+        "spec/trust-model.md#evidence-trust-model"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_agent_report_is_not_authoritative_execution",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "agent",
+            "id": "agent:7"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "evidence": [
+            {
+              "kind": "agent_report",
+              "producer": {
+                "name": "agent-runtime"
+              },
+              "trust": "authoritative"
+            }
+          ]
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_agent_report_is_not_authoritative_execution",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "agent",
+            "id": "agent:7"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "evidence": [
+            {
+              "kind": "agent_report",
+              "producer": {
+                "name": "agent-runtime"
+              },
+              "trust": "self_reported"
+            },
+            {
+              "kind": "execution",
+              "producer": {
+                "name": "billing-service"
+              },
+              "trust": "authoritative"
+            }
+          ]
+        }
+      ],
+      "expected_changed_fields": [
+        "evidence"
+      ]
+    },
+    {
+      "id": "trace-correlation-is-not-parenthood",
+      "title": "Do not turn correlation into causality",
+      "focus": [
+        "correlation"
+      ],
+      "situation": "Two actions share a distributed trace, but no evidence establishes that one AuditSpec event directly caused the other.",
+      "misconception": "Populate parent_event_id whenever two events share trace_id.",
+      "why_misleading": "Trace co-membership supports correlation but does not prove a semantic parent/causal edge.",
+      "takeaway": "Keep the trace identifier; add parent_event_id or causation_id only when that relationship is actually known.",
+      "spec_refs": [
+        "SPEC.md#13-correlation-and-causality"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_trace_correlation_is_not_parenthood",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "correlation": {
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+            "parent_event_id": "aud_other_action"
+          }
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_trace_correlation_is_not_parenthood",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "correlation": {
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+          }
+        }
+      ],
+      "expected_changed_fields": [
+        "correlation"
+      ]
+    },
+    {
+      "id": "retry-preserves-logical-event-identity",
+      "title": "A delivery retry is not a second audit event",
+      "focus": [
+        "identity",
+        "delivery"
+      ],
+      "situation": "The sink times out after accepting an event, so the publisher retries the same logical audit record.",
+      "misconception": "Generate a new event id for every delivery attempt while reusing only the application idempotency key.",
+      "why_misleading": "The pair (source, id) is AuditSpec logical event identity; changing id creates a second logical occurrence.",
+      "takeaway": "Retry the same source and id. Transport attempts are delivery behavior, not new business actions.",
+      "spec_refs": [
+        "SPEC.md#3-event-identity-and-source",
+        "SPEC.md#18-atomicity-and-reliable-recording",
+        "spec/delivery.md#publisher-crash-recovery"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_retry_001",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "idempotency_key": "invoice:INV-42:pay"
+        },
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_retry_002",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "idempotency_key": "invoice:INV-42:pay"
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_retry_001",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "idempotency_key": "invoice:INV-42:pay"
+        },
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_retry_001",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "idempotency_key": "invoice:INV-42:pay"
+        }
+      ],
+      "expected_changed_fields": [
+        "id"
+      ]
+    },
+    {
+      "id": "occurred-at-is-not-recorded-at",
+      "title": "Preserve action time separately from recording time",
+      "focus": [
+        "time"
+      ],
+      "situation": "The business action occurred at 09:00 but an asynchronous recorder durably persisted the audit event at 09:05.",
+      "misconception": "Use the persistence timestamp for both occurred_at and recorded_at.",
+      "why_misleading": "It erases the distinction between when the audited action happened and when its record became durable.",
+      "takeaway": "Record the best-supported action/decision time in occurred_at and durable-recording time in recorded_at.",
+      "spec_refs": [
+        "SPEC.md#15-time"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_occurred_at_is_not_recorded_at",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:05:00Z",
+          "recorded_at": "2026-10-08T09:05:00Z"
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_occurred_at_is_not_recorded_at",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:05:00Z"
+        }
+      ],
+      "expected_changed_fields": [
+        "occurred_at"
+      ]
+    },
+    {
+      "id": "producer-is-not-actor",
+      "title": "Do not confuse the event constructor with the business actor",
+      "focus": [
+        "actor",
+        "producer"
+      ],
+      "situation": "User 42 approves an invoice and a shared audit SDK constructs the AuditSpec event.",
+      "misconception": "Use the audit SDK as actor because it created the JSON document.",
+      "why_misleading": "producer identifies event-construction software; actor identifies who directly caused the audited business operation.",
+      "takeaway": "Record the user as actor and the SDK/service as producer.",
+      "spec_refs": [
+        "SPEC.md#4-actor",
+        "SPEC.md#12-producer-and-origin"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_producer_is_not_actor",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "service",
+            "id": "audit-sdk"
+          },
+          "action": "invoice.approve",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "producer": {
+            "name": "audit-sdk",
+            "version": "3.2.0"
+          }
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_producer_is_not_actor",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.approve",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "producer": {
+            "name": "audit-sdk",
+            "version": "3.2.0"
+          }
+        }
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "delivery-failure-is-not-action-failure",
+      "title": "Keep transport delivery status out of result.status",
+      "focus": [
+        "result",
+        "delivery",
+        "evidence"
+      ],
+      "situation": "The invoice payment succeeded, the first audit sink delivery timed out, and a retry later succeeded.",
+      "misconception": "Set the business result to failed because an audit delivery attempt failed.",
+      "why_misleading": "result.status describes the audited action, not transport of its audit record.",
+      "takeaway": "Keep the business result succeeded and represent delivery behavior separately from the action result.",
+      "spec_refs": [
+        "SPEC.md#9-execution-result",
+        "SPEC.md#18-atomicity-and-reliable-recording",
+        "spec/delivery.md#delivery-result-vs-action-result"
+      ],
+      "anti_pattern_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_delivery_failure_is_not_action_failure",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "failed",
+            "code": "audit_sink_timeout"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z"
+        }
+      ],
+      "recommended_events": [
+        {
+          "spec_version": "0.1",
+          "id": "aud_feedback_delivery_failure_is_not_action_failure",
+          "source": "urn:example:billing",
+          "actor": {
+            "type": "user",
+            "id": "42"
+          },
+          "action": "invoice.pay",
+          "result": {
+            "status": "succeeded"
+          },
+          "occurred_at": "2026-10-08T09:00:00Z",
+          "recorded_at": "2026-10-08T09:00:00.010Z",
+          "evidence": [
+            {
+              "kind": "delivery_receipt",
+              "producer": {
+                "name": "audit-publisher"
+              },
+              "trust": "attributed",
+              "metadata": {
+                "attempts": 2,
+                "final_status": "accepted"
+              }
+            }
+          ]
+        }
+      ],
+      "expected_changed_fields": [
+        "result",
+        "evidence"
+      ]
+    }
+  ]
+}
