@@ -89,7 +89,7 @@ The Assurance Graph schema uses an open string for framework identity. A synthet
 
 Framework extensibility and source-language extensibility are separate concerns.
 
-The v0.2 Assurance Graph source scanner currently feeds Ruby and Python AST scopes into graph plugins. This is an explicit implementation limitation, not a conceptual restriction of AuditSpec. NestJS/Next.js TypeScript/JavaScript inspection and Go inspection require a separate source-language/scanner extension boundary rather than adding TypeScript/Go parsing assumptions to framework-neutral graph semantics.
+The current Assurance Graph source scanner feeds Ruby and Python AST scopes into graph plugins. This is an explicit implementation limitation, not a conceptual restriction of AuditSpec. NestJS/Next.js TypeScript/JavaScript inspection and Go inspection require a separate source-language/scanner extension boundary rather than adding TypeScript/Go parsing assumptions to framework-neutral graph semantics.
 
 ### Runtime adapter vs Inspector plugin
 
