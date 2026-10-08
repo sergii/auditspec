@@ -163,6 +163,8 @@ The current corpus is explicitly marked `evidence_status: "hypothesis"`; it must
 
 `docs/core-decision-guide.md` turns these semantic traps into a short modeling workflow. CI checks that every corpus scenario remains represented there.
 
+`docs/implementer-feedback-intake.md` defines how real reports become sanitized `observations[]` evidence. A raw issue never automatically upgrades corpus status.
+
 ## Differential reference conformance
 
 TypeScript, Ruby, and Python consume the same repository-root schemas and shared valid/invalid corpus. A disagreement between reference implementations is treated as an interoperability defect rather than a language-specific interpretation.
