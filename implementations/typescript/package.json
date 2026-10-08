@@ -1,9 +1,9 @@
 {
   "name": "@auditspec/reference-typescript",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Executable TypeScript reference implementation for the AuditSpec v0.3 release-candidate line (Core spec_version 0.1)",
+  "description": "Executable TypeScript reference implementation for AuditSpec v0.3.0 (Core spec_version 0.1)",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
