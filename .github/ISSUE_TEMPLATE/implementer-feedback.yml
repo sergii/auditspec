@@ -1,0 +1,114 @@
+name: Implementer semantic feedback
+description: Tell us where modeling a real AuditSpec event was confusing, even if your JSON validated.
+title: "[implementer feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for semantic modeling confusion: actor vs delegation, source vs producer, targets vs subjects, authorization vs result, evidence trust, correlation/causality, retry identity, time, or similar Core interpretation questions.
+
+        This issue is public. Do not include secrets, access tokens, personal data, customer identifiers, proprietary payloads, or anything you are not allowed to share.
+
+        A submitted issue is intake, not automatically "observed evidence" in the AuditSpec corpus. Maintainers review and sanitize it before any curated observation is added.
+
+  - type: dropdown
+    id: scenario
+    attributes:
+      label: Closest existing confusion scenario
+      description: Choose the closest scenario, or "new / not listed".
+      options:
+        - agent-on-behalf-of-user
+        - nested-delegation-order
+        - impersonation-keeps-operator
+        - source-is-not-producer-version
+        - target-versus-subject
+        - authorization-does-not-imply-execution
+        - scope-is-not-authorization-decision
+        - agent-report-is-not-authoritative-execution
+        - trace-correlation-is-not-parenthood
+        - retry-preserves-logical-event-identity
+        - occurred-at-is-not-recorded-at
+        - producer-is-not-actor
+        - delivery-failure-is-not-action-failure
+        - new / not listed
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: AuditSpec version or commit
+      description: For example v0.2.0, main, 0.3.0-dev.3, or a commit SHA.
+      placeholder: v0.2.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: context
+    attributes:
+      label: Context
+      options:
+        - Implementing AuditSpec in my application
+        - Reviewing an AuditSpec integration
+        - Trying the quickstart or sample application
+        - Building tooling around AuditSpec
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: situation
+    attributes:
+      label: What real situation were you trying to model?
+      description: Describe the business/system situation in a sanitized form.
+      placeholder: An agent called a billing service on behalf of a user...
+    validations:
+      required: true
+
+  - type: textarea
+    id: confusion
+    attributes:
+      label: What was confusing or easy to misinterpret?
+      description: Tell us the decision you were unsure about and what you expected AuditSpec to mean.
+      placeholder: I was not sure whether actor should be the user or the agent...
+    validations:
+      required: true
+
+  - type: textarea
+    id: attempted_event
+    attributes:
+      label: Sanitized event shape you first tried
+      description: Minimize this to the fields relevant to the confusion.
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected_or_resolution
+    attributes:
+      label: What representation did you expect, or what eventually resolved it?
+      description: This helps us distinguish a documentation problem from a Core semantic problem.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - blocked
+        - confusing
+        - minor
+        - unknown
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety and curation
+      options:
+        - label: I removed secrets, personal data, customer identifiers, and proprietary content from this report.
+          required: true
+        - label: Maintainers may cite this public issue as a source reference in a sanitized feedback-corpus observation.
+          required: false
