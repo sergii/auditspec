@@ -1,0 +1,248 @@
+{
+  "corpus_version": "0.1",
+  "evidence_status": "mixed",
+  "description": "Invalid fixture with an unsanitized committed observation.",
+  "scenarios": [
+    {
+      "id": "invalid-observation-1",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ],
+      "observations": [
+        {
+          "id": "obs-invalid-001",
+          "source_kind": "github_issue",
+          "source_ref": "https://github.com/sergii/auditspec/issues/999",
+          "observed_at": "2026-10-08T12:00:00Z",
+          "misconception_summary": "Unsanitized observation must be rejected.",
+          "impact": "confusing",
+          "sanitized": false
+        }
+      ]
+    },
+    {
+      "id": "invalid-observation-2",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-3",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-4",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-5",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-6",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-7",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-8",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-9",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-observation-10",
+      "title": "Invalid observation",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "takeaway": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    }
+  ]
+}

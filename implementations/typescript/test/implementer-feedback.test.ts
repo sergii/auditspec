@@ -9,6 +9,23 @@ import { validateAuditEvent } from "../src/validate.js";
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(packageRoot, "../..");
 
+interface FeedbackObservation {
+  id: string;
+  source_kind:
+    | "github_issue"
+    | "integration_review"
+    | "pull_request_review"
+    | "support_conversation"
+    | "other";
+  source_ref: string;
+  observed_at: string;
+  misconception_summary: string;
+  impact: "blocked" | "confusing" | "minor" | "unknown";
+  sanitized: true;
+  resolution_status?: "open" | "resolved" | "accepted_no_change";
+  notes?: string;
+}
+
 interface FeedbackScenario {
   id: string;
   title: string;
@@ -21,6 +38,7 @@ interface FeedbackScenario {
   anti_pattern_events: unknown[];
   recommended_events: unknown[];
   expected_changed_fields: string[];
+  observations?: FeedbackObservation[];
 }
 
 interface FeedbackCorpus {
@@ -186,6 +204,37 @@ test("scenario references point at existing specification documents", () => {
       assert.ok(anchor);
       const source = readFileSync(resolve(repoRoot, path), "utf8");
       assert.ok(source.length > 0, `${scenario.id}: missing source ${path}`);
+    }
+  }
+});
+
+
+test("corpus evidence status is derived from curated observation coverage", () => {
+  const corpus = loadJson(
+    "examples/implementer-feedback/corpus.json",
+  ) as FeedbackCorpus;
+
+  const observed = corpus.scenarios.filter(
+    (scenario) => (scenario.observations?.length ?? 0) > 0,
+  ).length;
+
+  const expected =
+    observed === 0
+      ? "hypothesis"
+      : observed === corpus.scenarios.length
+        ? "observed"
+        : "mixed";
+
+  assert.equal(corpus.evidence_status, expected);
+
+  for (const scenario of corpus.scenarios) {
+    for (const observation of scenario.observations ?? []) {
+      assert.equal(observation.sanitized, true);
+      assert.ok(observation.source_ref.length > 0);
+      assert.match(
+        observation.observed_at,
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/,
+      );
     }
   }
 });

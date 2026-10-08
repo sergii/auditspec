@@ -13,8 +13,8 @@ Current `main` development state is declared in `release/metadata.json`.
 | Latest tagged release | `v0.2.0` | Latest immutable repository release/tag. |
 | Main development line | `v0.3` | Active repository development line on `main`. |
 | Target next release | `v0.3.0` | Planned repository release for the active development line. |
-| TypeScript reference package | `0.3.0-dev.3` | Private implementation development version. |
-| MCP server implementation | `0.3.0-dev.3` | Server implementation version reported to MCP clients. |
+| TypeScript reference package | `0.3.0-dev.4` | Private implementation development version. |
+| MCP server implementation | `0.3.0-dev.4` | Server implementation version reported to MCP clients. |
 | Core audit event | `spec_version: "0.1"` | Normative semantic contract for AuditSpec Core events. |
 | Core schema URI | `/schema/0.1/audit-event.schema.json` | Immutable Core schema family/version. |
 | Assessment/report schemas | currently `0.1` families | Independently versioned non-Core contracts. |
@@ -29,7 +29,7 @@ The active repository line and the latest tagged release are deliberately differ
 latest tagged release       v0.2.0
 main development line       v0.3
 next target release         v0.3.0
-reference implementation    0.3.0-dev.3
+reference implementation    0.3.0-dev.4
 Core event spec_version     0.1
 ```
 
@@ -47,7 +47,7 @@ Release candidates use:
 
 A final released implementation version equals the target release version.
 
-Advancing `0.3.0-dev.3` to another development/candidate/final version changes implementation/repository metadata only. It does not change Core unless AuditSpec explicitly versions the normative Core contract.
+Advancing `0.3.0-dev.4` to another development/candidate/final version changes implementation/repository metadata only. It does not change Core unless AuditSpec explicitly versions the normative Core contract.
 
 ## Why v0.3 can still use Core spec_version 0.1
 
@@ -101,8 +101,8 @@ Reference implementations use package/server versions to describe the implementa
 For current `main` development:
 
 ```text
-TypeScript reference package  0.3.0-dev.3
-MCP server implementation     0.3.0-dev.3
+TypeScript reference package  0.3.0-dev.4
+MCP server implementation     0.3.0-dev.4
 Core event spec_version       0.1
 ```
 

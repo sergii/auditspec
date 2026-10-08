@@ -1,6 +1,6 @@
 # TypeScript reference implementation
 
-This directory contains the executable TypeScript reference for the AuditSpec v0.3 development line. The package version is `0.3.0-dev.3`; the latest tagged repository release remains `v0.2.0`. The normative Core event contract remains `spec_version: "0.1"`; repository/implementation versions do not imply a Core schema version.
+This directory contains the executable TypeScript reference for the AuditSpec v0.3 development line. The package version is `0.3.0-dev.4`; the latest tagged repository release remains `v0.2.0`. The normative Core event contract remains `spec_version: "0.1"`; repository/implementation versions do not imply a Core schema version.
 
 ## Library API
 
@@ -84,7 +84,7 @@ The default `validate` output remains machine-readable JSON for compatibility. `
 
 `init-example` refuses accidental overwrite unless `--force` is passed explicitly.
 
-See `../../examples/external-implementer/README.md` and `../../docs/core-decision-guide.md`.
+See `../../examples/external-implementer/README.md`, `../../docs/core-decision-guide.md`, and `../../docs/implementer-feedback-intake.md`.
 
 ### Implementer corpus runner
 

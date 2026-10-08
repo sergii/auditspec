@@ -6,7 +6,7 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 
 ### Development versioning
 
-- Moved `main` to the `v0.3` development line with TypeScript/MCP implementation version `0.3.0-dev.3`.
+- Moved `main` to the `v0.3` development line with TypeScript/MCP implementation version `0.3.0-dev.4`.
 - Added machine-readable `release/metadata.json` separating latest tagged release, active development line, target release, implementation version, and Core spec version.
 - Replaced the hard-coded v0.2 release checker with a generic release-boundary checker driven by release metadata.
 - Core remains `spec_version: "0.1"`; the v0.3 development version does not imply a Core 0.3 contract.
@@ -30,7 +30,10 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 - Marked the corpus as hypothesis evidence rather than pretending predicted confusion is already observed user feedback.
 - Added a Core semantic decision guide that walks implementers through identity, actor/delegation, targets/subjects, authorization/result, evidence, causality, time, and delivery choices.
 - Added CI drift checks requiring every implementer-confusion scenario to remain represented in the guide.
-- Advanced the private TypeScript/MCP development version to `0.3.0-dev.3`.
+- Added a structured real implementer feedback intake form and manual evidence-curation lifecycle.
+- Extended feedback scenarios with optional sanitized observations and made corpus evidence status derivable from observation coverage.
+- Added CI checks that keep issue-form scenario choices synchronized with the corpus and reject unsanitized committed observations.
+- Advanced the private TypeScript/MCP development version to `0.3.0-dev.4`.
 - Core remains `spec_version: "0.1"`; these are adoption surfaces, not a Core schema revision.
 
 ## v0.2.0 - 2026-10-07
