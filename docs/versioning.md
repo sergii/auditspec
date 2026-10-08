@@ -6,15 +6,15 @@ The repository release version is not the same thing as the Core event `spec_ver
 
 ## Version planes
 
-Current `main` development state is declared in `release/metadata.json`.
+Current `main` release-candidate state is declared in `release/metadata.json`.
 
 | Plane | Current value | Meaning |
 | --- | --- | --- |
 | Latest tagged release | `v0.2.0` | Latest immutable repository release/tag. |
-| Main development line | `v0.3` | Active repository development line on `main`. |
+| Main release line | `v0.3` | Active repository release-candidate line on `main`. |
 | Target next release | `v0.3.0` | Planned repository release for the active development line. |
-| TypeScript reference package | `0.3.0-dev.4` | Private implementation development version. |
-| MCP server implementation | `0.3.0-dev.4` | Server implementation version reported to MCP clients. |
+| TypeScript reference package | `0.3.0-rc.1` | Private implementation release-candidate version. |
+| MCP server implementation | `0.3.0-rc.1` | Release-candidate server implementation version reported to MCP clients. |
 | Core audit event | `spec_version: "0.1"` | Normative semantic contract for AuditSpec Core events. |
 | Core schema URI | `/schema/0.1/audit-event.schema.json` | Immutable Core schema family/version. |
 | Assessment/report schemas | currently `0.1` families | Independently versioned non-Core contracts. |
@@ -23,13 +23,13 @@ Current `main` development state is declared in `release/metadata.json`.
 
 ## Development and release versions
 
-The active repository line and the latest tagged release are deliberately different while development is in progress:
+The active repository candidate and the latest tagged release are deliberately different during RC stabilization:
 
 ```text
 latest tagged release       v0.2.0
-main development line       v0.3
+main release line           v0.3
 next target release         v0.3.0
-reference implementation    0.3.0-dev.4
+reference implementation    0.3.0-rc.1
 Core event spec_version     0.1
 ```
 
@@ -47,7 +47,7 @@ Release candidates use:
 
 A final released implementation version equals the target release version.
 
-Advancing `0.3.0-dev.4` to another development/candidate/final version changes implementation/repository metadata only. It does not change Core unless AuditSpec explicitly versions the normative Core contract.
+Advancing `0.3.0-rc.1` to another development/candidate/final version changes implementation/repository metadata only. It does not change Core unless AuditSpec explicitly versions the normative Core contract.
 
 ## Why v0.3 can still use Core spec_version 0.1
 
@@ -98,15 +98,17 @@ Consumers MUST inspect the version field or immutable schema identifier of the s
 
 Reference implementations use package/server versions to describe the implementation build, not the Core event contract.
 
-For current `main` development:
+For current `main` release-candidate state:
 
 ```text
-TypeScript reference package  0.3.0-dev.4
-MCP server implementation     0.3.0-dev.4
+TypeScript reference package  0.3.0-rc.1
+MCP server implementation     0.3.0-rc.1
 Core event spec_version       0.1
 ```
 
-The latest tagged release remains `v0.2.0`.
+The latest tagged release remains `v0.2.0` until the final v0.3.0 tag is created.
+
+The active RC audit and compatibility record is `docs/release-v0.3.md`.
 
 ## Research profile rule
 

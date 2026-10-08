@@ -150,7 +150,7 @@ An agent can therefore distinguish contract, pinned framework-runtime, pinned re
 
 Inspector Core consumes generic framework plugins. A plugin may identify framework entrypoints, mutations, authorization evidence, transactions, or dispatch surfaces, but it must project them into generic Assessment / Assurance contracts and preserve uncertainty. AuditSpec Core does not gain Rails- or Frappe-specific semantics merely because the reference Inspector ships those plugins.
 
-The v0.2 development line is also extracting framework-specific Assurance Graph construction behind plugin boundaries. Until that extraction is complete, the existing graph implementation remains a compatibility surface rather than proof that every internal graph dependency is already framework-neutral.
+The current implementation continues to keep framework-specific Assurance Graph construction behind plugin boundaries. Remaining internal graph dependencies are implementation details and must not be treated as proof that every framework path is already framework-neutral.
 
 ## Assurance Graph boundary
 

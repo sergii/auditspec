@@ -6,10 +6,18 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 
 ### Development versioning
 
-- Moved `main` to the `v0.3` development line with TypeScript/MCP implementation version `0.3.0-dev.4`.
+- Moved `main` through the `v0.3` development line and into release-candidate stabilization with TypeScript/MCP implementation version `0.3.0-rc.1`.
 - Added machine-readable `release/metadata.json` separating latest tagged release, active development line, target release, implementation version, and Core spec version.
 - Replaced the hard-coded v0.2 release checker with a generic release-boundary checker driven by release metadata.
 - Core remains `spec_version: "0.1"`; the v0.3 development version does not imply a Core 0.3 contract.
+
+### Compatibility and migration
+
+- Core remains `spec_version: "0.1"`; the normative Core files are unchanged from `v0.2.0`.
+- The TypeScript root import is intentionally narrower than v0.2.0. Inspector/runtime/assurance/agent/mandate APIs moved from the historical catch-all root to `@auditspec/reference-typescript/experimental`.
+- This is a deliberate pre-1.0 breaking library-boundary change, but the reference package remains private/unpublished, so npm consumers are not affected.
+- Existing `auditspec validate` machine-readable output and GitHub Action user-facing behavior remain compatible.
+- See `docs/release-v0.3.md` for the full RC audit and migration notes.
 
 ### Adoption and conformance
 
@@ -33,7 +41,7 @@ AuditSpec follows explicit specification and implementation versions. The Core `
 - Added a structured real implementer feedback intake form and manual evidence-curation lifecycle.
 - Extended feedback scenarios with optional sanitized observations and made corpus evidence status derivable from observation coverage.
 - Added CI checks that keep issue-form scenario choices synchronized with the corpus and reject unsanitized committed observations.
-- Advanced the private TypeScript/MCP development version to `0.3.0-dev.4`.
+- Advanced the private TypeScript/MCP development version to `0.3.0-rc.1`.
 - Core remains `spec_version: "0.1"`; these are adoption surfaces, not a Core schema revision.
 
 ## v0.2.0 - 2026-10-07

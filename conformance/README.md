@@ -2,7 +2,7 @@
 
 AuditSpec conformance is executable, not only descriptive.
 
-The v0.2 repository release line retains the v0.1 Core event contract and defines multiple independently versioned machine-readable contracts. Implementations should treat the JSON Schemas, canonical examples, positive vectors, negative vectors, behavioral invariants, and capability manifests as shared interoperability material rather than re-inventing local shapes.
+The v0.3 release-candidate line retains the v0.1 Core event contract and defines multiple independently versioned machine-readable contracts. Implementations should treat the JSON Schemas, canonical examples, positive vectors, negative vectors, behavioral invariants, and capability manifests as shared interoperability material rather than re-inventing local shapes.
 
 Current machine-readable contracts include:
 
