@@ -147,7 +147,7 @@ check(
 );
 check(
   Object.keys(packageJson.exports ?? {}).sort().join(",") ===
-    "./experimental,.",
+    ".,./experimental",
   "v0.3 RC package exports must remain restricted to stable root and ./experimental.",
 );
 
