@@ -6,7 +6,7 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.2`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
+The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.3`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
 
 Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for the completed v0.2.0 release record.
 
@@ -56,7 +56,7 @@ This path requires only the Core event contract. Inspector, MCP, runtime corrobo
 
 The TypeScript package root is now deliberately small and stable. Inspector/runtime/research APIs live behind the explicit `@auditspec/reference-typescript/experimental` subpath, while parser/framework plumbing remains internal.
 
-See `examples/external-implementer/README.md` for the complete walkthrough.
+See `examples/external-implementer/README.md` for the complete walkthrough. Before modeling a real event, use `docs/core-decision-guide.md` for the field-by-field semantic decisions that schema validation cannot make for you.
 
 ## External consumer sample
 
@@ -183,6 +183,7 @@ The corpus currently has `evidence_status: "hypothesis"`: it is a set of predict
 - `docs/mcp.md` - MCP server and agent-facing tools.
 - `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics, and producer model.
 - `docs/roadmap.md` - non-normative future work and permanent assurance guardrails.
+- `docs/core-decision-guide.md` - short field-by-field guide for modeling a real action without collapsing actor/delegation/auth/result/evidence semantics.
 - `docs/versioning.md` - repository/Core/schema/implementation version boundaries.
 - `docs/api-stability.md` - TypeScript stable/experimental/internal package API boundary.
 - `docs/release-v0.2.md` - v0.2 release inventory, surface classification, gaps, and release gates.

@@ -100,7 +100,7 @@ Is this a retry or a second logical action?
 When did the action happen versus when was it recorded?
 ```
 
-The paired corpus examples make those questions concrete.
+The paired corpus examples make those questions concrete. For the corresponding first-pass modeling workflow, see `../../docs/core-decision-guide.md`.
 
 ## Feedback loop
 

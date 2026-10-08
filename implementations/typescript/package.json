@@ -1,6 +1,6 @@
 {
   "name": "@auditspec/reference-typescript",
-  "version": "0.3.0-dev.2",
+  "version": "0.3.0-dev.3",
   "private": true,
   "type": "module",
   "description": "Executable TypeScript reference implementation for the AuditSpec v0.3 development line (Core spec_version 0.1)",

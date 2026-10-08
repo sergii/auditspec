@@ -161,6 +161,8 @@ The corpus contract is `schema/implementer-feedback-corpus.schema.json`. Reposit
 
 The current corpus is explicitly marked `evidence_status: "hypothesis"`; it must not be cited as observed external-user feedback until real attributable evidence exists.
 
+`docs/core-decision-guide.md` turns these semantic traps into a short modeling workflow. CI checks that every corpus scenario remains represented there.
+
 ## Differential reference conformance
 
 TypeScript, Ruby, and Python consume the same repository-root schemas and shared valid/invalid corpus. A disagreement between reference implementations is treated as an interoperability defect rather than a language-specific interpretation.

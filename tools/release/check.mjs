@@ -213,6 +213,7 @@ const requiredBaselineFiles = [
   "docs/assurance-invariants.md",
   "docs/versioning.md",
   "docs/api-stability.md",
+  "docs/core-decision-guide.md",
   "implementations/typescript/api-surface.json",
   "examples/external-sample-app/README.md",
   "tools/adoption/check-external-sample.mjs",

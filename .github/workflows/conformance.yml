@@ -29,6 +29,9 @@ jobs:
       - name: Check release metadata and boundaries
         run: node tools/release/check.mjs
 
+      - name: Check Core semantic decision guide
+        run: node tools/adoption/check-core-decision-guide.mjs
+
 
   external-sample-app:
     runs-on: ubuntu-latest
