@@ -1,0 +1,227 @@
+{
+  "corpus_version": "0.1",
+  "evidence_status": "hypothesis",
+  "description": "Invalid fixture missing required takeaway.",
+  "scenarios": [
+    {
+      "id": "invalid-scenario-1",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-2",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-3",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-4",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-5",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-6",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-7",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-8",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-9",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    },
+    {
+      "id": "invalid-scenario-10",
+      "title": "Invalid",
+      "focus": [
+        "actor"
+      ],
+      "situation": "x",
+      "misconception": "x",
+      "why_misleading": "x",
+      "spec_refs": [
+        "SPEC.md#4-actor"
+      ],
+      "anti_pattern_events": [
+        {}
+      ],
+      "recommended_events": [
+        {}
+      ],
+      "expected_changed_fields": [
+        "actor"
+      ]
+    }
+  ]
+}
