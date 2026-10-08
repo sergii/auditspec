@@ -6,7 +6,7 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.3`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
+The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.4`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
 
 Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for the completed v0.2.0 release record.
 
@@ -97,6 +97,22 @@ Its anti-pattern examples intentionally remain Core-valid. The paired recommende
 
 The corpus currently has `evidence_status: "hypothesis"`: it is a set of predicted first-time-implementer mistakes, not a claim of already-observed external-user feedback. See `examples/implementer-feedback/README.md`.
 
+## Real implementer feedback
+
+The hypothesis corpus is now connected to a structured GitHub Issue Form and a manual curation lifecycle.
+
+Use the issue template **Implementer semantic feedback** when a real integration is confusing even though the event may be schema-valid.
+
+A submitted issue does not automatically become project evidence. Maintainers first triage, sanitize, minimize, and then add a curated `observations[]` record to the relevant corpus scenario. The top-level corpus status is derived conservatively:
+
+```text
+0 observed scenarios      -> hypothesis
+some observed scenarios   -> mixed
+all observed scenarios    -> observed
+```
+
+See `docs/implementer-feedback-intake.md`.
+
 ## Core event
 
 ```json
@@ -184,6 +200,7 @@ The corpus currently has `evidence_status: "hypothesis"`: it is a set of predict
 - `docs/runtime-corroboration.md` - static/runtime evidence separation, observation scope, runtime query/diff semantics, and producer model.
 - `docs/roadmap.md` - non-normative future work and permanent assurance guardrails.
 - `docs/core-decision-guide.md` - short field-by-field guide for modeling a real action without collapsing actor/delegation/auth/result/evidence semantics.
+- `docs/implementer-feedback-intake.md` - structured lifecycle for turning real implementer reports into curated evidence.
 - `docs/versioning.md` - repository/Core/schema/implementation version boundaries.
 - `docs/api-stability.md` - TypeScript stable/experimental/internal package API boundary.
 - `docs/release-v0.2.md` - v0.2 release inventory, surface classification, gaps, and release gates.
