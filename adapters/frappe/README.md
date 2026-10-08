@@ -59,7 +59,7 @@ def public_submit(name):
     ...
 ```
 
-The v0.2 development line also supports module-level import aliases when import identity is statically proven before the decorated definition:
+The current implementation also supports module-level import aliases when import identity is statically proven before the decorated definition:
 
 ```python
 from frappe import whitelist as api
@@ -115,7 +115,7 @@ Dynamic composition such as `**shared_hooks`, later `.update(...)` mutation, rea
 
 The Assurance Graph resolves Frappe background dispatch from an exact `frappe.enqueue(...)` call when callable identity can be proven conservatively.
 
-Supported forms include literal dotted targets, unshadowed top-level function references from the same Python module, direct absolute `from ... import ...` references owned by the exact caller scope, and v0.2 direct absolute module-level `from ... import ...` references:
+Supported forms include literal dotted targets, unshadowed top-level function references from the same Python module, direct absolute `from ... import ...` references owned by the exact caller scope, and direct absolute module-level `from ... import ...` references:
 
 ```python
 frappe.enqueue("wiki.jobs.rebuild_index")
@@ -141,7 +141,7 @@ def update_search_index_with_alias():
     frappe.enqueue(method=job, queue="long")
 ```
 
-The v0.2 development line also resolves conventional module-level imports:
+The current implementation also resolves conventional module-level imports:
 
 ```python
 from wiki.jobs import rebuild_index
