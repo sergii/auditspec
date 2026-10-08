@@ -1,0 +1,68 @@
+{
+  "audit_version": "0.1",
+  "audited_at": "2026-10-08T15:11:00Z",
+  "target_release": "0.3.0",
+  "candidate_version": "0.3.0-rc.1",
+  "base_release_tag": "v0.2.0",
+  "audited_development_sha": "0c2783248c48bab84b096b134d842948d3fb808f",
+  "delta": {
+    "commits_since_base": 9,
+    "changed_files": 55,
+    "additions": 6070,
+    "deletions": 287
+  },
+  "repository_state": {
+    "open_issues": 0,
+    "open_pull_requests": 0
+  },
+  "core_contract": {
+    "spec_version": "0.1",
+    "changed_since_base": false,
+    "checked_files": [
+      "SPEC.md",
+      "schema/audit-event.schema.json",
+      "spec/actors.md",
+      "spec/trust-model.md",
+      "spec/delivery.md"
+    ]
+  },
+  "compatibility": [
+    {
+      "surface": "core_event",
+      "classification": "compatible",
+      "note": "Core spec_version remains 0.1 and the normative Core files are unchanged from v0.2.0."
+    },
+    {
+      "surface": "typescript_root_import",
+      "classification": "breaking_for_direct_importers",
+      "note": "The historical catch-all root barrel was narrowed to the stable API. Inspector/runtime/research imports moved to the explicit ./experimental subpath."
+    },
+    {
+      "surface": "typescript_package_distribution",
+      "classification": "not_publicly_published",
+      "note": "The reference package remains private; npm publication is not part of v0.3.0."
+    },
+    {
+      "surface": "cli",
+      "classification": "additive",
+      "note": "init-example, human validation, explain, and conformance commands are additive; existing validate JSON output remains the default."
+    },
+    {
+      "surface": "github_action",
+      "classification": "compatible",
+      "note": "The action interface remains advisory and compatible; internal Inspector imports now use the experimental package entrypoint."
+    },
+    {
+      "surface": "non_core_schemas",
+      "classification": "additive",
+      "note": "Conformance Corpus Report and Implementer Feedback Corpus are new independently versioned non-Core contracts."
+    }
+  ],
+  "blockers": [],
+  "non_blocking_gaps": [
+    "The TypeScript package remains private and unpublished.",
+    "The implementer feedback corpus remains evidence_status=hypothesis until real curated observations arrive.",
+    "Go and Rust reference implementations remain future work.",
+    "Some Inspector/runtime/research APIs remain explicitly experimental."
+  ]
+}
