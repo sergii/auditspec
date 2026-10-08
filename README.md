@@ -6,7 +6,7 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-The latest tagged release is `v0.2.0`. `main` tracks the `v0.3` development line, with the TypeScript reference and MCP implementation currently versioned `0.3.0-dev.4`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
+The latest tagged release is `v0.2.0`. `main` is preparing the `v0.3.0` release candidate, with the TypeScript reference and MCP implementation versioned `0.3.0-rc.1`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
 
 Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for the completed v0.2.0 release record.
 
@@ -203,7 +203,8 @@ See `docs/implementer-feedback-intake.md`.
 - `docs/implementer-feedback-intake.md` - structured lifecycle for turning real implementer reports into curated evidence.
 - `docs/versioning.md` - repository/Core/schema/implementation version boundaries.
 - `docs/api-stability.md` - TypeScript stable/experimental/internal package API boundary.
-- `docs/release-v0.2.md` - v0.2 release inventory, surface classification, gaps, and release gates.
+- `docs/release-v0.2.md` - completed v0.2.0 release record.
+- `docs/release-v0.3.md` - v0.3.0 RC audit, compatibility notes, and go/no-go gates.
 - `agents/` - instructions for coding agents implementing AuditSpec.
 - `references/` - prior art and attribution.
 
