@@ -6,9 +6,9 @@ AuditSpec defines a vendor-neutral semantic contract for product audit events. I
 
 ## Status
 
-The latest tagged release is `v0.2.0`. `main` is preparing the `v0.3.0` release candidate, with the TypeScript reference and MCP implementation versioned `0.3.0-rc.1`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
+The latest tagged release is `v0.3.0`. `main` is on the `v0.3` release line, with the TypeScript reference and MCP implementation versioned `0.3.0`. The normative Core audit-event contract remains `spec_version: "0.1"`; repository and implementation versions can advance without silently redefining Core.
 
-Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.2.md` for the completed v0.2.0 release record.
+Later `0.x` revisions may still introduce breaking changes, so compatibility-sensitive consumers should pin a released tag or immutable commit. See `release/metadata.json` for machine-readable development/release metadata, `docs/versioning.md` for the separate repository, implementation, schema, and external-standard version planes, and `docs/release-v0.3.md` for the v0.3.0 release record.
 
 ## AuditSpec is
 
@@ -32,7 +32,7 @@ Later `0.x` revisions may still introduce breaking changes, so compatibility-sen
 
 ## Five-minute implementer quickstart
 
-The v0.3 development line starts with one deliberately small external-implementer journey:
+The v0.3 release line starts with one deliberately small external-implementer journey:
 
 ```bash
 cd implementations/typescript
@@ -87,7 +87,7 @@ This is intentionally stronger than an in-repository unit test because the sampl
 
 Core validation answers whether an event conforms structurally and to the normative machine-checkable constraints. It cannot prove that an implementer chose the right real-world actor, delegation chain, evidence trust, source identity, or causal relation.
 
-The v0.3 development line includes a paired confusion corpus:
+The v0.3 release line includes a paired confusion corpus:
 
 ```text
 examples/implementer-feedback/corpus.json
