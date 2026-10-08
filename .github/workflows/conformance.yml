@@ -32,6 +32,9 @@ jobs:
       - name: Check Core semantic decision guide
         run: node tools/adoption/check-core-decision-guide.mjs
 
+      - name: Check implementer feedback intake
+        run: node tools/adoption/check-feedback-intake.mjs
+
 
   external-sample-app:
     runs-on: ubuntu-latest
