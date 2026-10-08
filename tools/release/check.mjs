@@ -137,10 +137,24 @@ check(
   readme.includes(`latest tagged release is \`${metadata.latest_release_tag}\``),
   "README must identify the latest tagged release from release metadata.",
 );
-check(
-  readme.includes(`\`main\` tracks the \`v${metadata.development_line}\` development line`),
-  "README must identify the active main development line.",
-);
+if (metadata.stage === "development") {
+  check(
+    readme.includes(`\`main\` tracks the \`v${metadata.development_line}\` development line`),
+    "README must identify the active main development line.",
+  );
+} else if (metadata.stage === "candidate") {
+  check(
+    readme.includes(
+      `\`main\` is preparing the \`v${metadata.target_release}\` release candidate`,
+    ),
+    "README must identify the active release candidate.",
+  );
+} else {
+  check(
+    readme.includes(`latest tagged release is \`v${metadata.target_release}\``),
+    "README must identify the released target version.",
+  );
+}
 check(
   readme.includes(
     `Core audit-event contract remains \`spec_version: "${metadata.core_spec_version}"\``,
@@ -191,11 +205,39 @@ check(
   "Latest release document must remain marked released.",
 );
 
+if (metadata.target_release_doc) {
+  check(
+    existsSync(resolve(root, metadata.target_release_doc)),
+    `Target release document is missing: ${metadata.target_release_doc}`,
+  );
+  if (existsSync(resolve(root, metadata.target_release_doc))) {
+    const targetReleaseDoc = read(metadata.target_release_doc);
+    if (metadata.stage === "candidate") {
+      check(
+        targetReleaseDoc.includes("Status: release candidate"),
+        "Target release document must be marked release candidate.",
+      );
+    } else if (metadata.stage === "released") {
+      check(
+        targetReleaseDoc.includes("Status: released"),
+        "Target release document must be marked released.",
+      );
+    }
+  }
+}
+
 const versioning = read("docs/versioning.md");
-check(
-  versioning.includes(`Main development line | \`v${metadata.development_line}\``),
-  "Versioning doc must state the active main development line.",
-);
+if (metadata.stage === "development") {
+  check(
+    versioning.includes(`Main development line | \`v${metadata.development_line}\``),
+    "Versioning doc must state the active main development line.",
+  );
+} else {
+  check(
+    versioning.includes(`Main release line | \`v${metadata.development_line}\``),
+    "Versioning doc must state the active main release line.",
+  );
+}
 check(
   versioning.includes(
     `TypeScript reference package | \`${metadata.reference_version}\``,
@@ -248,7 +290,7 @@ if (failures.length > 0) {
 
 console.log("AuditSpec release-boundary checks passed.");
 console.log(`Stage: ${metadata.stage}`);
-console.log(`Main development line: ${metadata.development_line}`);
+console.log(`Active release line: ${metadata.development_line}`);
 console.log(`Target release: ${metadata.target_release}`);
 console.log(`Reference implementation: ${metadata.reference_version}`);
 console.log(`Latest tagged release: ${metadata.latest_release_tag}`);
