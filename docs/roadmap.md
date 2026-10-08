@@ -14,7 +14,7 @@ The active mainline now uses machine-readable development metadata:
 latest release      v0.2.0
 main line           v0.3
 target release      v0.3.0
-reference version   0.3.0-dev.1
+reference version   0.3.0-dev.2
 Core spec_version   0.1
 ```
 
@@ -42,7 +42,8 @@ Next adoption hardening should prioritize independent implementers over addition
 - implemented: versioned machine-readable conformance summaries suitable for CI;
 - implemented: machine-enforced stable/experimental/internal TypeScript API classification with a restricted package export map;
 - implemented: an external sample application tested against a packed package artifact and limited to the stable TypeScript root;
-- feedback-driven simplification where first-time implementers repeatedly misread Core semantics.
+- implemented: a machine-readable hypothesis corpus of schema-valid semantic misconceptions covering the highest-risk Core interpretation boundaries;
+- next: promote hypothesis scenarios to observed/mixed only when attributable external implementer evidence arrives, then simplify docs/tooling where confusion repeats.
 
 The adoption path must keep Core useful independently from Inspector, MCP, runtime corroboration, agent/mandate research, or cloud services.
 
