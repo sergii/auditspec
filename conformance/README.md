@@ -26,6 +26,7 @@ Current machine-readable contracts include:
 - Framework Adapter Manifest
 - Runtime Producer Manifest
 - Conformance Corpus Report
+- Implementer Feedback Corpus
 
 ## Schema conformance
 
@@ -135,6 +136,30 @@ The machine-readable output conforms to:
 Exit status is `0` only when the corpus contains at least one JSON event and every discovered event is valid. Invalid schema instances, malformed JSON, and an empty corpus all fail non-zero.
 
 This command checks each event independently against Core. It does not infer delivery deduplication, cross-event ordering, business correctness, or runtime truth from a directory of JSON files.
+
+## Semantic confusion corpus
+
+AuditSpec also maintains:
+
+```text
+examples/implementer-feedback/corpus.json
+```
+
+This is not another valid/invalid Core corpus. Its anti-pattern events are deliberately Core-valid.
+
+The purpose is to make a different boundary executable:
+
+```text
+schema validity
+    !=
+semantic fidelity to the stated real-world situation
+```
+
+The paired scenarios cover actor/delegation, source/producer, target/subject, authorization/result, evidence trust, correlation/causality, retry identity, occurred/recorded time, and transport-vs-business-result confusion.
+
+The corpus contract is `schema/implementer-feedback-corpus.schema.json`. Repository conformance validates its shape, while the TypeScript suite additionally verifies that both anti-pattern and recommended events are Core-valid and that each scenario actually changes the fields it claims to teach.
+
+The current corpus is explicitly marked `evidence_status: "hypothesis"`; it must not be cited as observed external-user feedback until real attributable evidence exists.
 
 ## Differential reference conformance
 
