@@ -1,9 +1,8 @@
 # AuditSpec v0.3.0 release readiness
 
 Version: v0.3.0  
-Candidate: 0.3.0-rc.1  
 Date: 2026-10-08  
-Status: release candidate
+Status: released
 
 ## Release thesis
 
@@ -179,7 +178,7 @@ The following are release-candidate gates:
 - [x] generic release-boundary CI is active;
 - [x] 0.3.0-rc.1 branch/PR completes all required CI;
 - [x] candidate metadata is merged to main;
-- [ ] optional RC tag `v0.3.0-rc.1` is created if a tagged soak is desired.
+- [x] RC1 completed without known blockers; the optional RC tag was intentionally skipped.
 
 ## Final v0.3.0 gates after RC
 
@@ -187,13 +186,13 @@ Before the final `v0.3.0` tag:
 
 - keep the RC on main long enough to catch release-shape regressions;
 - resolve any RC-blocking issue discovered during soak;
-- change metadata stage from `candidate` to `released`;
-- change TypeScript/MCP version from `0.3.0-rc.1` to `0.3.0`;
-- date the `v0.3.0` changelog entry;
-- update README/versioning from candidate wording to released wording;
-- run all required CI on the final main commit;
-- create immutable `v0.3.0` tag from that commit;
-- verify tag-triggered CI and GitHub Action smoke.
+- [x] change metadata stage from `candidate` to `released`;
+- [x] change TypeScript/MCP version from `0.3.0-rc.1` to `0.3.0`;
+- [x] date the `v0.3.0` changelog entry;
+- [x] update README/versioning from candidate wording to released wording;
+- [ ] run all required CI on the final main commit;
+- [ ] create immutable `v0.3.0` tag from that commit;
+- [ ] verify tag-triggered CI and GitHub Action smoke.
 
 ## Known non-blocking gaps
 
@@ -209,4 +208,4 @@ The following are intentionally not v0.3.0 blockers:
 
 RC1 is now merged to `main` at `d2b535ee8cfa6fcc204c7f3b04a0efeedc3b8476`. The complete PR suite and the post-merge main suite are green, including release-readiness, TypeScript, schema conformance, external sample, Action smoke, mutation assurance, atomicity, and Frappe Bench atomicity.
 
-There are no known release blockers. The optional `v0.3.0-rc.1` tag has not been created.
+There are no known release blockers. Final metadata is prepared for `v0.3.0`; final main CI and the immutable tag remain the last release actions.
