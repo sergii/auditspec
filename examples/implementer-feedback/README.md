@@ -24,7 +24,32 @@ These are engineering hypotheses derived from the normative Core semantics and f
 
 They are **not** claims that 13 external users have already reported these misunderstandings.
 
-A scenario should move to `observed` only when actual implementer feedback, issue reports, integration reviews, or other attributable evidence supports it.
+A scenario gains an `observations[]` entry only when actual implementer feedback, issue reports, integration reviews, or other attributable evidence supports it. The top-level `evidence_status` is then derived from how many scenarios have curated observations.
+
+## Curated observations
+
+Real reports enter through the structured GitHub Issue Form and the workflow in `../../docs/implementer-feedback-intake.md`.
+
+A raw issue is not automatically corpus evidence. After maintainer review, the minimum sanitized observation can be attached to a scenario:
+
+```json
+{
+  "observations": [
+    {
+      "id": "obs-2026-001",
+      "source_kind": "github_issue",
+      "source_ref": "https://github.com/sergii/auditspec/issues/123",
+      "observed_at": "2026-10-08T12:00:00Z",
+      "misconception_summary": "Implementer modeled represented user as actor instead of the executing agent.",
+      "impact": "confusing",
+      "sanitized": true,
+      "resolution_status": "resolved"
+    }
+  ]
+}
+```
+
+The corpus remains `hypothesis` while no scenario has observations, becomes `mixed` when some scenarios are observed, and becomes `observed` only when every scenario has at least one curated observation.
 
 ## Why the anti-patterns are valid JSON
 
@@ -106,11 +131,12 @@ The paired corpus examples make those questions concrete. For the corresponding 
 
 When real implementer feedback arrives:
 
-1. attach the observation to an existing scenario or add a new scenario;
-2. change `evidence_status` to `mixed` or `observed` only when justified;
-3. preserve the exact misconception in a minimized, non-sensitive form;
-4. decide whether the fix belongs in docs/examples/tooling or actually requires a Core change;
-5. add a regression example before simplifying or changing the specification.
+1. triage it through `../../docs/implementer-feedback-intake.md`;
+2. attach a sanitized observation to an existing scenario or add a new scenario;
+3. let the corpus-level evidence status follow observation coverage;
+4. preserve the exact misconception in a minimized, non-sensitive form;
+5. decide whether the fix belongs in docs/examples/tooling or actually requires a Core change;
+6. add a regression example before simplifying or changing the specification.
 
 Repeated confusion should first pressure documentation, naming, examples, and tooling.
 
