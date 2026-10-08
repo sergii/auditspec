@@ -64,5 +64,17 @@
     "The implementer feedback corpus remains evidence_status=hypothesis until real curated observations arrive.",
     "Go and Rust reference implementations remain future work.",
     "Some Inspector/runtime/research APIs remain explicitly experimental."
-  ]
+  ],
+  "candidate_main_sha": "d2b535ee8cfa6fcc204c7f3b04a0efeedc3b8476",
+  "main_ci_verified": true,
+  "main_ci": {
+    "conformance": "success",
+    "mutation_assurance": "success",
+    "atomicity_profile": "success",
+    "frappe_bench_atomicity": "success",
+    "framework_manifests": "success",
+    "frappe_adapter": "success",
+    "ruby_reference": "success",
+    "python_reference": "success"
+  }
 }
