@@ -1,13 +1,13 @@
 {
   "metadata_version": "0.1",
-  "stage": "candidate",
+  "stage": "released",
   "development_line": "0.3",
   "target_release": "0.3.0",
-  "reference_version": "0.3.0-rc.1",
+  "reference_version": "0.3.0",
   "core_spec_version": "0.1",
-  "latest_release": "0.2.0",
-  "latest_release_tag": "v0.2.0",
-  "latest_release_doc": "docs/release-v0.2.md",
-  "changelog_heading": "## v0.3.0 - Unreleased",
+  "latest_release": "0.3.0",
+  "latest_release_tag": "v0.3.0",
+  "latest_release_doc": "docs/release-v0.3.md",
+  "changelog_heading": "## v0.3.0 - 2026-10-08",
   "target_release_doc": "docs/release-v0.3.md"
 }
