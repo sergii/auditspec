@@ -3,7 +3,7 @@
   "stage": "development",
   "development_line": "0.3",
   "target_release": "0.3.0",
-  "reference_version": "0.3.0-dev.2",
+  "reference_version": "0.3.0-dev.3",
   "core_spec_version": "0.1",
   "latest_release": "0.2.0",
   "latest_release_tag": "v0.2.0",
