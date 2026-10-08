@@ -177,8 +177,8 @@ The following are release-candidate gates:
 - [x] semantic confusion corpus is explicitly hypothesis evidence;
 - [x] feedback intake requires sanitized curated observations;
 - [x] generic release-boundary CI is active;
-- [ ] 0.3.0-rc.1 branch/PR completes all required CI;
-- [ ] candidate metadata is merged to main;
+- [x] 0.3.0-rc.1 branch/PR completes all required CI;
+- [x] candidate metadata is merged to main;
 - [ ] optional RC tag `v0.3.0-rc.1` is created if a tagged soak is desired.
 
 ## Final v0.3.0 gates after RC
@@ -207,6 +207,6 @@ The following are intentionally not v0.3.0 blockers:
 
 ## Decision
 
-At the start of RC preparation there are no known release blockers.
+RC1 is now merged to `main` at `d2b535ee8cfa6fcc204c7f3b04a0efeedc3b8476`. The complete PR suite and the post-merge main suite are green, including release-readiness, TypeScript, schema conformance, external sample, Action smoke, mutation assurance, atomicity, and Frappe Bench atomicity.
 
-The candidate should proceed as `0.3.0-rc.1`, subject to the complete PR CI suite.
+There are no known release blockers. The optional `v0.3.0-rc.1` tag has not been created.
